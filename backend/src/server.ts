@@ -1,0 +1,29 @@
+
+
+// FIX: Import Request and Response types directly from express to avoid global type conflicts.
+import express, { Request, Response } from 'express';
+import cors from 'cors';
+import authRoutes from './routes/auth.routes';
+import userRoutes from './routes/user.routes';
+import videoRoutes from './routes/video.routes';
+import livestreamRoutes from './routes/livestream.routes';
+
+const app = express();
+const PORT = process.env.PORT || 5000;
+
+app.use(cors());
+app.use(express.json());
+
+app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/users', userRoutes);
+app.use('/api/v1/videos', videoRoutes);
+app.use('/api/v1/livestreams', livestreamRoutes);
+
+// FIX: Use the imported Request and Response types for the route handler to ensure correct types.
+app.get('/', (req: Request, res: Response) => {
+    res.send('BuzzCast API is running');
+});
+
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
+});
