@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { User } from '../../types';
+import { User, Video } from '../../types';
 import { View } from '../../App';
 import { SettingsIcon, GridIcon, CoinIcon, FlameIcon, StarIcon, BadgeIcon, AdminPanelIcon } from '../icons/Icons';
-import { mockVideos } from '../../services/mockApi';
 
 interface ProfileViewProps {
   user: User;
+  videos: Video[];
   onNavigate: (view: View) => void;
   onEditProfile: () => void;
 }
@@ -17,11 +17,12 @@ const StatItem: React.FC<{ value: string; label: string }> = ({ value, label }) 
   </div>
 );
 
-const ProfileView: React.FC<ProfileViewProps> = ({ user, onNavigate, onEditProfile }) => {
+const ProfileView: React.FC<ProfileViewProps> = ({ user, videos, onNavigate, onEditProfile }) => {
   const [activeTab, setActiveTab] = useState<'videos' | 'badges'>('videos');
-  const userVideos = mockVideos.filter(v => v.user.id === user.id);
+  const userVideos = videos.filter(v => v.user.id === user.id);
   const xpForNextLevel = (user.level || 1) * 200;
   const xpProgress = user.xp ? (user.xp / xpForNextLevel) * 100 : 0;
+  const totalLikes = userVideos.reduce((sum, video) => sum + video.likes, 0);
 
   return (
     <div className="h-full w-full bg-zinc-900 text-white overflow-y-auto pb-16">
@@ -67,7 +68,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ user, onNavigate, onEditProfi
       <div className="flex justify-center space-x-8 my-5">
         <StatItem value={user.following?.toLocaleString() || '0'} label="Following" />
         <StatItem value={user.followers?.toLocaleString() || '0'} label="Followers" />
-        <StatItem value={(userVideos.length * 15200).toLocaleString()} label="Likes" /> 
+        <StatItem value={totalLikes.toLocaleString()} label="Likes" /> 
       </div>
 
       <div className="px-4 flex space-x-2">
@@ -109,7 +110,11 @@ const ProfileView: React.FC<ProfileViewProps> = ({ user, onNavigate, onEditProfi
           <div className="grid grid-cols-3">
             {userVideos.map(video => (
               <div key={video.id} className="aspect-square bg-zinc-800 relative group">
-                <video src={video.videoUrl} className="w-full h-full object-cover" />
+                 {video.thumbnailUrl ? (
+                    <img src={video.thumbnailUrl} alt={video.description} className="w-full h-full object-cover" />
+                ) : (
+                    <video src={video.videoUrl} className="w-full h-full object-cover" />
+                )}
                 <div className="absolute inset-0 bg-black/20"></div>
               </div>
             ))}

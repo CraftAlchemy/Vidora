@@ -20,6 +20,7 @@ import PurchaseCoinsView from './components/views/PurchaseCoinsView';
 import LeaderboardView from './components/views/LeaderboardView';
 import DailyRewardModal from './components/DailyRewardModal';
 import AdminPanel from './components/AdminPanel';
+import SuccessToast from './components/SuccessToast';
 
 export type View =
   | 'feed'
@@ -55,6 +56,9 @@ const App: React.FC = () => {
   const [isDailyRewardModalOpen, setIsDailyRewardModalOpen] = useState(false);
   const [giftTargetVideo, setGiftTargetVideo] = useState<Video | null>(null);
   const [currentUser, setCurrentUser] = useState<User>(mockUser);
+  const [videos, setVideos] = useState<Video[]>(mockVideos);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
 
   const [selectedCoinPack, setSelectedCoinPack] = useState<CoinPack | null>(null);
 
@@ -187,10 +191,33 @@ const App: React.FC = () => {
     setIsEditProfileModalOpen(false);
   }
 
+  const showSuccessToast = (message: string) => {
+    setSuccessMessage(message);
+    setTimeout(() => {
+        setSuccessMessage(null);
+    }, 3000);
+  };
+
+  const handleUpload = (videoDetails: Omit<Video, 'id' | 'user' | 'likes' | 'comments' | 'shares' | 'commentsData'>) => {
+    const newVideo: Video = {
+      ...videoDetails,
+      id: `v-${Date.now()}`,
+      user: currentUser,
+      likes: 0,
+      comments: 0,
+      shares: 0,
+      commentsData: [],
+      thumbnailUrl: videoDetails.thumbnailUrl, // In a real app, generate this
+    };
+    setVideos([newVideo, ...videos]);
+    setIsUploadModalOpen(false);
+    showSuccessToast("Video uploaded successfully!");
+  };
+
   const renderView = () => {
     switch (activeView) {
       case 'feed':
-        return <FeedView videos={mockVideos} onSendGift={handleOpenGiftModal} />;
+        return <FeedView videos={videos} onSendGift={handleOpenGiftModal} />;
       case 'live':
         return <LiveDiscoveryView liveStreams={mockLiveStreams} />;
       case 'leaderboard':
@@ -206,7 +233,7 @@ const App: React.FC = () => {
         }
         return <ChatWindowView conversation={conversation} onBack={() => handleNavigate('inbox')} />;
       case 'profile':
-        return <ProfileView user={currentUser} onNavigate={handleNavigate} onEditProfile={() => setIsEditProfileModalOpen(true)} />;
+        return <ProfileView user={currentUser} videos={videos} onNavigate={handleNavigate} onEditProfile={() => setIsEditProfileModalOpen(true)} />;
       case 'wallet':
         return <WalletView user={currentUser} onBack={() => handleNavigate('profile')} onNavigateToPurchase={handleNavigateToPurchase} />;
       case 'purchaseCoins':
@@ -224,7 +251,7 @@ const App: React.FC = () => {
       case 'creatorDashboard':
         return <CreatorDashboardView user={currentUser}/>;
       default:
-        return <FeedView videos={mockVideos} onSendGift={handleOpenGiftModal} />;
+        return <FeedView videos={videos} onSendGift={handleOpenGiftModal} />;
     }
   };
 
@@ -245,10 +272,11 @@ const App: React.FC = () => {
         {renderView()}
       </main>
       
+      {successMessage && <SuccessToast message={successMessage} />}
       {isEditProfileModalOpen && <EditProfileModal user={currentUser} onSave={handleSaveProfile} onClose={() => setIsEditProfileModalOpen(false)} />}
       {isGiftModalOpen && giftTargetVideo && <SendGiftModal gifts={mockGifts} balance={currentUser.wallet?.balance ?? 0} onSend={handleSendGift} onClose={() => setIsGiftModalOpen(false)} />}
       {isDailyRewardModalOpen && currentUser.streakCount !== undefined && <DailyRewardModal streakCount={currentUser.streakCount} onClaim={handleClaimDailyReward} onClose={() => setIsDailyRewardModalOpen(false)} />}
-      {isUploadModalOpen && <UploadView onClose={() => setIsUploadModalOpen(false)} onUpload={(video) => { alert('Video uploaded!'); setIsUploadModalOpen(false); }} />}
+      {isUploadModalOpen && <UploadView onClose={() => setIsUploadModalOpen(false)} onUpload={handleUpload} />}
 
 
       {showBottomNavFor.includes(activeView) && (
