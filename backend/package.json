@@ -1,11 +1,11 @@
-
 {
-  "name": "buzzcast-backend",
+  "name": "vidora-backend",
   "version": "1.0.0",
-  "description": "Backend for the BuzzCast social video platform",
-  "main": "src/server.ts",
+  "description": "Backend for the vidora social video platform",
+  "main": "dist/server.js",
   "scripts": {
-    "start": "ts-node src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js",
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev"
