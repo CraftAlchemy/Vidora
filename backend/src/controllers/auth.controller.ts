@@ -1,6 +1,4 @@
-
-
-// FIX: Import Request and Response types directly from express to avoid global type conflicts.
+// FIX: Changed express import to correctly handle types for Request and Response.
 import { Request, Response } from 'express';
 // In a real app, you'd use bcrypt, jwt, and your Prisma client
 // import bcrypt from 'bcryptjs';
@@ -9,7 +7,7 @@ import { Request, Response } from 'express';
 // const prisma = new PrismaClient();
 
 // Placeholder register function
-// FIX: Use imported Request and Response types to correctly type request and response objects.
+// Use imported Request and Response types to correctly type request and response objects.
 export const register = async (req: Request, res: Response) => {
   const { email, username, password } = req.body;
 
@@ -34,7 +32,7 @@ export const register = async (req: Request, res: Response) => {
 };
 
 // Placeholder login function
-// FIX: Use imported Request and Response types to correctly type request and response objects.
+// Use imported Request and Response types to correctly type request and response objects.
 export const login = async (req: Request, res: Response) => {
   const { email, password } = req.body;
 

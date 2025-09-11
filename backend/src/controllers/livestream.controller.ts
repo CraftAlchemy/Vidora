@@ -1,10 +1,8 @@
-
-
-// FIX: Import Request and Response types directly from express to avoid global type conflicts.
+// FIX: Changed express import to correctly handle types for Request and Response.
 import { Request, Response } from 'express';
 
 // Placeholder: Get all active livestreams
-// FIX: Use imported Request and Response types to correctly type request and response objects.
+// Use imported Request and Response types to correctly type request and response objects.
 export const getLiveStreams = async (req: Request, res: Response) => {
     console.log('Fetching active livestreams');
     const mockStreams = [
@@ -15,7 +13,7 @@ export const getLiveStreams = async (req: Request, res: Response) => {
 };
 
 // Placeholder: Start a new livestream
-// FIX: Use imported Request and Response types to correctly type request and response objects.
+// Use imported Request and Response types to correctly type request and response objects.
 export const startLiveStream = async (req: Request, res: Response) => {
     const { title } = req.body;
     // const userId = req.user.id; // From auth middleware

@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { User, Video, LiveStream, WalletTransaction, Conversation } from './types';
+import { User, Video, LiveStream, WalletTransaction, Conversation, Comment } from './types';
 import { mockUser, mockVideos, mockLiveStreams, mockConversations } from './services/mockApi';
 
 import AuthView from './components/views/AuthView';
@@ -17,6 +17,7 @@ import UploadView from './components/views/UploadView';
 import EditProfileModal from './components/EditProfileModal';
 import DailyRewardModal from './components/DailyRewardModal';
 import SuccessToast from './components/SuccessToast';
+import CommentsModal from './components/CommentsModal';
 
 export type View = 'feed' | 'live' | 'leaderboard' | 'profile' | 'wallet' | 'settings' | 'purchase' | 'admin';
 
@@ -26,6 +27,8 @@ export interface CoinPack {
     description: string;
     isPopular?: boolean;
 }
+
+const API_URL = 'https://vidora-3dvn.onrender.com/api/v1';
 
 const App: React.FC = () => {
     const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -39,6 +42,8 @@ const App: React.FC = () => {
     const [isUploadViewOpen, setIsUploadViewOpen] = useState(false);
     const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
     const [isDailyRewardOpen, setIsDailyRewardOpen] = useState(false);
+    const [isCommentsModalOpen, setIsCommentsModalOpen] = useState(false);
+    const [activeVideoForComments, setActiveVideoForComments] = useState<Video | null>(null);
     
     // Purchase flow state
     const [selectedCoinPack, setSelectedCoinPack] = useState<CoinPack | null>(null);
@@ -47,15 +52,12 @@ const App: React.FC = () => {
     const [successMessage, setSuccessMessage] = useState('');
 
     useEffect(() => {
-        // Simulate checking auth status and loading initial data
-        // In a real app, this would be an API call
         const loggedIn = sessionStorage.getItem('isLoggedIn') === 'true';
         if (loggedIn) {
             setCurrentUser(mockUser);
             setVideos(mockVideos);
             setIsLoggedIn(true);
 
-            // Simulate daily reward check on app load
             const lastClaimed = localStorage.getItem('lastRewardClaim');
             const today = new Date().toISOString().split('T')[0];
             if (lastClaimed !== today) {
@@ -97,21 +99,82 @@ const App: React.FC = () => {
         setIsUploadViewOpen(false);
     };
 
-    const handleUpload = (newVideo: Omit<Video, 'id' | 'user' | 'likes' | 'comments' | 'shares' | 'commentsData'>) => {
+    const handleUpload = async (videoFile: File, description: string) => {
         if (!currentUser) return;
-        const video: Video = {
-            ...newVideo,
-            id: `v${Date.now()}`,
-            user: currentUser,
-            likes: 0,
-            comments: 0,
-            shares: 0,
-            commentsData: [],
-        };
-        setVideos(prev => [video, ...prev]);
-        handleCloseUpload();
-        showSuccessToast('Video uploaded successfully!');
+
+        const formData = new FormData();
+        formData.append('video', videoFile);
+        formData.append('description', description);
+
+        try {
+            const response = await fetch(`${API_URL}/videos/upload`, {
+                method: 'POST',
+                body: formData,
+            });
+
+            if (!response.ok) {
+                throw new Error('Upload failed');
+            }
+
+            const newVideo: Video = await response.json();
+            setVideos(prev => [newVideo, ...prev]);
+            handleCloseUpload();
+            showSuccessToast('Video uploaded successfully!');
+        } catch (error) {
+            console.error('Error uploading video:', error);
+            showSuccessToast('Error: Could not upload video.');
+            handleCloseUpload();
+        }
     };
+    
+    const handleOpenComments = (video: Video) => {
+        setActiveVideoForComments(video);
+        setIsCommentsModalOpen(true);
+    };
+
+    const handleCloseComments = () => {
+        setIsCommentsModalOpen(false);
+        setActiveVideoForComments(null);
+    };
+
+    const handleAddComment = async (commentText: string) => {
+        if (!activeVideoForComments || !currentUser) return;
+
+        const videoId = activeVideoForComments.id;
+
+        try {
+            const response = await fetch(`${API_URL}/videos/${videoId}/comments`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text: commentText, userId: currentUser.id }),
+            });
+
+            if (!response.ok) throw new Error('Failed to post comment');
+            
+            const newComment: Comment = await response.json();
+            
+            const updatedVideos = videos.map(v => {
+                if (v.id === videoId) {
+                    const updatedVideo = {
+                        ...v,
+                        comments: v.comments + 1,
+                        commentsData: [newComment, ...v.commentsData],
+                    };
+                    // Also update the video in the modal state to show the new comment instantly
+                    setActiveVideoForComments(updatedVideo);
+                    return updatedVideo;
+                }
+                return v;
+            });
+
+            setVideos(updatedVideos);
+
+        } catch (error) {
+            console.error('Error adding comment:', error);
+            showSuccessToast('Could not post comment.');
+        }
+    };
+
 
     const handleEditProfile = () => {
         setIsEditProfileOpen(true);
@@ -175,7 +238,7 @@ const App: React.FC = () => {
         };
         setCurrentUser(updatedUser);
         showSuccessToast('Purchase successful!');
-        handleNavigate('wallet'); // Navigate back to wallet
+        handleNavigate('wallet');
     };
 
     const showSuccessToast = (message: string) => {
@@ -191,7 +254,7 @@ const App: React.FC = () => {
     const renderView = () => {
         switch (activeView) {
             case 'feed':
-                return <FeedView videos={videos} currentUser={currentUser} />;
+                return <FeedView videos={videos} currentUser={currentUser} onOpenComments={handleOpenComments}/>;
             case 'live':
                 return <LiveView />;
             case 'leaderboard':
@@ -207,7 +270,7 @@ const App: React.FC = () => {
             case 'admin':
                 return <AdminPanel user={currentUser} onExit={() => handleNavigate('profile')} />
             default:
-                return <FeedView videos={videos} currentUser={currentUser} />;
+                return <FeedView videos={videos} currentUser={currentUser} onOpenComments={handleOpenComments}/>;
         }
     };
 
@@ -230,6 +293,14 @@ const App: React.FC = () => {
             {isUploadViewOpen && <UploadView onUpload={handleUpload} onClose={handleCloseUpload} />}
             {isEditProfileOpen && <EditProfileModal user={currentUser} onSave={handleSaveProfile} onClose={() => setIsEditProfileOpen(false)} />}
             {isDailyRewardOpen && <DailyRewardModal streakCount={currentUser.streakCount || 0} onClaim={handleClaimReward} onClose={() => setIsDailyRewardOpen(false)} />}
+            {isCommentsModalOpen && activeVideoForComments && (
+                <CommentsModal 
+                    comments={activeVideoForComments.commentsData}
+                    currentUser={currentUser}
+                    onClose={handleCloseComments}
+                    onAddComment={handleAddComment}
+                />
+            )}
         </div>
     );
 };

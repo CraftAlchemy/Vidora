@@ -3,7 +3,7 @@ import { Video } from '../../types';
 import { CloseIcon } from '../icons/Icons';
 
 interface UploadViewProps {
-  onUpload: (video: Omit<Video, 'id' | 'user' | 'likes' | 'comments' | 'shares' | 'commentsData'>) => void;
+  onUpload: (file: File, description: string) => void;
   onClose: () => void;
 }
 
@@ -18,7 +18,6 @@ const UploadView: React.FC<UploadViewProps> = ({ onUpload, onClose }) => {
   const [uploadProgress, setUploadProgress] = useState(0);
 
   useEffect(() => {
-    // Clean up the object URL when the component unmounts or the file changes
     return () => {
       if (previewUrl) {
         URL.revokeObjectURL(previewUrl);
@@ -44,7 +43,7 @@ const UploadView: React.FC<UploadViewProps> = ({ onUpload, onClose }) => {
   };
 
   const handlePost = () => {
-    if (!videoFile || !previewUrl) return;
+    if (!videoFile) return;
 
     setIsUploading(true);
     setUploadProgress(0);
@@ -54,14 +53,8 @@ const UploadView: React.FC<UploadViewProps> = ({ onUpload, onClose }) => {
         const next = prev + Math.floor(Math.random() * 10) + 5;
         if (next >= 100) {
           clearInterval(interval);
-          // Wait a moment at 100% to show completion
           setTimeout(() => {
-            onUpload({
-              videoUrl: previewUrl, // In a real app this would be the final server URL
-              description: description,
-              status: 'pending',
-              uploadDate: new Date().toISOString().split('T')[0],
-            });
+            onUpload(videoFile, description);
           }, 500);
           return 100;
         }
@@ -70,7 +63,6 @@ const UploadView: React.FC<UploadViewProps> = ({ onUpload, onClose }) => {
     }, 250);
   };
 
-  // Drag and drop handlers
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();

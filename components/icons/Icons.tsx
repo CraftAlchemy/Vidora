@@ -71,6 +71,15 @@ export const MusicIcon: React.FC<IconProps> = (props) => (
   </svg>
 );
 
+// FIX: Add and export PlayIcon and PauseIcon
+export const PlayIcon: React.FC<IconProps> = (props) => (
+    <svg className="w-10 h-10 text-white" fill="currentColor" viewBox="0 0 20 20" {...props}><path d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm8 7l-4 3V7l4 3z"></path></svg>
+);
+
+export const PauseIcon: React.FC<IconProps> = (props) => (
+    <svg className="w-10 h-10 text-white" fill="currentColor" viewBox="0 0 20 20" {...props}><path d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm3 2h2v10H7V5zm4 0h2v10h-2V5z"></path></svg>
+);
+
 export const GiftIcon: React.FC<IconProps> = (props) => (
   <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24" {...props}>
     <path d="M20 6h-2.18c.11-.31.18-.65.18-1 0-1.66-1.34-3-3-3-1.05 0-1.96.54-2.5 1.35-.54-.81-1.45-1.35-2.5-1.35-1.66 0-3 1.34-3 3 0 .35.07.69.18 1H4c-1.11 0-1.99.89-1.99 2L2 19c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2zm-5-2c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zM9 4c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm11 15H4v-2h16v2zm0-5H4V8h5.08L7 10.83 8.62 12 12 7.4l3.38 4.6L17 10.83 14.92 8H20v6z" />
