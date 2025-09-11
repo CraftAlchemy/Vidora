@@ -5,6 +5,7 @@ import { View } from '../App';
 interface BottomNavProps {
   activeView: View;
   onNavigate: (view: View) => void;
+  onNavigateToUpload: () => void;
 }
 
 const NavItem: React.FC<{
@@ -19,7 +20,7 @@ const NavItem: React.FC<{
   </button>
 );
 
-const BottomNav: React.FC<BottomNavProps> = ({ activeView, onNavigate }) => {
+const BottomNav: React.FC<BottomNavProps> = ({ activeView, onNavigate, onNavigateToUpload }) => {
   return (
     <nav className="fixed bottom-0 left-0 right-0 h-16 bg-zinc-900 border-t border-zinc-800 grid grid-cols-5 items-center z-20">
       <NavItem
@@ -34,7 +35,7 @@ const BottomNav: React.FC<BottomNavProps> = ({ activeView, onNavigate }) => {
         isActive={activeView === 'live'}
         onClick={() => onNavigate('live')}
       />
-      <button onClick={() => onNavigate('upload')} className="flex items-center justify-center w-full h-full">
+      <button onClick={onNavigateToUpload} className="flex items-center justify-center w-full h-full">
         <div className="w-12 h-8 bg-gradient-to-r from-pink-500 to-red-500 rounded-lg flex items-center justify-center">
             <AddIcon />
         </div>

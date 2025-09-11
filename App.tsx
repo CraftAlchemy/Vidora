@@ -24,7 +24,6 @@ import AdminPanel from './components/AdminPanel';
 export type View =
   | 'feed'
   | 'live'
-  | 'upload'
   | 'inbox'
   | 'chat'
   | 'profile'
@@ -49,6 +48,7 @@ const App: React.FC = () => {
   const [activeView, setActiveView] = useState<View>('feed');
   const [previousView, setPreviousView] = useState<View>('feed');
   const [selectedChatUserId, setSelectedChatUserId] = useState<string | null>(null);
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   
   const [isEditProfileModalOpen, setIsEditProfileModalOpen] = useState(false);
   const [isGiftModalOpen, setIsGiftModalOpen] = useState(false);
@@ -195,8 +195,6 @@ const App: React.FC = () => {
         return <LiveDiscoveryView liveStreams={mockLiveStreams} />;
       case 'leaderboard':
         return <LeaderboardView onBack={() => handleNavigate('feed')} />;
-      case 'upload':
-        return <UploadView onBack={handleBack} onUpload={(video) => { alert('Video uploaded!'); handleBack(); }} />;
       case 'inbox':
         const onBackForInbox = activeView === 'inbox' && previousView === 'chat' ? undefined : handleBack;
         return <ChatInboxView conversations={mockConversations} onSelectChat={handleSelectChat} onBack={onBackForInbox} />;
@@ -250,9 +248,11 @@ const App: React.FC = () => {
       {isEditProfileModalOpen && <EditProfileModal user={currentUser} onSave={handleSaveProfile} onClose={() => setIsEditProfileModalOpen(false)} />}
       {isGiftModalOpen && giftTargetVideo && <SendGiftModal gifts={mockGifts} balance={currentUser.wallet?.balance ?? 0} onSend={handleSendGift} onClose={() => setIsGiftModalOpen(false)} />}
       {isDailyRewardModalOpen && currentUser.streakCount !== undefined && <DailyRewardModal streakCount={currentUser.streakCount} onClaim={handleClaimDailyReward} onClose={() => setIsDailyRewardModalOpen(false)} />}
+      {isUploadModalOpen && <UploadView onClose={() => setIsUploadModalOpen(false)} onUpload={(video) => { alert('Video uploaded!'); setIsUploadModalOpen(false); }} />}
+
 
       {showBottomNavFor.includes(activeView) && (
-        <BottomNav activeView={activeView} onNavigate={handleNavigate} />
+        <BottomNav activeView={activeView} onNavigate={handleNavigate} onNavigateToUpload={() => setIsUploadModalOpen(true)} />
       )}
     </div>
   );
