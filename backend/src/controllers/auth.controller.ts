@@ -1,5 +1,5 @@
-// FIX: Use namespace import for express to handle type resolutions correctly.
-import * as express from 'express';
+// FIX: Imported Request and Response types from express to correctly type the controller function arguments, resolving errors with accessing req.body and res.status.
+import { Request, Response } from 'express';
 // In a real app, you'd use bcrypt, jwt, and your Prisma client
 // import bcrypt from 'bcryptjs';
 // import jwt from 'jsonwebtoken';
@@ -8,7 +8,7 @@ import * as express from 'express';
 
 // Placeholder register function
 // Use imported Request and Response types to correctly type request and response objects.
-export const register = async (req: express.Request, res: express.Response) => {
+export const register = async (req: Request, res: Response) => {
   const { email, username, password } = req.body;
 
   // Basic validation
@@ -33,7 +33,7 @@ export const register = async (req: express.Request, res: express.Response) => {
 
 // Placeholder login function
 // Use imported Request and Response types to correctly type request and response objects.
-export const login = async (req: express.Request, res: express.Response) => {
+export const login = async (req: Request, res: Response) => {
   const { email, password } = req.body;
 
   // Basic validation

@@ -1,9 +1,9 @@
-// FIX: Use namespace import for express to handle type resolutions correctly.
-import * as express from 'express';
+// FIX: Imported Request and Response types from express to correctly type the controller function arguments, resolving errors with accessing req.body, req.params, and res.status.
+import { Request, Response } from 'express';
 
 // Placeholder: Get current user's profile
 // Use imported Request and Response types to correctly type request and response objects.
-export const getMe = async (req: express.Request, res: express.Response) => {
+export const getMe = async (req: Request, res: Response) => {
   // In a real app, the user ID would come from the decoded JWT token
   // const userId = req.user.id;
   // const user = await prisma.user.findUnique({ where: { id: userId } });
@@ -19,7 +19,7 @@ export const getMe = async (req: express.Request, res: express.Response) => {
 
 // Placeholder: Update current user's profile
 // Use imported Request and Response types to correctly type request and response objects.
-export const updateMe = async (req: express.Request, res: express.Response) => {
+export const updateMe = async (req: Request, res: Response) => {
   const { username, bio } = req.body;
   // const userId = req.user.id;
   console.log('Updating profile for current user with:', { username, bio });
@@ -35,7 +35,7 @@ export const updateMe = async (req: express.Request, res: express.Response) => {
 
 // Placeholder: Get user profile by username
 // Use imported Request and Response types to correctly type request and response objects.
-export const getUserProfile = async (req: express.Request, res: express.Response) => {
+export const getUserProfile = async (req: Request, res: Response) => {
   const { username } = req.params;
   console.log(`Fetching profile for username: ${username}`);
   // const user = await prisma.user.findUnique({ where: { username } });

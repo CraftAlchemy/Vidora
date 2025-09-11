@@ -1,9 +1,9 @@
-// FIX: Use namespace import for express to handle type resolutions correctly.
-import * as express from 'express';
+// FIX: Imported Request and Response types from express to correctly type the controller function arguments, resolving errors with accessing req.body and res.status.
+import { Request, Response } from 'express';
 
 // Placeholder: Get all active livestreams
 // Use imported Request and Response types to correctly type request and response objects.
-export const getLiveStreams = async (req: express.Request, res: express.Response) => {
+export const getLiveStreams = async (req: Request, res: Response) => {
     console.log('Fetching active livestreams');
     const mockStreams = [
         { id: 'ls1', title: 'Live Q&A', user: { username: 'dev_user' }, viewers: 1200 },
@@ -14,7 +14,7 @@ export const getLiveStreams = async (req: express.Request, res: express.Response
 
 // Placeholder: Start a new livestream
 // Use imported Request and Response types to correctly type request and response objects.
-export const startLiveStream = async (req: express.Request, res: express.Response) => {
+export const startLiveStream = async (req: Request, res: Response) => {
     const { title } = req.body;
     // const userId = req.user.id; // From auth middleware
 
