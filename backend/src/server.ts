@@ -1,5 +1,5 @@
-// FIX: Changed express import to correctly handle types for Request and Response.
-import express, { Request, Response } from 'express';
+// FIX: Changed express import to a namespace import to correctly handle types for Request and Response.
+import * as express from 'express';
 import cors from 'cors';
 import authRoutes from './routes/auth.routes';
 import userRoutes from './routes/user.routes';
@@ -25,7 +25,7 @@ app.use('/api/v1/videos', videoRoutes);
 app.use('/api/v1/livestreams', livestreamRoutes);
 
 // Use the imported Request and Response types for the route handler to ensure correct types.
-app.get('/', (req: Request, res: Response) => {
+app.get('/', (req: express.Request, res: express.Response) => {
     res.send('BuzzCast API is running');
 });
 

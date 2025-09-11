@@ -1,4 +1,4 @@
-import { User, Video, Comment } from '../../types';
+import { User, Video, Comment } from './types';
 
 // This data is a copy from the frontend's mockApi to simulate a backend database.
 

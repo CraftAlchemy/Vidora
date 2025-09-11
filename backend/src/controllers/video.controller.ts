@@ -1,18 +1,18 @@
-// FIX: Changed express import to correctly handle types for Request and Response.
-import { Request, Response } from 'express';
+// FIX: Use namespace import for express to handle type resolutions correctly.
+import * as express from 'express';
 import { mockVideos, mockUsers } from '../data';
-import { Video, Comment } from '../../../types';
+import { Video, Comment } from '../types';
 
 // Placeholder: Get video feed
 // Use imported Request and Response types to correctly type request and response objects.
-export const getFeed = async (req: Request, res: Response) => {
+export const getFeed = async (req: express.Request, res: express.Response) => {
     console.log('Fetching video feed');
     // We return the current state of our in-memory data store
     res.status(200).json({ videos: mockVideos });
 };
 
 // Functional mock: Upload a video
-export const uploadVideo = async (req: Request, res: Response) => {
+export const uploadVideo = async (req: express.Request, res: express.Response) => {
     const { description } = req.body;
     // const videoFile = req.file; // In a real app, from multer middleware
     // const userId = req.user.id; // From auth middleware
@@ -50,7 +50,7 @@ export const uploadVideo = async (req: Request, res: Response) => {
 };
 
 // Functional mock: Add a comment to a video
-export const addComment = async (req: Request, res: Response) => {
+export const addComment = async (req: express.Request, res: express.Response) => {
     const { videoId } = req.params;
     const { text, userId } = req.body; // Use userId from request body
 
