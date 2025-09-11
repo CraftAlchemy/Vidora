@@ -1,4 +1,3 @@
-
 # BuzzCast - Social Video & Live-Streaming Platform
 
 This repository contains the frontend prototype for BuzzCast, a modern social video platform featuring a rich, fully-featured Admin Dashboard for comprehensive application management.
@@ -76,7 +75,7 @@ Before you begin, make sure you have accounts for the following services:
 4.  Configure the service:
     -   **Name**: `buzzcast-backend` (or your choice)
     -   **Root Directory**: `backend`
-    -   **Build Command**: `npm install`
+    -   **Build Command**: `npm install && npm run build`
     -   **Start Command**: `npm start`
     -   **Instance Type**: Free
 5.  **Add Environment Variables**:

@@ -2,9 +2,10 @@
   "name": "vidora-backend",
   "version": "1.0.0",
   "description": "Backend for the vidora social video platform",
-  "main": "src/server.ts",
+  "main": "dist/server.js",
   "scripts": {
-    "start": "ts-node src/server.ts",
+    "start": "node dist/server.js",
+    "build": "tsc",
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev"
