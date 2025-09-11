@@ -1,7 +1,7 @@
 {
-  "name": "buzzcast-backend",
+  "name": "vidora-backend",
   "version": "1.0.0",
-  "description": "Backend for the BuzzCast social video platform",
+  "description": "Backend for the vidora social video platform",
   "main": "src/server.ts",
   "scripts": {
     "start": "ts-node src/server.ts",
