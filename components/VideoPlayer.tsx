@@ -1,70 +1,115 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Video } from '../types';
-// Fix: Correct import for Icons which is now created.
-import { HeartIcon, CommentIcon, ShareIcon, MusicIcon, GiftIcon } from './icons/Icons';
+import { HeartIcon, CommentIcon, ShareIcon, MusicIcon, PlayIcon, PauseIcon } from './icons/Icons';
 
 interface VideoPlayerProps {
   video: Video;
-  onSendGift: (video: Video) => void;
+  isActive: boolean;
+  onOpenComments: () => void;
 }
 
-const VideoPlayer: React.FC<VideoPlayerProps> = ({ video, onSendGift }) => {
+const VideoPlayer: React.FC<VideoPlayerProps> = ({ video, isActive, onOpenComments }) => {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
+  const [showPlayPause, setShowPlayPause] = useState(false);
+
+  useEffect(() => {
+    if (isActive) {
+      videoRef.current?.play().then(() => {
+        setIsPlaying(true);
+      }).catch(err => {
+        // Autoplay was prevented.
+        setIsPlaying(false);
+      });
+    } else {
+      videoRef.current?.pause();
+      setIsPlaying(false);
+    }
+  }, [isActive]);
   
-  const formatCount = (num: number) => {
-    if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
-    if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
-    return num;
+  const togglePlay = () => {
+    if (videoRef.current) {
+      if (isPlaying) {
+        videoRef.current.pause();
+        setIsPlaying(false);
+      } else {
+        videoRef.current.play();
+        setIsPlaying(true);
+      }
+    }
   };
 
+  const handleTap = () => {
+    togglePlay();
+    setShowPlayPause(true);
+    setTimeout(() => setShowPlayPause(false), 800);
+  };
+  
+  const handleLike = () => {
+      setIsLiked(!isLiked);
+  }
+
   return (
-    <div className="w-full h-full relative">
+    <div className="relative w-full h-full snap-start" data-video-id={video.id}>
       <video
-        className="w-full h-full object-cover"
+        ref={videoRef}
         src={video.videoUrl}
         loop
         playsInline
+        className="w-full h-full object-cover"
+        onClick={handleTap}
       />
-      <div className="absolute bottom-0 left-0 p-4 text-white w-full bg-gradient-to-t from-black/60 to-transparent">
+      
+      {showPlayPause && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div className="bg-black/50 p-4 rounded-full animate-fade-out">
+                {isPlaying ? <PauseIcon /> : <PlayIcon />}
+            </div>
+        </div>
+      )}
+
+      <div className="absolute bottom-0 left-0 right-0 p-4 pb-20 text-white bg-gradient-to-t from-black/50 to-transparent">
         <div className="flex items-center">
           <img src={video.user.avatarUrl} alt={video.user.username} className="w-10 h-10 rounded-full border-2 border-white" />
           <h3 className="font-bold ml-3">@{video.user.username}</h3>
+          <button className="ml-4 px-3 py-1 bg-white text-black text-sm font-bold rounded-md">Follow</button>
         </div>
         <p className="mt-2 text-sm">{video.description}</p>
-        <div className="flex items-center mt-2">
-            <MusicIcon />
-            <p className="text-sm ml-2">Original Sound - {video.user.username}</p>
+        <div className="flex items-center mt-2 text-sm">
+          <MusicIcon />
+          <p className="ml-2">Original Sound - {video.user.username}</p>
         </div>
       </div>
-      <div className="absolute bottom-20 right-2 flex flex-col items-center space-y-6 text-white">
-        <button className="flex flex-col items-center" onClick={() => setIsLiked(!isLiked)}>
-          <div className="w-12 h-12 rounded-full bg-black/40 flex items-center justify-center">
-            <HeartIcon isFilled={isLiked} />
-          </div>
-          <span className="text-sm font-semibold">{formatCount(isLiked ? video.likes + 1 : video.likes)}</span>
+      
+      <div className="absolute right-2 bottom-20 flex flex-col items-center space-y-5 text-white">
+        <button onClick={handleLike} className="flex flex-col items-center">
+          <HeartIcon isFilled={isLiked} />
+          <span className="text-xs font-semibold mt-1">{video.likes + (isLiked ? 1 : 0)}</span>
+        </button>
+        <button onClick={onOpenComments} className="flex flex-col items-center">
+          <CommentIcon />
+          <span className="text-xs font-semibold mt-1">{video.comments}</span>
         </button>
         <button className="flex flex-col items-center">
-          <div className="w-12 h-12 rounded-full bg-black/40 flex items-center justify-center">
-            <CommentIcon />
-          </div>
-          <span className="text-sm font-semibold">{formatCount(video.comments)}</span>
-        </button>
-        <button onClick={() => onSendGift(video)} className="flex flex-col items-center">
-          <div className="w-12 h-12 rounded-full bg-black/40 flex items-center justify-center">
-            <GiftIcon className="w-8 h-8" />
-          </div>
-          <span className="text-sm font-semibold">Gift</span>
-        </button>
-        <button className="flex flex-col items-center">
-          <div className="w-12 h-12 rounded-full bg-black/40 flex items-center justify-center">
-            <ShareIcon />
-          </div>
-          <span className="text-sm font-semibold">{formatCount(video.shares)}</span>
+          <ShareIcon />
+          <span className="text-xs font-semibold mt-1">{video.shares}</span>
         </button>
       </div>
     </div>
   );
 };
+
+
+// Additional Icons for Player Controls (not in main Icons file)
+const PlayIcon: React.FC = () => (
+    <svg className="w-10 h-10 text-white" fill="currentColor" viewBox="0 0 20 20"><path d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm8 7l-4 3V7l4 3z"></path></svg>
+);
+
+const PauseIcon: React.FC = () => (
+    <svg className="w-10 h-10 text-white" fill="currentColor" viewBox="0 0 20 20"><path d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm3 2h2v10H7V5zm4 0h2v10h-2V5z"></path></svg>
+);
+
 
 export default VideoPlayer;
