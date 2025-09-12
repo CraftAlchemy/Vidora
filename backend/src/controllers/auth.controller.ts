@@ -1,4 +1,5 @@
-// FIX: Imported Request and Response types from express to correctly type the controller function arguments, resolving errors with accessing req.body and res.status.
+
+// fix: Imported Request and Response types from express to correctly type the controller function arguments.
 import { Request, Response } from 'express';
 // In a real app, you'd use bcrypt, jwt, and your Prisma client
 // import bcrypt from 'bcryptjs';
@@ -7,7 +8,7 @@ import { Request, Response } from 'express';
 // const prisma = new PrismaClient();
 
 // Placeholder register function
-// Use imported Request and Response types to correctly type request and response objects.
+// fix: Use imported Request and Response types to correctly type request and response objects.
 export const register = async (req: Request, res: Response) => {
   const { email, username, password } = req.body;
 
@@ -32,7 +33,7 @@ export const register = async (req: Request, res: Response) => {
 };
 
 // Placeholder login function
-// Use imported Request and Response types to correctly type request and response objects.
+// fix: Use imported Request and Response types to correctly type request and response objects.
 export const login = async (req: Request, res: Response) => {
   const { email, password } = req.body;
 

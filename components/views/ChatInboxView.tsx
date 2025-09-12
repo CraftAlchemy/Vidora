@@ -1,5 +1,4 @@
 
-
 import React from 'react';
 import { Conversation } from '../../types';
 // Fix: Correct import for Icons which is now created.
@@ -7,7 +6,7 @@ import { ChevronLeftIcon } from '../icons/Icons';
 
 interface ChatInboxViewProps {
   conversations: Conversation[];
-  onSelectChat: (userId: string) => void;
+  onSelectChat: (conversationId: string) => void;
   onBack?: () => void; // Optional back navigation for integration
 }
 
@@ -27,7 +26,7 @@ const ChatInboxView: React.FC<ChatInboxViewProps> = ({ conversations, onSelectCh
           <div 
             key={convo.id} 
             className="flex items-center p-4 border-b border-zinc-800 cursor-pointer hover:bg-zinc-800"
-            onClick={() => onSelectChat(convo.user.id)}
+            onClick={() => onSelectChat(convo.id)}
           >
             <img src={convo.user.avatarUrl} alt={convo.user.username} className="w-12 h-12 rounded-full mr-4" />
             <div className="flex-1 overflow-hidden">

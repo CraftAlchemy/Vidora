@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect } from 'react';
-import { User, Video, LiveStream, WalletTransaction, Conversation, Comment } from './types';
+import { User, Video, LiveStream, WalletTransaction, Conversation, ChatMessage, Comment } from './types';
 import { mockUser, mockVideos, mockLiveStreams, mockConversations } from './services/mockApi';
 
 import AuthView from './components/views/AuthView';
@@ -10,7 +9,8 @@ import ProfileView from './components/views/ProfileView';
 import WalletView from './components/views/WalletView';
 import SettingsView from './components/views/SettingsView';
 import PurchaseCoinsView from './components/views/PurchaseCoinsView';
-import LeaderboardView from './components/views/LeaderboardView';
+import ChatInboxView from './components/views/ChatInboxView';
+import ChatWindowView from './components/views/ChatWindowView';
 import AdminPanel from './components/AdminPanel';
 import BottomNav from './components/BottomNav';
 import UploadView from './components/views/UploadView';
@@ -19,7 +19,7 @@ import DailyRewardModal from './components/DailyRewardModal';
 import SuccessToast from './components/SuccessToast';
 import CommentsModal from './components/CommentsModal';
 
-export type View = 'feed' | 'live' | 'leaderboard' | 'profile' | 'wallet' | 'settings' | 'purchase' | 'admin';
+export type View = 'feed' | 'live' | 'inbox' | 'profile' | 'wallet' | 'settings' | 'purchase' | 'admin';
 
 export interface CoinPack {
     amount: number;
@@ -34,9 +34,13 @@ const App: React.FC = () => {
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [currentUser, setCurrentUser] = useState<User | null>(null);
     const [videos, setVideos] = useState<Video[]>([]);
+    const [conversations, setConversations] = useState<Conversation[]>(mockConversations);
     
     const [activeView, setActiveView] = useState<View>('feed');
     const [previousView, setPreviousView] = useState<View>('feed');
+
+    // Chat State
+    const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
 
     // Modal States
     const [isUploadViewOpen, setIsUploadViewOpen] = useState(false);
@@ -84,6 +88,9 @@ const App: React.FC = () => {
         if (view !== activeView) {
             setPreviousView(activeView);
             setActiveView(view);
+        }
+        if (view === 'inbox') {
+            setSelectedConversationId(null);
         }
     };
     
@@ -175,7 +182,6 @@ const App: React.FC = () => {
         }
     };
 
-
     const handleEditProfile = () => {
         setIsEditProfileOpen(true);
     };
@@ -241,6 +247,85 @@ const App: React.FC = () => {
         handleNavigate('wallet');
     };
 
+    const handleSelectConversation = (conversationId: string) => {
+        setSelectedConversationId(conversationId);
+    };
+
+    const handleBackToInbox = () => {
+        setSelectedConversationId(null);
+    };
+
+    const handleSendMessage = async (conversationId: string, text: string, imageFile?: File) => {
+        if (!currentUser) return;
+
+        let imageUrl: string | undefined = undefined;
+        if (imageFile) {
+            // Convert file to base64 data URL for mock state
+            imageUrl = await new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result as string);
+                reader.readAsDataURL(imageFile);
+            });
+        }
+        
+        const newMessage: ChatMessage = {
+            id: `msg-${Date.now()}`,
+            senderId: currentUser.id,
+            text,
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            isRead: true,
+            imageUrl,
+        };
+
+        const updatedConversations = conversations.map(convo => {
+            if (convo.id === conversationId) {
+                return {
+                    ...convo,
+                    messages: [...convo.messages, newMessage],
+                    lastMessage: {
+                        text: imageFile ? (text ? `${text} [Image]` : '[Image]') : text,
+                        timestamp: newMessage.timestamp,
+                        isRead: true,
+                        senderId: newMessage.senderId,
+                    }
+                };
+            }
+            return convo;
+        });
+
+        setConversations(updatedConversations);
+        
+        // Simulate a reply after a delay to make the chat feel more interactive
+        setTimeout(() => {
+            const conversation = updatedConversations.find(c => c.id === conversationId);
+            if (!conversation) return;
+
+            const replyMessage: ChatMessage = {
+                id: `msg-reply-${Date.now()}`,
+                senderId: conversation.user.id,
+                text: "That's cool! Thanks for sharing.",
+                timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                isRead: false,
+            };
+            const repliedConversations = updatedConversations.map(convo => {
+                if (convo.id === conversationId) {
+                    return {
+                        ...convo,
+                        messages: [...convo.messages, replyMessage],
+                         lastMessage: {
+                            text: replyMessage.text,
+                            timestamp: replyMessage.timestamp,
+                            isRead: false,
+                            senderId: replyMessage.senderId,
+                        }
+                    };
+                }
+                return convo;
+            });
+            setConversations(repliedConversations);
+        }, 2500);
+    };
+
     const showSuccessToast = (message: string) => {
         setSuccessMessage(message);
         setTimeout(() => setSuccessMessage(''), 3000);
@@ -257,8 +342,22 @@ const App: React.FC = () => {
                 return <FeedView videos={videos} currentUser={currentUser} onOpenComments={handleOpenComments}/>;
             case 'live':
                 return <LiveView />;
-            case 'leaderboard':
-                return <LeaderboardView onBack={() => handleNavigate('feed')} />;
+            case 'inbox': {
+                if (selectedConversationId) {
+                    const conversation = conversations.find(c => c.id === selectedConversationId);
+                    if (conversation) {
+                        return <ChatWindowView 
+                                    conversation={conversation} 
+                                    onBack={handleBackToInbox} 
+                                    onSendMessage={(text, imageFile) => handleSendMessage(conversation.id, text, imageFile)}
+                                />;
+                    }
+                }
+                return <ChatInboxView 
+                            conversations={conversations} 
+                            onSelectChat={handleSelectConversation} 
+                        />;
+            }
             case 'profile':
                 return <ProfileView user={currentUser} videos={videos} onNavigate={handleNavigate} onEditProfile={handleEditProfile} />;
             case 'wallet':
@@ -282,7 +381,7 @@ const App: React.FC = () => {
                 {renderView()}
             </main>
 
-            {['feed', 'live', 'leaderboard', 'profile', 'wallet'].includes(activeView) && (
+            {['feed', 'live', 'inbox', 'profile', 'wallet'].includes(activeView) && (
                 <BottomNav
                     activeView={activeView}
                     onNavigate={handleNavigate}

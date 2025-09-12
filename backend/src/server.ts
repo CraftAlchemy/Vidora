@@ -1,4 +1,5 @@
-// FIX: Imported Request and Response types from express and used them to correctly type route handlers, which resolves issues with app.use() and res.send().
+
+// fix: Imported Request and Response types from express to correctly type route handlers.
 import express, { Request, Response } from 'express';
 import cors from 'cors';
 import authRoutes from './routes/auth.routes';
@@ -24,7 +25,7 @@ app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/videos', videoRoutes);
 app.use('/api/v1/livestreams', livestreamRoutes);
 
-// Use the imported Request and Response types for the route handler to ensure correct types.
+// fix: Use the imported Request and Response types for the route handler to ensure correct types.
 app.get('/', (req: Request, res: Response) => {
     res.send('BuzzCast API is running');
 });

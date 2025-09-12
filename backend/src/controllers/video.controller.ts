@@ -1,10 +1,11 @@
-// FIX: Imported Request and Response types from express to correctly type the controller function arguments, resolving errors with accessing req.body, req.params, and res.status.
+
+// fix: Imported Request and Response types from express to correctly type the controller function arguments.
 import { Request, Response } from 'express';
 import { mockVideos, mockUsers } from '../data';
 import { Video, Comment } from '../types';
 
 // Placeholder: Get video feed
-// Use imported Request and Response types to correctly type request and response objects.
+// fix: Use imported Request and Response types to correctly type request and response objects.
 export const getFeed = async (req: Request, res: Response) => {
     console.log('Fetching video feed');
     // We return the current state of our in-memory data store

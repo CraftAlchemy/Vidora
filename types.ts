@@ -64,6 +64,7 @@ export interface ChatMessage {
   text: string;
   timestamp: string;
   isRead: boolean;
+  imageUrl?: string;
 }
 
 export interface Conversation {

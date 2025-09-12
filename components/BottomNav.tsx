@@ -1,5 +1,6 @@
+
 import React from 'react';
-import { HomeIcon, LiveIcon, AddIcon, InboxIcon, ProfileIcon, TrophyIcon } from './icons/Icons';
+import { HomeIcon, LiveIcon, AddIcon, InboxIcon, ProfileIcon } from './icons/Icons';
 import { View } from '../App';
 
 interface BottomNavProps {
@@ -41,14 +42,14 @@ const BottomNav: React.FC<BottomNavProps> = ({ activeView, onNavigate, onNavigat
         </div>
       </button>
       <NavItem
-        label="Leaderboard"
-        icon={<TrophyIcon isFilled={activeView === 'leaderboard'} />}
-        isActive={activeView === 'leaderboard'}
-        onClick={() => onNavigate('leaderboard')}
+        label="Inbox"
+        icon={<InboxIcon isFilled={activeView === 'inbox'} />}
+        isActive={activeView === 'inbox'}
+        onClick={() => onNavigate('inbox')}
       />
       <NavItem
         label="Profile"
-        icon={<ProfileIcon isFilled={activeView === 'profile'} />}
+        icon={<ProfileIcon isFilled={activeView === 'profile' || activeView === 'wallet'} />}
         isActive={activeView === 'profile' || activeView === 'wallet'}
         onClick={() => onNavigate('profile')}
       />

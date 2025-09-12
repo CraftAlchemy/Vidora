@@ -165,9 +165,36 @@ export const mockLiveStreams: LiveStream[] = [
 ];
 
 export const mockConversations: Conversation[] = [
-    { id: 'convo1', user: mockUsers[1], messages: [{ id: 'm1', senderId: mockUsers[1].id, text: 'Hey! Love your content!', timestamp: '10:30 AM', isRead: false}], lastMessage: { text: 'Hey! Love your content!', timestamp: '10:30 AM', isRead: false, senderId: mockUsers[1].id }},
-    { id: 'convo2', user: mockUsers[2], messages: [], lastMessage: { text: 'You: Sent a sticker', timestamp: 'Yesterday', isRead: true, senderId: mockUser.id }},
-    { id: 'convo3', user: mockUsers[3], messages: [], lastMessage: { text: 'Sounds good, see you then!', timestamp: '2d ago', isRead: true, senderId: mockUsers[3].id }},
+    { 
+        id: 'convo1', 
+        user: mockUsers[1], 
+        messages: [
+            { id: 'm1-1', senderId: mockUsers[1].id, text: 'Hey! Love your content!', timestamp: '10:30 AM', isRead: true},
+            { id: 'm1-2', senderId: mockUser.id, text: 'Thank you so much! I appreciate it. 😊', timestamp: '10:31 AM', isRead: true},
+            { id: 'm1-3', senderId: mockUsers[1].id, text: 'That new animation video was insane. How long did it take you?', timestamp: '10:32 AM', isRead: false},
+        ], 
+        lastMessage: { text: 'That new animation video was insane. How long did it take you?', timestamp: '10:32 AM', isRead: false, senderId: mockUsers[1].id }
+    },
+    { 
+        id: 'convo2', 
+        user: mockUsers[2], 
+        messages: [
+            { id: 'm2-1', senderId: mockUser.id, text: 'GGs yesterday!', timestamp: 'Yesterday', isRead: true },
+            { id: 'm2-2', senderId: mockUsers[2].id, text: 'You too man! We gotta run it back soon.', timestamp: 'Yesterday', isRead: true },
+        ], 
+        lastMessage: { text: 'You too man! We gotta run it back soon.', timestamp: 'Yesterday', isRead: true, senderId: mockUsers[2].id }
+    },
+    { 
+        id: 'convo3', 
+        user: mockUsers[3], 
+        messages: [
+            { id: 'm3-1', senderId: mockUsers[3].id, text: 'Found this amazing ramen spot you have to try!', timestamp: '2d ago', isRead: true},
+            { id: 'm3-2', senderId: mockUser.id, text: 'Oh really? Where at?', timestamp: '2d ago', isRead: true},
+            { id: 'm3-3', senderId: mockUsers[3].id, text: 'It\'s called "Noodle Heaven" downtown. Let\'s go this weekend!', timestamp: '2d ago', isRead: true },
+            { id: 'm3-4', senderId: mockUser.id, text: 'Sounds good, see you then!', timestamp: '2d ago', isRead: true },
+        ], 
+        lastMessage: { text: 'Sounds good, see you then!', timestamp: '2d ago', isRead: true, senderId: mockUser.id }
+    },
 ];
 
 export const mockNotifications: Notification[] = [

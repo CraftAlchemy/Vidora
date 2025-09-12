@@ -1,8 +1,9 @@
-// FIX: Imported Request and Response types from express to correctly type the controller function arguments, resolving errors with accessing req.body, req.params, and res.status.
+
+// fix: Imported Request and Response types from express to correctly type the controller function arguments.
 import { Request, Response } from 'express';
 
 // Placeholder: Get current user's profile
-// Use imported Request and Response types to correctly type request and response objects.
+// fix: Use imported Request and Response types to correctly type request and response objects.
 export const getMe = async (req: Request, res: Response) => {
   // In a real app, the user ID would come from the decoded JWT token
   // const userId = req.user.id;
@@ -18,7 +19,7 @@ export const getMe = async (req: Request, res: Response) => {
 };
 
 // Placeholder: Update current user's profile
-// Use imported Request and Response types to correctly type request and response objects.
+// fix: Use imported Request and Response types to correctly type request and response objects.
 export const updateMe = async (req: Request, res: Response) => {
   const { username, bio } = req.body;
   // const userId = req.user.id;
@@ -34,7 +35,7 @@ export const updateMe = async (req: Request, res: Response) => {
 };
 
 // Placeholder: Get user profile by username
-// Use imported Request and Response types to correctly type request and response objects.
+// fix: Use imported Request and Response types to correctly type request and response objects.
 export const getUserProfile = async (req: Request, res: Response) => {
   const { username } = req.params;
   console.log(`Fetching profile for username: ${username}`);

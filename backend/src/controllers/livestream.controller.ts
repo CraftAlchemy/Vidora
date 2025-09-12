@@ -1,8 +1,9 @@
-// FIX: Imported Request and Response types from express to correctly type the controller function arguments, resolving errors with accessing req.body and res.status.
+
+// fix: Imported Request and Response types from express to correctly type the controller function arguments.
 import { Request, Response } from 'express';
 
 // Placeholder: Get all active livestreams
-// Use imported Request and Response types to correctly type request and response objects.
+// fix: Use imported Request and Response types to correctly type request and response objects.
 export const getLiveStreams = async (req: Request, res: Response) => {
     console.log('Fetching active livestreams');
     const mockStreams = [
@@ -13,7 +14,7 @@ export const getLiveStreams = async (req: Request, res: Response) => {
 };
 
 // Placeholder: Start a new livestream
-// Use imported Request and Response types to correctly type request and response objects.
+// fix: Use imported Request and Response types to correctly type request and response objects.
 export const startLiveStream = async (req: Request, res: Response) => {
     const { title } = req.body;
     // const userId = req.user.id; // From auth middleware
