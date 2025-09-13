@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { LiveStream, ChatMessage, User, Gift } from '../../types';
-import { CloseIcon, HeartIcon, SendIcon, EmojiIcon } from '../icons/Icons';
+import { CloseIcon, HeartIcon, SendIcon, EmojiIcon, GiftIcon } from '../icons/Icons';
 import { mockUser, mockGifts, mockUsers } from '../../services/mockApi';
 import SendGiftModal from '../SendGiftModal';
 
@@ -9,29 +9,50 @@ interface ViewerLiveViewProps {
   onBack: () => void;
 }
 
+const emojiCategories = {
+    'Smileys & People': ['😀', '😂', '😍', '🤔', '😎', '😭', '🤯', '😡', '😴', '🥳', '🥺', '👍', '👎', '🙌', '🙏', '👋', '🤷', '🤦'],
+    'Animals & Nature': ['🐶', '🐱', '🐭', '🐰', '🦊', '🐻', '🐼', '🐨', '🐵', '🐸', '🐢', '🌸', '🌹', '🌻', '🌍', '☀️', '🌙', '⭐'],
+    'Food & Drink': ['🍎', '🍌', '🍇', '🍓', '🍔', '🍕', '🍟', '🍩', '☕', '🍺', '🍷', '🍹', '🍦', '🍰', '🍿', '🌮', '🍜', '🍣'],
+    'Activities & Objects': ['⚽', '🏀', '🏈', '⚾', '🎾', '🎮', '🎸', '🎤', '💻', '📱', '📷', '💡', '🚀', '✈️', '🚗', '🎁', '🎉', '💯'],
+};
+
 // Emoji Picker Component defined in the same file for simplicity
 interface EmojiPickerProps {
   onSelectEmoji: (emoji: string) => void;
 }
 
-const emojis = [
-  '😀', '😂', '😍', '🤔', '😎', '😭', '🤯', '👍',
-  '👎', '❤️', '🔥', '🚀', '🎉', '💯', '🙏', '🤷'
-];
-
 const EmojiPicker: React.FC<EmojiPickerProps> = ({ onSelectEmoji }) => {
+  const [activeCategory, setActiveCategory] = useState(Object.keys(emojiCategories)[0]);
+  const categoryKeys = Object.keys(emojiCategories) as (keyof typeof emojiCategories)[];
+
   return (
-    <div className="absolute bottom-full mb-2 right-0 bg-zinc-800 border border-zinc-700 rounded-lg shadow-lg p-2 z-20 animate-fade-in-up w-48">
-      <div className="grid grid-cols-4 gap-2">
-        {emojis.map(emoji => (
-          <button
-            key={emoji}
-            onClick={() => onSelectEmoji(emoji)}
-            className="text-2xl p-1 rounded-md hover:bg-zinc-700 transition-colors"
-          >
-            {emoji}
-          </button>
-        ))}
+    <div className="absolute bottom-full mb-2 right-0 bg-zinc-800 border border-zinc-700 rounded-lg shadow-lg z-20 animate-fade-in-up w-72 h-80 flex flex-col">
+       <div className="p-2 border-b border-zinc-700">
+        <div className="flex justify-around">
+          {categoryKeys.map((category, index) => (
+            <button
+              key={category}
+              onClick={() => setActiveCategory(category)}
+              className={`p-1 rounded-md text-lg ${activeCategory === category ? 'bg-zinc-600' : 'hover:bg-zinc-700'}`}
+              title={category}
+            >
+              {['😀', '🐶', '🍔', '⚽'][index]}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="flex-1 overflow-y-auto p-2 scrollbar-hide">
+        <div className="grid grid-cols-7 gap-1">
+          {emojiCategories[activeCategory as keyof typeof emojiCategories].map(emoji => (
+            <button
+              key={emoji}
+              onClick={() => onSelectEmoji(emoji)}
+              className="text-2xl p-1 rounded-md hover:bg-zinc-700 transition-colors"
+            >
+              {emoji}
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -181,47 +202,56 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack }) => {
 
         <div className="flex-1"></div>
 
-        <footer className="relative z-10 p-4 space-y-2">
+        <footer className="relative z-10 p-4 pb-24 space-y-2">
             <div className="h-48 overflow-y-auto space-y-1 pr-2 scrollbar-hide" style={{ maskImage: 'linear-gradient(to bottom, transparent 0%, black 10%, black 90%, transparent 100%)' }}>
                 {messages.map(msg => <ChatBubble key={msg.id} message={msg} />)}
                 <div ref={messagesEndRef} />
             </div>
+            <div className="flex items-center space-x-2">
+                <div className="relative flex-1">
+                    <input
+                        type="text"
+                        placeholder="Add a comment..."
+                        value={newMessage}
+                        onChange={(e) => setNewMessage(e.target.value)}
+                        onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                        className="w-full h-10 bg-black/40 rounded-full pl-4 pr-12 text-sm focus:outline-none focus:ring-2 focus:ring-pink-500 placeholder-gray-400"
+                    />
+                     <div ref={emojiPickerRef} className="absolute right-2 top-1/2 -translate-y-1/2">
+                        {showEmojiPicker && <EmojiPicker onSelectEmoji={(emoji) => setNewMessage(m => m + emoji)} />}
+                        <button onClick={() => setShowEmojiPicker(s => !s)} className="p-1 text-gray-300 hover:text-white">
+                            <EmojiIcon className="w-6 h-6"/>
+                        </button>
+                    </div>
+                </div>
 
-            <div className="flex items-center gap-2">
-              <div className="flex-1 relative">
-                <input
-                  type="text"
-                  placeholder="Add comment..."
-                  value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                  className="w-full p-3 bg-black/40 rounded-full text-sm px-4 focus:outline-none focus:ring-2 focus:ring-pink-500"
-                />
-                <button onClick={handleSendMessage} className="absolute right-3 top-1/2 -translate-y-1/2 p-1">
-                  <SendIcon />
-                </button>
-              </div>
-
-              <div ref={emojiPickerRef} className="relative">
-                {showEmojiPicker && <EmojiPicker onSelectEmoji={(emoji) => setNewMessage(m => m + emoji)} />}
-                <button 
-                  onClick={() => setShowEmojiPicker(s => !s)} 
-                  className="p-3 bg-black/40 rounded-full text-gray-300 hover:bg-black/60 transition-colors flex items-center justify-center"
+                 <button 
+                    onClick={handleSendMessage} 
+                    className="w-10 h-10 bg-pink-600 rounded-full flex items-center justify-center shrink-0"
+                    aria-label="Send message"
                 >
-                    <EmojiIcon className="w-6 h-6" />
+                    <SendIcon />
                 </button>
-              </div>
 
-              <button onClick={() => setIsGiftModalOpen(true)} className="p-3 bg-black/40 rounded-full text-2xl flex items-center justify-center hover:bg-black/60 transition-colors">
-                🎁
-              </button>
-              <button className="p-2.5 bg-black/40 rounded-full hover:bg-black/60 transition-colors">
-                  <HeartIcon isFilled={false} />
-              </button>
+                 <button 
+                    onClick={() => setIsGiftModalOpen(true)} 
+                    className="w-10 h-10 bg-black/40 rounded-full flex items-center justify-center text-xl shrink-0"
+                    aria-label="Send a gift"
+                >
+                    <GiftIcon className="w-6 h-6" />
+                </button>
             </div>
         </footer>
+
+        {isGiftModalOpen && (
+            <SendGiftModal 
+                gifts={mockGifts}
+                balance={mockUser.wallet?.balance ?? 0}
+                onSend={handleSendGift}
+                onClose={() => setIsGiftModalOpen(false)}
+            />
+        )}
       </div>
-      {isGiftModalOpen && <SendGiftModal gifts={mockGifts} balance={mockUser.wallet?.balance ?? 0} onSend={handleSendGift} onClose={() => setIsGiftModalOpen(false)} />}
     </>
   );
 };

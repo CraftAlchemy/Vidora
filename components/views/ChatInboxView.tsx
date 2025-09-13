@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Conversation } from '../../types';
 // Fix: Correct import for Icons which is now created.
@@ -12,7 +11,7 @@ interface ChatInboxViewProps {
 
 const ChatInboxView: React.FC<ChatInboxViewProps> = ({ conversations, onSelectChat, onBack }) => {
   return (
-    <div className="h-full w-full bg-zinc-900 text-white flex flex-col">
+    <div className="h-full w-full bg-zinc-900 text-white flex flex-col pb-20">
       <header className="sticky top-0 bg-zinc-900 bg-opacity-80 backdrop-blur-sm z-10 flex items-center p-4 border-b border-zinc-800">
         {onBack && (
           <button onClick={onBack} className="mr-4">

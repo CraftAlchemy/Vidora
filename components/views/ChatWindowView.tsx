@@ -3,29 +3,50 @@ import { Conversation } from '../../types';
 import { ChevronLeftIcon, SendIcon, PaperclipIcon, EmojiIcon, CloseIcon } from '../icons/Icons';
 import { mockUser } from '../../services/mockApi';
 
+const emojiCategories = {
+    'Smileys & People': ['😀', '😂', '😍', '🤔', '😎', '😭', '🤯', '😡', '😴', '🥳', '🥺', '👍', '👎', '🙌', '🙏', '👋', '🤷', '🤦'],
+    'Animals & Nature': ['🐶', '🐱', '🐭', '🐰', '🦊', '🐻', '🐼', '🐨', '🐵', '🐸', '🐢', '🌸', '🌹', '🌻', '🌍', '☀️', '🌙', '⭐'],
+    'Food & Drink': ['🍎', '🍌', '🍇', '🍓', '🍔', '🍕', '🍟', '🍩', '☕', '🍺', '🍷', '🍹', '🍦', '🍰', '🍿', '🌮', '🍜', '🍣'],
+    'Activities & Objects': ['⚽', '🏀', '🏈', '⚾', '🎾', '🎮', '🎸', '🎤', '💻', '📱', '📷', '💡', '🚀', '✈️', '🚗', '🎁', '🎉', '💯'],
+};
+
 // Emoji Picker Component defined in the same file for simplicity
 interface EmojiPickerProps {
   onSelectEmoji: (emoji: string) => void;
 }
 
-const emojis = [
-  '😀', '😂', '😍', '🤔', '😎', '😭', '🤯', '👍',
-  '👎', '❤️', '🔥', '🚀', '🎉', '💯', '🙏', '🤷'
-];
-
 const EmojiPicker: React.FC<EmojiPickerProps> = ({ onSelectEmoji }) => {
+  const [activeCategory, setActiveCategory] = useState(Object.keys(emojiCategories)[0]);
+  const categoryKeys = Object.keys(emojiCategories) as (keyof typeof emojiCategories)[];
+
   return (
-    <div className="absolute bottom-full mb-2 left-0 bg-zinc-800 border border-zinc-700 rounded-lg shadow-lg p-2 z-20 animate-fade-in-up">
-      <div className="grid grid-cols-4 gap-2">
-        {emojis.map(emoji => (
-          <button
-            key={emoji}
-            onClick={() => onSelectEmoji(emoji)}
-            className="text-2xl p-1 rounded-md hover:bg-zinc-700 transition-colors"
-          >
-            {emoji}
-          </button>
-        ))}
+    <div className="absolute bottom-full mb-2 left-0 bg-zinc-800 border border-zinc-700 rounded-lg shadow-lg z-20 animate-fade-in-up w-72 h-80 flex flex-col">
+      <div className="p-2 border-b border-zinc-700">
+        <div className="flex justify-around">
+          {categoryKeys.map((category, index) => (
+            <button
+              key={category}
+              onClick={() => setActiveCategory(category)}
+              className={`p-1 rounded-md text-lg ${activeCategory === category ? 'bg-zinc-600' : 'hover:bg-zinc-700'}`}
+              title={category}
+            >
+              {['😀', '🐶', '🍔', '⚽'][index]}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="flex-1 overflow-y-auto p-2 scrollbar-hide">
+        <div className="grid grid-cols-7 gap-1">
+          {emojiCategories[activeCategory as keyof typeof emojiCategories].map(emoji => (
+            <button
+              key={emoji}
+              onClick={() => onSelectEmoji(emoji)}
+              className="text-2xl p-1 rounded-md hover:bg-zinc-700 transition-colors"
+            >
+              {emoji}
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -108,78 +129,82 @@ const ChatWindowView: React.FC<ChatWindowViewProps> = ({ conversation, onBack, o
   }
 
   return (
-    <div className="h-full w-full bg-zinc-900 text-white flex flex-col">
+    <div className="h-full w-full bg-zinc-900 text-white flex flex-col pb-20">
       <header className="sticky top-0 bg-zinc-900 bg-opacity-80 backdrop-blur-sm z-10 flex items-center p-4 border-b border-zinc-800">
         <button onClick={onBack} className="mr-4">
           <ChevronLeftIcon />
         </button>
-        <img src={conversation.user.avatarUrl} alt={conversation.user.username} className="w-8 h-8 rounded-full mr-3" />
-        <h1 className="text-lg font-bold">@{conversation.user.username}</h1>
+        <img src={conversation.user.avatarUrl} alt={conversation.user.username} className="w-9 h-9 rounded-full mr-3" />
+        <div className="flex-1">
+            <p className="font-bold text-sm">@{conversation.user.username}</p>
+            <p className="text-xs text-green-400">Online</p>
+        </div>
       </header>
-
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {conversation.messages.map((msg) => (
-          <div key={msg.id} className={`flex items-end gap-2 ${msg.senderId === mockUser.id ? 'justify-end' : 'justify-start'}`}>
-            {msg.senderId !== mockUser.id && (
-                <img src={conversation.user.avatarUrl} alt="avatar" className="w-6 h-6 rounded-full"/>
-            )}
-            <div className={`max-w-xs md:max-w-md rounded-2xl ${msg.senderId === mockUser.id ? 'bg-pink-600 rounded-br-none' : 'bg-zinc-700 rounded-bl-none'} ${msg.imageUrl && !msg.text ? 'p-1' : ''}`}>
-              {msg.imageUrl && (
-                  <img src={msg.imageUrl} alt="attachment" className="rounded-xl max-w-full h-auto" />
-              )}
-              {msg.text && (
-                  <p className="text-sm p-2">{msg.text}</p>
-              )}
-            </div>
-          </div>
-        ))}
-         {isTyping && (
-          <div className="flex items-end gap-2 justify-start animate-fade-in-up">
-            <img src={conversation.user.avatarUrl} alt="avatar" className="w-6 h-6 rounded-full"/>
-            <div className="max-w-xs md:max-w-md p-3 rounded-2xl bg-zinc-700 rounded-bl-none">
-              <div className="flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-[bounce_1s_infinite_0.1s]"></span>
-                  <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-[bounce_1s_infinite_0.2s]"></span>
-                  <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-[bounce_1s_infinite_0.3s]"></span>
+      
+      <main className="flex-1 overflow-y-auto p-4 space-y-4">
+        {conversation.messages.map((msg) => {
+          const isCurrentUser = msg.senderId === mockUser.id;
+          return (
+            <div key={msg.id} className={`flex items-end gap-2 ${isCurrentUser ? 'justify-end' : 'justify-start'}`}>
+              {!isCurrentUser && <img src={conversation.user.avatarUrl} alt={conversation.user.username} className="w-7 h-7 rounded-full mb-1" />}
+              <div className="flex flex-col max-w-xs md:max-w-md">
+                <div className={`p-3 rounded-2xl ${isCurrentUser ? 'bg-pink-600/80 backdrop-blur-sm rounded-br-lg' : 'bg-zinc-700 rounded-bl-lg'}`}>
+                  {msg.imageUrl && (
+                      <img src={msg.imageUrl} alt="sent image" className="rounded-lg mb-2 max-h-48" />
+                  )}
+                  {msg.text && <p className="text-sm break-words">{msg.text}</p>}
+                </div>
+                <p className={`text-xs mt-1 ${isCurrentUser ? 'text-gray-400 text-right' : 'text-gray-400'}`}>{msg.timestamp}</p>
               </div>
             </div>
-          </div>
+          );
+        })}
+        {isTyping && (
+             <div className="flex items-end gap-2 justify-start">
+                <img src={conversation.user.avatarUrl} alt={conversation.user.username} className="w-7 h-7 rounded-full mb-1" />
+                <div className="max-w-xs md:max-w-md p-3 rounded-2xl bg-zinc-700 rounded-bl-lg">
+                    <div className="flex items-center gap-1.5">
+                        <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></span>
+                        <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></span>
+                        <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.3s'}}></span>
+                    </div>
+                </div>
+            </div>
         )}
         <div ref={messagesEndRef} />
-      </div>
+      </main>
 
-      <footer className="p-4 bg-zinc-900 border-t border-zinc-800">
+      <footer className="p-2 bg-zinc-900 border-t border-zinc-800">
         {imagePreview && (
-          <div className="relative w-24 h-24 mb-2 p-1 border border-zinc-700 rounded-md">
-            <img src={imagePreview} alt="preview" className="w-full h-full object-cover rounded"/>
-            <button onClick={removeImagePreview} className="absolute -top-2 -right-2 bg-zinc-600 rounded-full p-0.5">
-              <CloseIcon className="w-4 h-4"/>
+          <div className="p-2 relative w-24">
+            <img src={imagePreview} alt="Preview" className="rounded-md w-full" />
+            <button onClick={removeImagePreview} className="absolute -top-1 -right-1 bg-black/70 rounded-full p-0.5 text-white hover:bg-black">
+              <CloseIcon className="w-4 h-4" />
             </button>
           </div>
         )}
-        <div className="flex items-center space-x-2">
-            <div ref={emojiPickerRef} className="relative">
-                {showEmojiPicker && <EmojiPicker onSelectEmoji={(emoji) => setNewMessage(m => m + emoji)} />}
-                <button onClick={() => setShowEmojiPicker(s => !s)} className="p-2 text-gray-400 hover:text-white">
-                    <EmojiIcon />
+        <div className="flex items-center gap-2">
+          <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
+          <button onClick={() => fileInputRef.current?.click()} className="p-2 text-gray-400 hover:text-white">
+            <PaperclipIcon />
+          </button>
+          <div ref={emojiPickerRef} className="relative flex-1">
+            {showEmojiPicker && <EmojiPicker onSelectEmoji={(emoji) => setNewMessage(m => m + emoji)} />}
+            <div className="relative">
+                <input 
+                  type="text" 
+                  placeholder="Type a message..."
+                  value={newMessage}
+                  onChange={(e) => setNewMessage(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                  className="w-full h-10 bg-zinc-800 rounded-full pl-4 pr-10 text-sm focus:outline-none focus:ring-1 focus:ring-pink-500 placeholder-gray-500"
+                />
+                 <button onClick={() => setShowEmojiPicker(s => !s)} className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-white">
+                    <EmojiIcon className="w-5 h-5"/>
                 </button>
             </div>
-            <button onClick={() => fileInputRef.current?.click()} className="p-2 text-gray-400 hover:text-white">
-                <PaperclipIcon />
-            </button>
-            <input type="file" accept="image/*" ref={fileInputRef} onChange={handleFileChange} className="hidden" />
-
-          <div className="flex-1 relative">
-             <input
-                type="text"
-                placeholder="Type a message..."
-                value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                className="w-full p-2.5 bg-zinc-800 rounded-full border border-zinc-700 focus:outline-none focus:ring-2 focus:ring-pink-500 text-sm px-4"
-              />
           </div>
-          <button onClick={handleSendMessage} className="p-2.5 bg-pink-600 rounded-full font-semibold text-sm">
+          <button onClick={handleSendMessage} className="w-10 h-10 bg-pink-600 rounded-full flex items-center justify-center shrink-0 hover:bg-pink-700 transition-colors disabled:opacity-50" disabled={!newMessage.trim() && !imageFile}>
             <SendIcon />
           </button>
         </div>
