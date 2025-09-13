@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { HomeIcon, LiveIcon, AddIcon, InboxIcon, ProfileIcon } from './icons/Icons';
 import { View } from '../App';
@@ -7,6 +6,7 @@ interface BottomNavProps {
   activeView: View;
   onNavigate: (view: View) => void;
   onNavigateToUpload: () => void;
+  isVisible: boolean;
 }
 
 const NavItem: React.FC<{
@@ -21,9 +21,9 @@ const NavItem: React.FC<{
   </button>
 );
 
-const BottomNav: React.FC<BottomNavProps> = ({ activeView, onNavigate, onNavigateToUpload }) => {
+const BottomNav: React.FC<BottomNavProps> = ({ activeView, onNavigate, onNavigateToUpload, isVisible }) => {
   return (
-    <nav className="fixed bottom-0 left-0 right-0 h-16 bg-zinc-900 border-t border-zinc-800 grid grid-cols-5 items-center z-20">
+    <nav className={`fixed bottom-0 left-0 right-0 h-16 bg-zinc-900 border-t border-zinc-800 grid grid-cols-5 items-center z-20 transition-all duration-300 ease-in-out ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0'}`}>
       <NavItem
         label="Home"
         icon={<HomeIcon isFilled={activeView === 'feed'} />}

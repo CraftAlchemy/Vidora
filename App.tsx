@@ -38,6 +38,7 @@ const App: React.FC = () => {
     
     const [activeView, setActiveView] = useState<View>('feed');
     const [previousView, setPreviousView] = useState<View>('feed');
+    const [isNavVisible, setIsNavVisible] = useState(true);
 
     // Chat State
     const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
@@ -69,6 +70,10 @@ const App: React.FC = () => {
             }
         }
     }, []);
+
+    useEffect(() => {
+        setIsNavVisible(true);
+    }, [activeView]);
 
     const handleLogin = () => {
         sessionStorage.setItem('isLoggedIn', 'true');
@@ -339,7 +344,7 @@ const App: React.FC = () => {
     const renderView = () => {
         switch (activeView) {
             case 'feed':
-                return <FeedView videos={videos} currentUser={currentUser} onOpenComments={handleOpenComments}/>;
+                return <FeedView videos={videos} currentUser={currentUser} onOpenComments={handleOpenComments} setIsNavVisible={setIsNavVisible} />;
             case 'live':
                 return <LiveView />;
             case 'inbox': {
@@ -369,7 +374,7 @@ const App: React.FC = () => {
             case 'admin':
                 return <AdminPanel user={currentUser} onExit={() => handleNavigate('profile')} />
             default:
-                return <FeedView videos={videos} currentUser={currentUser} onOpenComments={handleOpenComments}/>;
+                return <FeedView videos={videos} currentUser={currentUser} onOpenComments={handleOpenComments} setIsNavVisible={setIsNavVisible} />;
         }
     };
 
@@ -386,6 +391,7 @@ const App: React.FC = () => {
                     activeView={activeView}
                     onNavigate={handleNavigate}
                     onNavigateToUpload={handleNavigateToUpload}
+                    isVisible={isNavVisible}
                 />
             )}
 
