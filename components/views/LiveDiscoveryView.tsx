@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { LiveStream } from '../../types';
+import { LiveStream, User } from '../../types';
 import ViewerLiveView from './ViewerLiveView'; 
 
 interface LiveDiscoveryViewProps {
   liveStreams: LiveStream[];
   onGoLive: () => void;
   setIsNavVisible: (visible: boolean) => void;
+  currentUser: User;
+  onToggleFollow: (userId: string) => void;
+  onShareStream: (streamId: string) => void;
 }
 
 const LiveCard: React.FC<{ stream: LiveStream; onClick: () => void }> = ({ stream, onClick }) => (
@@ -24,7 +27,7 @@ const LiveCard: React.FC<{ stream: LiveStream; onClick: () => void }> = ({ strea
   </div>
 );
 
-const LiveDiscoveryView: React.FC<LiveDiscoveryViewProps> = ({ liveStreams, onGoLive, setIsNavVisible }) => {
+const LiveDiscoveryView: React.FC<LiveDiscoveryViewProps> = ({ liveStreams, onGoLive, setIsNavVisible, currentUser, onToggleFollow, onShareStream }) => {
   const [selectedStream, setSelectedStream] = useState<LiveStream | null>(null);
 
   useEffect(() => {
@@ -33,7 +36,13 @@ const LiveDiscoveryView: React.FC<LiveDiscoveryViewProps> = ({ liveStreams, onGo
   }, [selectedStream, setIsNavVisible]);
 
   if (selectedStream) {
-    return <ViewerLiveView stream={selectedStream} onBack={() => setSelectedStream(null)} />;
+    return <ViewerLiveView 
+            stream={selectedStream} 
+            onBack={() => setSelectedStream(null)} 
+            currentUser={currentUser}
+            onToggleFollow={onToggleFollow}
+            onShareStream={onShareStream}
+          />;
   }
 
   return (

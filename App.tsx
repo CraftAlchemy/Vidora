@@ -242,6 +242,12 @@ const App: React.FC = () => {
         showSuccessToast('Video link copied to clipboard!');
     };
 
+    const handleShareStream = (streamId: string) => {
+        // In a real app, we might update a share count on a stream object
+        console.log(`Sharing stream: ${streamId}`);
+        showSuccessToast('Live stream link copied to clipboard!');
+    };
+
     const handleEditProfile = () => {
         setIsEditProfileOpen(true);
     };
@@ -401,7 +407,12 @@ const App: React.FC = () => {
             case 'feed':
                 return <FeedView videos={videos} currentUser={currentUser} onOpenComments={handleOpenComments} setIsNavVisible={setIsNavVisible} onToggleFollow={handleToggleFollow} onShareVideo={handleShareVideo} />;
             case 'live':
-                return <LiveView setIsNavVisible={setIsNavVisible} />;
+                return <LiveView 
+                    setIsNavVisible={setIsNavVisible} 
+                    currentUser={currentUser}
+                    onToggleFollow={handleToggleFollow}
+                    onShareStream={handleShareStream}
+                />;
             case 'inbox': {
                 if (selectedConversationId) {
                     const conversation = conversations.find(c => c.id === selectedConversationId);

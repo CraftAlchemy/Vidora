@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { LiveStream } from '../../types';
+import { LiveStream, User } from '../../types';
 import LiveDiscoveryView from './LiveDiscoveryView';
 import BroadcasterView from './BroadcasterView';
 import GoLiveModal from '../GoLiveModal';
@@ -7,9 +7,12 @@ import { mockLiveStreams } from '../../services/mockApi';
 
 interface LiveViewProps {
   setIsNavVisible: (visible: boolean) => void;
+  currentUser: User;
+  onToggleFollow: (userId: string) => void;
+  onShareStream: (streamId: string) => void;
 }
 
-const LiveView: React.FC<LiveViewProps> = ({ setIsNavVisible }) => {
+const LiveView: React.FC<LiveViewProps> = ({ setIsNavVisible, currentUser, onToggleFollow, onShareStream }) => {
   const [isBroadcasting, setIsBroadcasting] = useState(false);
   const [myStreamTitle, setMyStreamTitle] = useState('');
   const [isGoLiveModalOpen, setIsGoLiveModalOpen] = useState(false);
@@ -42,6 +45,9 @@ const LiveView: React.FC<LiveViewProps> = ({ setIsNavVisible }) => {
         liveStreams={liveStreams} 
         onGoLive={handleGoLiveClick}
         setIsNavVisible={setIsNavVisible} 
+        currentUser={currentUser}
+        onToggleFollow={onToggleFollow}
+        onShareStream={onShareStream}
       />
       {isGoLiveModalOpen && (
         <GoLiveModal 

@@ -1,12 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { LiveStream, ChatMessage, User, Gift } from '../../types';
-import { CloseIcon, HeartIcon, SendIcon, EmojiIcon, GiftIcon } from '../icons/Icons';
+import { CloseIcon, HeartIcon, SendIcon, EmojiIcon, GiftIcon, ShareIcon } from '../icons/Icons';
 import { mockUser, mockGifts, mockUsers } from '../../services/mockApi';
 import SendGiftModal from '../SendGiftModal';
 
 interface ViewerLiveViewProps {
   stream: LiveStream;
   onBack: () => void;
+  currentUser: User;
+  onToggleFollow: (userId: string) => void;
+  onShareStream: (streamId: string) => void;
 }
 
 const emojiCategories = {
@@ -79,7 +82,7 @@ const FloatingHeart: React.FC<{ onAnimationEnd: () => void }> = ({ onAnimationEn
     );
 };
 
-const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack }) => {
+const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, currentUser, onToggleFollow, onShareStream }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([
     { id: '1', senderId: stream.user.id, text: `Welcome to the stream!`, isRead: true, timestamp: '' },
   ]);
@@ -87,10 +90,13 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack }) => {
   const [isGiftModalOpen, setIsGiftModalOpen] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [floatingHearts, setFloatingHearts] = useState<{ id: number }[]>([]);
+  const [isSharing, setIsSharing] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
   const heartCounter = useRef(0);
+  
+  const isFollowing = currentUser.followingIds?.includes(stream.user.id);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -180,6 +186,35 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack }) => {
     setFloatingHearts(prev => prev.filter(heart => heart.id !== idToRemove));
   };
   
+  const handleShare = async () => {
+    if (isSharing) return;
+
+    const shareUrl = `https://vidora.app/stream/${stream.id}`;
+    const shareData = {
+      title: `Watch ${stream.user.username}'s live stream!`,
+      text: stream.title,
+      url: shareUrl,
+    };
+
+    setIsSharing(true);
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+      } else {
+        await navigator.clipboard.writeText(shareUrl);
+      }
+      onShareStream(stream.id);
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') {
+          console.log('Share was cancelled by the user.');
+      } else {
+          console.error('Error sharing:', error);
+      }
+    } finally {
+        setIsSharing(false);
+    }
+  };
+
   const ChatBubble: React.FC<{message: ChatMessage}> = ({ message }) => {
     const user = mockUsers.find(u => u.id === message.senderId) || stream.user;
     const isGift = message.id.startsWith('gift-');
@@ -229,6 +264,16 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack }) => {
                 <p className="font-bold text-sm">@{stream.user.username}</p>
                 <p className="text-xs">{stream.title}</p>
             </div>
+            <button
+              onClick={() => onToggleFollow(stream.user.id)}
+              className={`ml-3 px-3 py-1 text-xs font-bold rounded-md transition-colors ${
+                  isFollowing
+                      ? 'bg-transparent border border-gray-400 text-gray-300'
+                      : 'bg-white text-black'
+              }`}
+            >
+              {isFollowing ? 'Following' : 'Follow'}
+            </button>
           </div>
           <div className="flex items-center gap-2">
             <div className="bg-black/40 p-2 rounded-lg text-xs">{stream.viewers.toLocaleString()} watching</div>
@@ -253,24 +298,27 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack }) => {
                         value={newMessage}
                         onChange={(e) => setNewMessage(e.target.value)}
                         onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                        className="w-full h-10 bg-black/40 rounded-full pl-4 pr-12 text-sm focus:outline-none focus:ring-2 focus:ring-pink-500 placeholder-gray-400"
+                        className={`w-full h-10 bg-black/40 rounded-full pl-4 ${newMessage.trim() ? 'pr-20' : 'pr-12'} text-sm focus:outline-none focus:ring-2 focus:ring-pink-500 placeholder-gray-400 transition-all`}
                     />
-                     <div ref={emojiPickerRef} className="absolute right-2 top-1/2 -translate-y-1/2">
-                        {showEmojiPicker && <EmojiPicker onSelectEmoji={(emoji) => setNewMessage(m => m + emoji)} />}
-                        <button onClick={() => setShowEmojiPicker(s => !s)} className="p-1 text-gray-300 hover:text-white">
-                            <EmojiIcon className="w-6 h-6"/>
-                        </button>
+                    <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center">
+                        <div ref={emojiPickerRef} className="relative">
+                            {showEmojiPicker && <EmojiPicker onSelectEmoji={(emoji) => setNewMessage(m => m + emoji)} />}
+                            <button onClick={() => setShowEmojiPicker(s => !s)} className="p-1 text-gray-300 hover:text-white">
+                                <EmojiIcon className="w-6 h-6"/>
+                            </button>
+                        </div>
+                        {newMessage.trim() && (
+                             <button 
+                                onClick={handleSendMessage} 
+                                className="w-8 h-8 bg-pink-600 rounded-full flex items-center justify-center shrink-0 ml-1"
+                                aria-label="Send message"
+                            >
+                                <SendIcon />
+                            </button>
+                        )}
                     </div>
                 </div>
 
-                 <button 
-                    onClick={handleSendMessage} 
-                    className="w-10 h-10 bg-pink-600 rounded-full flex items-center justify-center shrink-0"
-                    aria-label="Send message"
-                >
-                    <SendIcon />
-                </button>
-                
                 <button 
                     onClick={handleSendLike}
                     className="w-10 h-10 bg-black/40 rounded-full flex items-center justify-center shrink-0"
@@ -285,6 +333,14 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack }) => {
                     aria-label="Send a gift"
                 >
                     <GiftIcon className="w-6 h-6" />
+                </button>
+                 <button 
+                    onClick={handleShare}
+                    disabled={isSharing}
+                    className="w-10 h-10 bg-black/40 rounded-full flex items-center justify-center shrink-0 disabled:opacity-50"
+                    aria-label="Share stream"
+                >
+                    <ShareIcon className="w-6 h-6" />
                 </button>
             </div>
         </footer>
