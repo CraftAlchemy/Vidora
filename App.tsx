@@ -187,6 +187,61 @@ const App: React.FC = () => {
         }
     };
 
+    const handleToggleFollow = (userIdToToggle: string) => {
+        if (!currentUser) return;
+    
+        const isCurrentlyFollowing = currentUser.followingIds?.includes(userIdToToggle);
+        let updatedFollowingIds: string[];
+        let newFollowingCount: number = currentUser.following || 0;
+    
+        if (isCurrentlyFollowing) {
+            // Unfollow
+            updatedFollowingIds = currentUser.followingIds?.filter(id => id !== userIdToToggle) || [];
+            newFollowingCount--;
+        } else {
+            // Follow
+            updatedFollowingIds = [...(currentUser.followingIds || []), userIdToToggle];
+            newFollowingCount++;
+        }
+    
+        // Update current user state
+        const updatedCurrentUser = {
+            ...currentUser,
+            followingIds: updatedFollowingIds,
+            following: newFollowingCount,
+        };
+        setCurrentUser(updatedCurrentUser);
+    
+        // Update the user's follower count in the videos state for immediate UI feedback
+        const updatedVideos = videos.map(video => {
+            if (video.user.id === userIdToToggle) {
+                const currentFollowers = video.user.followers || 0;
+                const newFollowers = isCurrentlyFollowing ? currentFollowers - 1 : currentFollowers + 1;
+                return {
+                    ...video,
+                    user: {
+                        ...video.user,
+                        followers: newFollowers
+                    }
+                };
+            }
+            return video;
+        });
+        setVideos(updatedVideos);
+    
+        // Show a toast message
+        showSuccessToast(isCurrentlyFollowing ? `Unfollowed!` : `Followed!`);
+    };
+
+    const handleShareVideo = (videoId: string) => {
+        setVideos(prevVideos =>
+            prevVideos.map(video =>
+                video.id === videoId ? { ...video, shares: video.shares + 1 } : video
+            )
+        );
+        showSuccessToast('Video link copied to clipboard!');
+    };
+
     const handleEditProfile = () => {
         setIsEditProfileOpen(true);
     };
@@ -344,7 +399,7 @@ const App: React.FC = () => {
     const renderView = () => {
         switch (activeView) {
             case 'feed':
-                return <FeedView videos={videos} currentUser={currentUser} onOpenComments={handleOpenComments} setIsNavVisible={setIsNavVisible} />;
+                return <FeedView videos={videos} currentUser={currentUser} onOpenComments={handleOpenComments} setIsNavVisible={setIsNavVisible} onToggleFollow={handleToggleFollow} onShareVideo={handleShareVideo} />;
             case 'live':
                 return <LiveView />;
             case 'inbox': {
@@ -374,7 +429,7 @@ const App: React.FC = () => {
             case 'admin':
                 return <AdminPanel user={currentUser} onExit={() => handleNavigate('profile')} />
             default:
-                return <FeedView videos={videos} currentUser={currentUser} onOpenComments={handleOpenComments} setIsNavVisible={setIsNavVisible} />;
+                return <FeedView videos={videos} currentUser={currentUser} onOpenComments={handleOpenComments} setIsNavVisible={setIsNavVisible} onToggleFollow={handleToggleFollow} onShareVideo={handleShareVideo} />;
         }
     };
 

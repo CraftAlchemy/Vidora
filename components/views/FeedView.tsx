@@ -7,9 +7,11 @@ interface FeedViewProps {
   currentUser: User;
   onOpenComments: (video: Video) => void;
   setIsNavVisible: (visible: boolean) => void;
+  onToggleFollow: (userId: string) => void;
+  onShareVideo: (videoId: string) => void;
 }
 
-const FeedView: React.FC<FeedViewProps> = ({ videos, currentUser, onOpenComments, setIsNavVisible }) => {
+const FeedView: React.FC<FeedViewProps> = ({ videos, currentUser, onOpenComments, setIsNavVisible, onToggleFollow, onShareVideo }) => {
   const [activeVideoId, setActiveVideoId] = React.useState<string | null>(videos.length > 0 ? videos[0].id : null);
   const containerRef = useRef<HTMLDivElement>(null);
   const lastScrollY = useRef(0);
@@ -69,6 +71,9 @@ const FeedView: React.FC<FeedViewProps> = ({ videos, currentUser, onOpenComments
             video={video}
             isActive={video.id === activeVideoId}
             onOpenComments={() => onOpenComments(video)}
+            currentUser={currentUser}
+            onToggleFollow={onToggleFollow}
+            onShareVideo={onShareVideo}
           />
         ))}
       </div>
