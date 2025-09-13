@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { LiveStream } from '../../types';
-import GoLiveModal from '../GoLiveModal';
 import ViewerLiveView from './ViewerLiveView'; 
 
 interface LiveDiscoveryViewProps {
   liveStreams: LiveStream[];
+  onGoLive: () => void;
 }
 
 const LiveCard: React.FC<{ stream: LiveStream; onClick: () => void }> = ({ stream, onClick }) => (
@@ -23,8 +23,7 @@ const LiveCard: React.FC<{ stream: LiveStream; onClick: () => void }> = ({ strea
   </div>
 );
 
-const LiveDiscoveryView: React.FC<LiveDiscoveryViewProps> = ({ liveStreams }) => {
-  const [isGoLiveModalOpen, setIsGoLiveModalOpen] = useState(false);
+const LiveDiscoveryView: React.FC<LiveDiscoveryViewProps> = ({ liveStreams, onGoLive }) => {
   const [selectedStream, setSelectedStream] = useState<LiveStream | null>(null);
 
   if (selectedStream) {
@@ -32,27 +31,22 @@ const LiveDiscoveryView: React.FC<LiveDiscoveryViewProps> = ({ liveStreams }) =>
   }
 
   return (
-    <>
-      <div className="h-full w-full bg-zinc-900 text-white overflow-y-auto pb-16">
-        <header className="sticky top-0 bg-zinc-900 bg-opacity-80 backdrop-blur-sm z-10 flex items-center justify-between p-4 border-b border-zinc-800">
-          <h1 className="text-lg font-bold">Live Discovery</h1>
-          <button 
-            onClick={() => setIsGoLiveModalOpen(true)}
-            className="px-4 py-2 font-semibold rounded-lg bg-gradient-to-r from-pink-500 to-red-500 text-white shadow-lg text-sm"
-          >
-            Go Live
-          </button>
-        </header>
-        <div className="p-4 grid grid-cols-2 gap-4">
-          {liveStreams.map(stream => (
-            <LiveCard key={stream.id} stream={stream} onClick={() => setSelectedStream(stream)} />
-          ))}
-        </div>
+    <div className="h-full w-full bg-zinc-900 text-white overflow-y-auto pb-16">
+      <header className="sticky top-0 bg-zinc-900 bg-opacity-80 backdrop-blur-sm z-10 flex items-center justify-between p-4 border-b border-zinc-800">
+        <h1 className="text-lg font-bold">Live Discovery</h1>
+        <button 
+          onClick={onGoLive}
+          className="px-4 py-2 font-semibold rounded-lg bg-gradient-to-r from-pink-500 to-red-500 text-white shadow-lg text-sm"
+        >
+          Go Live
+        </button>
+      </header>
+      <div className="p-4 grid grid-cols-2 gap-4">
+        {liveStreams.map(stream => (
+          <LiveCard key={stream.id} stream={stream} onClick={() => setSelectedStream(stream)} />
+        ))}
       </div>
-      {isGoLiveModalOpen && (
-        <GoLiveModal onClose={() => setIsGoLiveModalOpen(false)} onStartStream={() => alert("Starting Stream!")} />
-      )}
-    </>
+    </div>
   );
 };
 
