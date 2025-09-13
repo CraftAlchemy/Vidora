@@ -401,7 +401,7 @@ const App: React.FC = () => {
             case 'feed':
                 return <FeedView videos={videos} currentUser={currentUser} onOpenComments={handleOpenComments} setIsNavVisible={setIsNavVisible} onToggleFollow={handleToggleFollow} onShareVideo={handleShareVideo} />;
             case 'live':
-                return <LiveView />;
+                return <LiveView setIsNavVisible={setIsNavVisible} />;
             case 'inbox': {
                 if (selectedConversationId) {
                     const conversation = conversations.find(c => c.id === selectedConversationId);

@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { LiveStream } from '../../types';
 import ViewerLiveView from './ViewerLiveView'; 
 
 interface LiveDiscoveryViewProps {
   liveStreams: LiveStream[];
   onGoLive: () => void;
+  setIsNavVisible: (visible: boolean) => void;
 }
 
 const LiveCard: React.FC<{ stream: LiveStream; onClick: () => void }> = ({ stream, onClick }) => (
@@ -23,8 +24,13 @@ const LiveCard: React.FC<{ stream: LiveStream; onClick: () => void }> = ({ strea
   </div>
 );
 
-const LiveDiscoveryView: React.FC<LiveDiscoveryViewProps> = ({ liveStreams, onGoLive }) => {
+const LiveDiscoveryView: React.FC<LiveDiscoveryViewProps> = ({ liveStreams, onGoLive, setIsNavVisible }) => {
   const [selectedStream, setSelectedStream] = useState<LiveStream | null>(null);
+
+  useEffect(() => {
+    // Hide the nav when a stream is selected, show it when back on the discovery view.
+    setIsNavVisible(selectedStream === null);
+  }, [selectedStream, setIsNavVisible]);
 
   if (selectedStream) {
     return <ViewerLiveView stream={selectedStream} onBack={() => setSelectedStream(null)} />;

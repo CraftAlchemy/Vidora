@@ -5,7 +5,11 @@ import BroadcasterView from './BroadcasterView';
 import GoLiveModal from '../GoLiveModal';
 import { mockLiveStreams } from '../../services/mockApi';
 
-const LiveView: React.FC = () => {
+interface LiveViewProps {
+  setIsNavVisible: (visible: boolean) => void;
+}
+
+const LiveView: React.FC<LiveViewProps> = ({ setIsNavVisible }) => {
   const [isBroadcasting, setIsBroadcasting] = useState(false);
   const [myStreamTitle, setMyStreamTitle] = useState('');
   const [isGoLiveModalOpen, setIsGoLiveModalOpen] = useState(false);
@@ -34,7 +38,11 @@ const LiveView: React.FC = () => {
 
   return (
     <>
-      <LiveDiscoveryView liveStreams={liveStreams} onGoLive={handleGoLiveClick} />
+      <LiveDiscoveryView 
+        liveStreams={liveStreams} 
+        onGoLive={handleGoLiveClick}
+        setIsNavVisible={setIsNavVisible} 
+      />
       {isGoLiveModalOpen && (
         <GoLiveModal 
           onClose={() => setIsGoLiveModalOpen(false)} 
