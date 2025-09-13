@@ -1,33 +1,103 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { mockUsers } from '../../services/mockApi';
+import { mockUsers, mockUser } from '../../services/mockApi';
 import { User, ChatMessage } from '../../types';
+import { SendIcon, EmojiIcon, MicrophoneIcon, MicrophoneOffIcon, VideoIcon, VideoCameraOffIcon } from '../icons/Icons';
 
 interface BroadcasterViewProps {
   streamTitle: string;
   onEndStream: () => void;
 }
 
-const ChatBubble: React.FC<{ message: ChatMessage; user: User }> = ({ message, user }) => (
-  <div className="flex items-start gap-2 p-1 text-shadow-sm animate-fade-in-up">
-    <img src={user.avatarUrl} alt="avatar" className="w-6 h-6 rounded-full" />
-    <div className="flex flex-col">
-      <span className="text-xs text-gray-300">@{user.username}</span>
-      <p className="text-sm bg-black/25 px-3 py-1.5 rounded-xl">{message.text}</p>
+
+const emojiCategories = {
+    'Smileys & People': ['😀', '😂', '😍', '🤔', '😎', '😭', '🤯', '😡', '😴', '🥳', '🥺', '👍', '👎', '🙌', '🙏', '👋', '🤷', '🤦'],
+    'Animals & Nature': ['🐶', '🐱', '🐭', '🐰', '🦊', '🐻', '🐼', '🐨', '🐵', '🐸', '🐢', '🌸', '🌹', '🌻', '🌍', '☀️', '🌙', '⭐'],
+    'Food & Drink': ['🍎', '🍌', '🍇', '🍓', '🍔', '🍕', '🍟', '🍩', '☕', '🍺', '🍷', '🍹', '🍦', '🍰', '🍿', '🌮', '🍜', '🍣'],
+    'Activities & Objects': ['⚽', '🏀', '🏈', '⚾', '🎾', '🎮', '🎸', '🎤', '💻', '📱', '📷', '💡', '🚀', '✈️', '🚗', '🎁', '🎉', '💯'],
+};
+
+// Emoji Picker Component defined in the same file for simplicity
+interface EmojiPickerProps {
+  onSelectEmoji: (emoji: string) => void;
+}
+
+const EmojiPicker: React.FC<EmojiPickerProps> = ({ onSelectEmoji }) => {
+  const [activeCategory, setActiveCategory] = useState(Object.keys(emojiCategories)[0]);
+  const categoryKeys = Object.keys(emojiCategories) as (keyof typeof emojiCategories)[];
+
+  return (
+    <div className="absolute bottom-full mb-2 right-0 bg-zinc-800 border border-zinc-700 rounded-lg shadow-lg z-20 animate-fade-in-up w-72 h-80 flex flex-col">
+       <div className="p-2 border-b border-zinc-700">
+        <div className="flex justify-around">
+          {categoryKeys.map((category, index) => (
+            <button
+              key={category}
+              onClick={() => setActiveCategory(category)}
+              className={`p-1 rounded-md text-lg ${activeCategory === category ? 'bg-zinc-600' : 'hover:bg-zinc-700'}`}
+              title={category}
+            >
+              {['😀', '🐶', '🍔', '⚽'][index]}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="flex-1 overflow-y-auto p-2 scrollbar-hide">
+        <div className="grid grid-cols-7 gap-1">
+          {emojiCategories[activeCategory as keyof typeof emojiCategories].map(emoji => (
+            <button
+              key={emoji}
+              onClick={() => onSelectEmoji(emoji)}
+              className="text-2xl p-1 rounded-md hover:bg-zinc-700 transition-colors"
+            >
+              {emoji}
+            </button>
+          ))}
+        </div>
+      </div>
     </div>
-  </div>
-);
+  );
+};
+
+
+const ChatBubble: React.FC<{ message: ChatMessage; user: User }> = ({ message, user }) => {
+    const isBroadcaster = user.id === mockUser.id;
+
+    return (
+        <div className={`flex items-end gap-2 p-1 text-shadow-sm animate-fade-in-up w-full ${isBroadcaster ? 'justify-end' : 'justify-start'}`}>
+            {!isBroadcaster && <img src={user.avatarUrl} alt="avatar" className="w-6 h-6 rounded-full self-start" />}
+            <div className={`flex flex-col max-w-[80%] ${isBroadcaster ? 'items-end' : 'items-start'}`}>
+                <span className="text-xs text-gray-300 px-1">
+                {isBroadcaster ? 'You' : `@${user.username}`}
+                </span>
+                <p className={`text-sm px-3 py-1.5 rounded-xl break-words ${isBroadcaster ? 'bg-pink-600' : 'bg-black/25'}`}>
+                {message.text}
+                </p>
+            </div>
+            {isBroadcaster && <img src={user.avatarUrl} alt="avatar" className="w-6 h-6 rounded-full self-start" />}
+        </div>
+    );
+};
 
 const BroadcasterView: React.FC<BroadcasterViewProps> = ({ streamTitle, onEndStream }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
   const [viewers, setViewers] = useState(Math.floor(Math.random() * 50) + 10);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [newMessage, setNewMessage] = useState('');
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+
+  const [isMuted, setIsMuted] = useState(false);
+  const [isVideoOff, setIsVideoOff] = useState(false);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const emojiPickerRef = useRef<HTMLDivElement>(null);
+
 
   useEffect(() => {
-    let stream: MediaStream;
     const startCamera = async () => {
       try {
-        stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        streamRef.current = stream;
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
         }
@@ -41,7 +111,7 @@ const BroadcasterView: React.FC<BroadcasterViewProps> = ({ streamTitle, onEndStr
     startCamera();
 
     return () => {
-      stream?.getTracks().forEach(track => track.stop());
+      streamRef.current?.getTracks().forEach(track => track.stop());
     };
   }, [onEndStream]);
 
@@ -75,6 +145,49 @@ const BroadcasterView: React.FC<BroadcasterViewProps> = ({ streamTitle, onEndStr
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  // Click away to close emoji picker
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (emojiPickerRef.current && !emojiPickerRef.current.contains(event.target as Node)) {
+        setShowEmojiPicker(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [emojiPickerRef]);
+
+  const handleSendMessage = () => {
+    if (newMessage.trim() === '') return;
+    const message: ChatMessage = {
+      id: `msg-${Date.now()}`,
+      senderId: mockUser.id,
+      text: newMessage,
+      timestamp: '',
+      isRead: true,
+    };
+    setMessages(prevMessages => [...prevMessages, message]);
+    setNewMessage('');
+    setShowEmojiPicker(false);
+  };
+
+  const toggleMute = () => {
+    if (!streamRef.current) return;
+    streamRef.current.getAudioTracks().forEach(track => {
+        track.enabled = !track.enabled;
+    });
+    setIsMuted(prev => !prev);
+  };
+
+  const toggleVideo = () => {
+      if (!streamRef.current) return;
+      streamRef.current.getVideoTracks().forEach(track => {
+          track.enabled = !track.enabled;
+      });
+      setIsVideoOff(prev => !prev);
+  };
+
   return (
     <div className="h-full w-full bg-black text-white flex flex-col relative">
       <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
@@ -98,13 +211,55 @@ const BroadcasterView: React.FC<BroadcasterViewProps> = ({ streamTitle, onEndStr
         </div>
       </header>
 
-      <footer className="absolute bottom-0 left-0 right-0 z-10 p-4 pb-24">
-        <div className="h-48 overflow-y-auto space-y-1 pr-2 scrollbar-hide" style={{ maskImage: 'linear-gradient(to bottom, transparent 0%, black 10%, black 90%, transparent 100%)' }}>
+      <footer className="absolute bottom-0 left-0 right-0 z-10 p-4">
+        <div className="h-48 overflow-y-auto space-y-1 pr-2 scrollbar-hide mb-4" style={{ maskImage: 'linear-gradient(to bottom, transparent 0%, black 10%, black 90%, transparent 100%)' }}>
           {messages.map(msg => {
             const user = mockUsers.find(u => u.id === msg.senderId);
             return user ? <ChatBubble key={msg.id} message={msg} user={user} /> : null;
           })}
           <div ref={messagesEndRef} />
+        </div>
+         <div className="flex items-center space-x-2">
+            <div ref={emojiPickerRef} className="relative flex-1">
+                {showEmojiPicker && <EmojiPicker onSelectEmoji={(emoji) => setNewMessage(m => m + emoji)} />}
+                <input
+                    type="text"
+                    placeholder="Send a message..."
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                    className="w-full h-10 bg-black/40 rounded-full pl-4 pr-12 text-sm focus:outline-none focus:ring-2 focus:ring-pink-500 placeholder-gray-400"
+                />
+                <button onClick={() => setShowEmojiPicker(s => !s)} className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-300 hover:text-white">
+                    <EmojiIcon className="w-6 h-6"/>
+                </button>
+            </div>
+            <button 
+                onClick={toggleMute} 
+                className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 transition-colors ${
+                    isMuted ? 'bg-red-600' : 'bg-black/40 hover:bg-zinc-700'
+                }`}
+                aria-label={isMuted ? 'Unmute microphone' : 'Mute microphone'}
+            >
+                {isMuted ? <MicrophoneOffIcon className="w-5 h-5"/> : <MicrophoneIcon className="w-5 h-5"/>}
+            </button>
+            <button 
+                onClick={toggleVideo} 
+                className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 transition-colors ${
+                    isVideoOff ? 'bg-red-600' : 'bg-black/40 hover:bg-zinc-700'
+                }`}
+                aria-label={isVideoOff ? 'Start video' : 'Stop video'}
+            >
+                {isVideoOff ? <VideoCameraOffIcon className="w-5 h-5"/> : <VideoIcon className="w-5 h-5"/>}
+            </button>
+            <button 
+                onClick={handleSendMessage} 
+                className="w-10 h-10 bg-pink-600 rounded-full flex items-center justify-center shrink-0 disabled:opacity-50"
+                disabled={!newMessage.trim()}
+                aria-label="Send message"
+            >
+                <SendIcon />
+            </button>
         </div>
       </footer>
     </div>
