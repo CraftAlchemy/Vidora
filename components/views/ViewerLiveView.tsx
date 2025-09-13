@@ -59,6 +59,26 @@ const EmojiPicker: React.FC<EmojiPickerProps> = ({ onSelectEmoji }) => {
 };
 // End of Emoji Picker Component
 
+// Floating Heart Component for live interaction
+const FloatingHeart: React.FC<{ onAnimationEnd: () => void }> = ({ onAnimationEnd }) => {
+    useEffect(() => {
+        const timer = setTimeout(onAnimationEnd, 3000); // Must match animation duration
+        return () => clearTimeout(timer);
+    }, [onAnimationEnd]);
+
+    // Randomize horizontal position and animation duration for a natural look
+    const style = {
+        left: `${Math.random() * 100}%`,
+        animationDuration: `${2 + Math.random() * 2}s`, // Duration between 2s and 4s
+    };
+
+    return (
+        <div className="absolute bottom-0 animate-float-up" style={style}>
+            <HeartIcon isFilled={true} className="w-7 h-7" />
+        </div>
+    );
+};
+
 const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([
     { id: '1', senderId: stream.user.id, text: `Welcome to the stream!`, isRead: true, timestamp: '' },
@@ -66,8 +86,11 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack }) => {
   const [newMessage, setNewMessage] = useState('');
   const [isGiftModalOpen, setIsGiftModalOpen] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [floatingHearts, setFloatingHearts] = useState<{ id: number }[]>([]);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
+  const heartCounter = useRef(0);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -148,6 +171,15 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack }) => {
     setIsGiftModalOpen(false);
   };
   
+  const handleSendLike = () => {
+    const newHeart = { id: heartCounter.current++ };
+    setFloatingHearts(prev => [...prev, newHeart]);
+  };
+
+  const removeHeart = (idToRemove: number) => {
+    setFloatingHearts(prev => prev.filter(heart => heart.id !== idToRemove));
+  };
+  
   const ChatBubble: React.FC<{message: ChatMessage}> = ({ message }) => {
     const user = mockUsers.find(u => u.id === message.senderId) || stream.user;
     const isGift = message.id.startsWith('gift-');
@@ -182,6 +214,12 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack }) => {
         <div className="absolute inset-0 z-0">
             <img src={stream.thumbnailUrl} alt={stream.title} className="w-full h-full object-cover"/>
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/30"></div>
+        </div>
+        
+        <div className="absolute bottom-24 right-4 h-96 w-20 pointer-events-none z-20">
+          {floatingHearts.map(heart => (
+            <FloatingHeart key={heart.id} onAnimationEnd={() => removeHeart(heart.id)} />
+          ))}
         </div>
 
         <header className="relative z-10 flex justify-between items-start p-4">
@@ -231,6 +269,14 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack }) => {
                     aria-label="Send message"
                 >
                     <SendIcon />
+                </button>
+                
+                <button 
+                    onClick={handleSendLike}
+                    className="w-10 h-10 bg-black/40 rounded-full flex items-center justify-center shrink-0"
+                    aria-label="Send a like"
+                >
+                    <HeartIcon isFilled={true} className="w-6 h-6"/>
                 </button>
 
                  <button 
