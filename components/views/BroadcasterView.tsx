@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { mockUsers, mockUser, mockGifts } from '../../services/mockApi';
 import { User, ChatMessage, Poll, GiftEvent } from '../../types';
-import { SendIcon, EmojiIcon, MicrophoneIcon, MicrophoneOffIcon, VideoIcon, VideoCameraOffIcon, ShieldCheckIcon, PinIcon, MuteUserIcon, BanUserIcon, CloseIcon, SignalIcon, PollIcon, ChevronRightIcon, PaperclipIcon } from '../icons/Icons';
+import { SendIcon, EmojiIcon, ShieldCheckIcon, PinIcon, MuteUserIcon, BanUserIcon, CloseIcon, SignalIcon, PollIcon, ChevronRightIcon, PaperclipIcon } from '../icons/Icons';
 import HostToolsModal from '../HostToolsModal';
 import CreatePollModal from '../CreatePollModal';
 import LivePollDisplay from '../LivePollDisplay';
@@ -494,12 +494,6 @@ const BroadcasterView: React.FC<BroadcasterViewProps> = ({ streamTitle, onEndStr
                         <button onClick={() => setIsHostToolsOpen(true)} className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 bg-black/40 hover:bg-zinc-700 transition-colors" aria-label="Open Host Tools">
                             <ShieldCheckIcon className="w-5 h-5"/>
                         </button>
-                        <button onClick={toggleMute} className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 transition-colors ${isMuted ? 'bg-red-600' : 'bg-black/40 hover:bg-zinc-700'}`} aria-label={isMuted ? 'Unmute' : 'Mute'}>
-                            {isMuted ? <MicrophoneOffIcon className="w-5 h-5"/> : <MicrophoneIcon className="w-5 h-5"/>}
-                        </button>
-                        <button onClick={toggleVideo} className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 transition-colors ${isVideoOff ? 'bg-red-600' : 'bg-black/40 hover:bg-zinc-700'}`} aria-label={isVideoOff ? 'Turn on camera' : 'Turn off camera'}>
-                            {isVideoOff ? <VideoCameraOffIcon className="w-5 h-5"/> : <VideoIcon className="w-5 h-5"/>}
-                        </button>
                     </div>
                 </div>
                 {pinnedMessage && (
@@ -534,6 +528,10 @@ const BroadcasterView: React.FC<BroadcasterViewProps> = ({ streamTitle, onEndStr
                     setIsHostToolsOpen(false);
                     setIsCreatePollModalOpen(true);
                 }}
+                isMuted={isMuted}
+                onToggleMute={toggleMute}
+                isVideoOff={isVideoOff}
+                onToggleVideo={toggleVideo}
             />
         )}
         {selectedUserForAction && (

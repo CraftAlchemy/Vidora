@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { CloseIcon, PinIcon, MoreVerticalIcon, MuteUserIcon, BanUserIcon, PollIcon } from './icons/Icons';
+import { CloseIcon, PinIcon, MoreVerticalIcon, MuteUserIcon, BanUserIcon, PollIcon, MicrophoneIcon, MicrophoneOffIcon, VideoIcon, VideoCameraOffIcon } from './icons/Icons';
 import { User } from '../types';
 
 interface HostToolsModalProps {
@@ -14,11 +14,16 @@ interface HostToolsModalProps {
   onUnmuteUser: (userId: string) => void;
   onBanUser: (userId: string) => void;
   onOpenCreatePoll: () => void;
+  isMuted: boolean;
+  onToggleMute: () => void;
+  isVideoOff: boolean;
+  onToggleVideo: () => void;
 }
 
 const HostToolsModal: React.FC<HostToolsModalProps> = ({ 
     onClose, onSetPinnedMessage, pinnedMessage, events, viewers, onViewProfile,
-    mutedUserIds, onMuteUser, onUnmuteUser, onBanUser, onOpenCreatePoll
+    mutedUserIds, onMuteUser, onUnmuteUser, onBanUser, onOpenCreatePoll,
+    isMuted, onToggleMute, isVideoOff, onToggleVideo
 }) => {
     const [message, setMessage] = useState(pinnedMessage);
     const [actionMenuForUser, setActionMenuForUser] = useState<string | null>(null);
@@ -58,6 +63,31 @@ const HostToolsModal: React.FC<HostToolsModalProps> = ({
                 </header>
 
                 <main className="flex-1 overflow-y-auto p-4 space-y-6">
+                    {/* Stream Controls */}
+                    <div>
+                        <h3 className="text-sm font-semibold text-gray-400 mb-2 uppercase tracking-wider">Stream Controls</h3>
+                        <div className="bg-zinc-800 p-2 rounded-lg flex justify-around">
+                            <button
+                                onClick={onToggleMute}
+                                className={`flex flex-col items-center gap-1 p-2 rounded-md w-24 transition-colors ${
+                                    isMuted ? 'bg-red-600/50 text-red-300' : 'hover:bg-zinc-700'
+                                }`}
+                            >
+                                {isMuted ? <MicrophoneOffIcon className="w-6 h-6"/> : <MicrophoneIcon className="w-6 h-6"/>}
+                                <span className="text-xs font-semibold">{isMuted ? 'Unmute' : 'Mute Mic'}</span>
+                            </button>
+                            <button
+                                onClick={onToggleVideo}
+                                className={`flex flex-col items-center gap-1 p-2 rounded-md w-24 transition-colors ${
+                                    isVideoOff ? 'bg-red-600/50 text-red-300' : 'hover:bg-zinc-700'
+                                }`}
+                            >
+                                {isVideoOff ? <VideoCameraOffIcon className="w-6 h-6"/> : <VideoIcon className="w-6 h-6"/>}
+                                <span className="text-xs font-semibold">{isVideoOff ? 'Cam On' : 'Cam Off'}</span>
+                            </button>
+                        </div>
+                    </div>
+                    
                     {/* Pinned Message */}
                     <div>
                         <h3 className="text-sm font-semibold text-gray-400 mb-2 uppercase tracking-wider">Pinned Message</h3>
@@ -125,7 +155,6 @@ const HostToolsModal: React.FC<HostToolsModalProps> = ({
                                         <div>
                                             <p className="font-semibold text-sm flex items-center gap-2">
                                                 @{viewer.username}
-                                                {/* FIX: The 'title' prop is not valid on the Icon component. Wrapped the icon in a span with a title attribute to provide the tooltip and fix the type error. */}
                                                 {isMuted && <span title="Muted"><MuteUserIcon className="w-4 h-4 text-yellow-500" /></span>}
                                             </p>
                                             <p className="text-xs text-gray-400">Level {viewer.level}</p>
