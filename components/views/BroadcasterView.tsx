@@ -1,10 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { mockUsers, mockUser, mockGifts } from '../../services/mockApi';
-import { User, ChatMessage, Poll } from '../../types';
+import { User, ChatMessage, Poll, GiftEvent } from '../../types';
 import { SendIcon, EmojiIcon, MicrophoneIcon, MicrophoneOffIcon, VideoIcon, VideoCameraOffIcon, ShieldCheckIcon, PinIcon, MuteUserIcon, BanUserIcon, CloseIcon, SignalIcon, PollIcon, ChevronRightIcon } from '../icons/Icons';
 import HostToolsModal from '../HostToolsModal';
 import CreatePollModal from '../CreatePollModal';
 import LivePollDisplay from '../LivePollDisplay';
+import GiftAnimation from '../GiftAnimation';
 
 interface BroadcasterViewProps {
   streamTitle: string;
@@ -130,6 +131,7 @@ const BroadcasterView: React.FC<BroadcasterViewProps> = ({ streamTitle, onEndStr
   const [activePoll, setActivePoll] = useState<Poll | null>(null);
   const [streamHealth, setStreamHealth] = useState({ bitrate: 2800, fps: 60, uptime: '00:00:00' });
   const streamStartTime = useRef(Date.now());
+  const [giftAnimationQueue, setGiftAnimationQueue] = useState<GiftEvent[]>([]);
   
   // State for Zen Mode (hide UI)
   const [isUiVisible, setIsUiVisible] = useState(true);
@@ -204,6 +206,8 @@ const BroadcasterView: React.FC<BroadcasterViewProps> = ({ streamTitle, onEndStr
                 setEvents(prev => [...prev.slice(-10), newEvent]);
                 const newGiftMessage: ChatMessage = { id: `gift-${Date.now()}`, senderId: randomUser.id, text: giftText, timestamp: '', isRead: true };
                 setMessages(prev => [...prev.slice(-15), newGiftMessage]);
+                const newGiftEvent: GiftEvent = { id: `gift-anim-${Date.now()}`, user: randomUser, gift: randomGift };
+                setGiftAnimationQueue(prev => [...prev.slice(-4), newGiftEvent]);
              }
         } else {
              if (activePoll) {
@@ -305,6 +309,10 @@ const BroadcasterView: React.FC<BroadcasterViewProps> = ({ streamTitle, onEndStr
     showSuccessToast('Poll has been launched!');
   };
 
+  const handleAnimationComplete = (id: string) => {
+    setGiftAnimationQueue(prev => prev.filter(g => g.id !== id));
+  };
+
   const ChatBubble: React.FC<{ message: ChatMessage; user: User }> = ({ message, user }) => {
     const isBroadcaster = user.id === mockUser.id;
     const handleUserClick = () => isBroadcaster ? onViewProfile(user) : setSelectedUserForAction(user);
@@ -389,6 +397,16 @@ const BroadcasterView: React.FC<BroadcasterViewProps> = ({ streamTitle, onEndStr
         >
             <video ref={videoRef} autoPlay playsInline muted className="absolute inset-0 w-full h-full object-cover" />
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/30 pointer-events-none"></div>
+
+            <div className="absolute top-32 left-4 space-y-2 z-20 pointer-events-none">
+              {giftAnimationQueue.map(giftEvent => (
+                  <GiftAnimation
+                      key={giftEvent.id}
+                      giftEvent={giftEvent}
+                      onAnimationComplete={handleAnimationComplete}
+                  />
+              ))}
+            </div>
 
             <header className={`absolute top-0 left-0 right-0 z-10 flex justify-between items-start p-4 transition-transform duration-300 ease-in-out ${isUiVisible ? 'translate-x-0' : '-translate-x-full'}`}>
                 <div className="space-y-2">
