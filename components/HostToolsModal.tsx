@@ -14,6 +14,7 @@ interface HostToolsModalProps {
   onUnmuteUser: (userId: string) => void;
   onBanUser: (userId: string) => void;
   onOpenCreatePoll: () => void;
+  sourceType: 'camera' | 'video';
   isMuted: boolean;
   onToggleMute: () => void;
   isVideoOff: boolean;
@@ -23,7 +24,7 @@ interface HostToolsModalProps {
 const HostToolsModal: React.FC<HostToolsModalProps> = ({ 
     onClose, onSetPinnedMessage, pinnedMessage, events, viewers, onViewProfile,
     mutedUserIds, onMuteUser, onUnmuteUser, onBanUser, onOpenCreatePoll,
-    isMuted, onToggleMute, isVideoOff, onToggleVideo
+    sourceType, isMuted, onToggleMute, isVideoOff, onToggleVideo
 }) => {
     const [message, setMessage] = useState(pinnedMessage);
     const [actionMenuForUser, setActionMenuForUser] = useState<string | null>(null);
@@ -64,29 +65,31 @@ const HostToolsModal: React.FC<HostToolsModalProps> = ({
 
                 <main className="flex-1 overflow-y-auto p-4 space-y-6">
                     {/* Stream Controls */}
-                    <div>
-                        <h3 className="text-sm font-semibold text-gray-400 mb-2 uppercase tracking-wider">Stream Controls</h3>
-                        <div className="bg-zinc-800 p-2 rounded-lg flex justify-around">
-                            <button
-                                onClick={onToggleMute}
-                                className={`flex flex-col items-center gap-1 p-2 rounded-md w-24 transition-colors ${
-                                    isMuted ? 'bg-red-600/50 text-red-300' : 'hover:bg-zinc-700'
-                                }`}
-                            >
-                                {isMuted ? <MicrophoneOffIcon className="w-6 h-6"/> : <MicrophoneIcon className="w-6 h-6"/>}
-                                <span className="text-xs font-semibold">{isMuted ? 'Unmute' : 'Mute Mic'}</span>
-                            </button>
-                            <button
-                                onClick={onToggleVideo}
-                                className={`flex flex-col items-center gap-1 p-2 rounded-md w-24 transition-colors ${
-                                    isVideoOff ? 'bg-red-600/50 text-red-300' : 'hover:bg-zinc-700'
-                                }`}
-                            >
-                                {isVideoOff ? <VideoCameraOffIcon className="w-6 h-6"/> : <VideoIcon className="w-6 h-6"/>}
-                                <span className="text-xs font-semibold">{isVideoOff ? 'Cam On' : 'Cam Off'}</span>
-                            </button>
+                    {sourceType === 'camera' && (
+                        <div>
+                            <h3 className="text-sm font-semibold text-gray-400 mb-2 uppercase tracking-wider">Stream Controls</h3>
+                            <div className="bg-zinc-800 p-2 rounded-lg flex justify-around">
+                                <button
+                                    onClick={onToggleMute}
+                                    className={`flex flex-col items-center gap-1 p-2 rounded-md w-24 transition-colors ${
+                                        isMuted ? 'bg-red-600/50 text-red-300' : 'hover:bg-zinc-700'
+                                    }`}
+                                >
+                                    {isMuted ? <MicrophoneOffIcon className="w-6 h-6"/> : <MicrophoneIcon className="w-6 h-6"/>}
+                                    <span className="text-xs font-semibold">{isMuted ? 'Unmute' : 'Mute Mic'}</span>
+                                </button>
+                                <button
+                                    onClick={onToggleVideo}
+                                    className={`flex flex-col items-center gap-1 p-2 rounded-md w-24 transition-colors ${
+                                        isVideoOff ? 'bg-red-600/50 text-red-300' : 'hover:bg-zinc-700'
+                                    }`}
+                                >
+                                    {isVideoOff ? <VideoCameraOffIcon className="w-6 h-6"/> : <VideoIcon className="w-6 h-6"/>}
+                                    <span className="text-xs font-semibold">{isVideoOff ? 'Cam On' : 'Cam Off'}</span>
+                                </button>
+                            </div>
                         </div>
-                    </div>
+                    )}
                     
                     {/* Pinned Message */}
                     <div>

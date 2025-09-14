@@ -1,57 +1,129 @@
-
-import React, { useState } from 'react';
-// Fix: Correct import for Icons which is now created.
+import React, { useState, useRef, useEffect } from 'react';
 import { CloseIcon } from './icons/Icons';
 
 interface GoLiveModalProps {
   onClose: () => void;
-  onStartStream: (title: string) => void;
+  onStartStream: (title: string, source: 'camera' | 'video', videoFile?: File) => void;
 }
 
 const GoLiveModal: React.FC<GoLiveModalProps> = ({ onClose, onStartStream }) => {
   const [title, setTitle] = useState('');
+  const [source, setSource] = useState<'camera' | 'video'>('camera');
+  const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleStart = () => {
-    if (title.trim()) {
-      onStartStream(title);
-      onClose();
+  useEffect(() => {
+    return () => {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [previewUrl]);
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file && file.type.startsWith("video/")) {
+      setVideoFile(file);
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+      const url = URL.createObjectURL(file);
+      setPreviewUrl(url);
+    } else {
+      setVideoFile(null);
+      setPreviewUrl(null);
+      if (file) alert("Please select a valid video file.");
     }
   };
 
+  const handleStart = () => {
+    if (title.trim()) {
+        if (source === 'video' && !videoFile) {
+            alert('Please select a video file to broadcast.');
+            return;
+        }
+      onStartStream(title, source, videoFile || undefined);
+    }
+  };
+
+  const isStartDisabled = !title.trim() || (source === 'video' && !videoFile);
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-50 p-4">
-      <div className="bg-zinc-800 rounded-lg shadow-xl w-full max-w-sm text-white relative animate-fade-in-up">
-        <button onClick={onClose} className="absolute top-3 right-3 text-gray-400 hover:text-white">
-          <CloseIcon />
-        </button>
-        <div className="p-6">
-          <h2 className="text-xl font-bold mb-6 text-center">Go Live</h2>
-          <p className="text-center text-gray-400 text-sm mb-6">
-            Enter a title for your live stream to let your followers know what you're up to.
-          </p>
-          <div className="space-y-4">
-            <div>
-              <label htmlFor="title" className="block text-sm font-medium text-gray-400 mb-1">Stream Title</label>
-              <input
-                id="title"
-                type="text"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="e.g., Q&A Session"
-                className="w-full p-2 bg-zinc-700 rounded-md border border-zinc-600 focus:outline-none focus:ring-2 focus:ring-pink-500"
-              />
+      <div className="bg-zinc-800 rounded-lg shadow-xl w-full max-w-sm text-white relative animate-fade-in-up flex flex-col max-h-[90vh]">
+        <header className="flex-shrink-0 flex items-center justify-between p-4 border-b border-zinc-700">
+            <h2 className="text-xl font-bold">Go Live</h2>
+            <button onClick={onClose} className="text-gray-400 hover:text-white">
+                <CloseIcon />
+            </button>
+        </header>
+
+        <main className="flex-1 overflow-y-auto p-6 space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-400 mb-2">Broadcast Source</label>
+            <div className="flex bg-zinc-700 rounded-lg p-1">
+              <button
+                onClick={() => setSource('camera')}
+                className={`flex-1 py-2 text-sm font-semibold rounded-md transition-colors ${source === 'camera' ? 'bg-pink-600' : ''}`}
+              >
+                Camera
+              </button>
+              <button
+                onClick={() => setSource('video')}
+                className={`flex-1 py-2 text-sm font-semibold rounded-md transition-colors ${source === 'video' ? 'bg-pink-600' : ''}`}
+              >
+                Video
+              </button>
             </div>
           </div>
-          <div className="mt-8">
+
+          <div>
+            <label htmlFor="title" className="block text-sm font-medium text-gray-400 mb-1">Stream Title</label>
+            <input
+              id="title"
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="e.g., Q&A Session"
+              className="w-full p-2 bg-zinc-700 rounded-md border border-zinc-600 focus:outline-none focus:ring-2 focus:ring-pink-500"
+            />
+          </div>
+
+          {source === 'video' && (
+            <div className="animate-fade-in-up">
+              <label className="block text-sm font-medium text-gray-400 mb-1">Upload Video</label>
+              {previewUrl ? (
+                <div className="w-full aspect-[9/16] rounded-lg overflow-hidden bg-black mb-2 relative">
+                  <video src={previewUrl} controls loop className="w-full h-full object-cover" />
+                  <button onClick={() => { setVideoFile(null); setPreviewUrl(null); }} className="absolute top-2 right-2 bg-black/50 p-1 rounded-full text-white hover:bg-black">
+                    <CloseIcon className="w-4 h-4" />
+                  </button>
+                </div>
+              ) : (
+                <div
+                  className="w-full aspect-[9/16] border-2 border-dashed rounded-lg flex flex-col items-center justify-center text-center p-4 cursor-pointer transition-colors border-zinc-600 hover:border-pink-500"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <svg className="w-12 h-12 text-zinc-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeWidth={1} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+                  <p className="font-semibold">Tap to Select Video</p>
+                  <p className="text-xs text-gray-400 mt-1">Select a video file to broadcast.</p>
+                </div>
+              )}
+              <input ref={fileInputRef} type="file" accept="video/*" className="hidden" onChange={handleFileChange} />
+            </div>
+          )}
+        </main>
+        
+        <footer className="flex-shrink-0 p-4 border-t border-zinc-700">
             <button 
               onClick={handleStart}
-              disabled={!title.trim()}
+              disabled={isStartDisabled}
               className="w-full py-3 font-semibold rounded-lg bg-gradient-to-r from-pink-500 to-red-500 text-white shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Start Live Stream
             </button>
-          </div>
-        </div>
+        </footer>
       </div>
     </div>
   );

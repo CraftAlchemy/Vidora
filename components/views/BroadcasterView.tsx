@@ -10,6 +10,8 @@ import EmojiPicker from '../EmojiPicker';
 
 interface BroadcasterViewProps {
   streamTitle: string;
+  sourceType: 'camera' | 'video';
+  videoFile?: File;
   onEndStream: () => void;
   onViewProfile: (user: User) => void;
   showSuccessToast: (message: string) => void;
@@ -61,9 +63,10 @@ const StreamHealthDisplay: React.FC<{ uptime: string; bitrate: number; fps: numb
     </div>
 );
 
-const BroadcasterView: React.FC<BroadcasterViewProps> = ({ streamTitle, onEndStream, onViewProfile, showSuccessToast }) => {
+const BroadcasterView: React.FC<BroadcasterViewProps> = ({ streamTitle, sourceType, videoFile, onEndStream, onViewProfile, showSuccessToast }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [viewers, setViewers] = useState(mockUsers.filter(u => u.id !== 'u1'));
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
@@ -103,6 +106,8 @@ const BroadcasterView: React.FC<BroadcasterViewProps> = ({ streamTitle, onEndStr
 
 
   useEffect(() => {
+    let objectUrl: string | null = null;
+    
     const startCamera = async () => {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
@@ -116,14 +121,32 @@ const BroadcasterView: React.FC<BroadcasterViewProps> = ({ streamTitle, onEndStr
         onEndStream();
       }
     };
-
-    startCamera();
+    
+    const startPreloadedVideo = () => {
+        if (videoFile) {
+            objectUrl = URL.createObjectURL(videoFile);
+            setVideoUrl(objectUrl);
+        } else {
+            console.error("Video file not provided for pre-recorded stream.");
+            onEndStream();
+        }
+    };
+    
+    if (sourceType === 'camera') {
+        startCamera();
+    } else {
+        startPreloadedVideo();
+    }
+    
     streamStartTime.current = Date.now();
 
     return () => {
       streamRef.current?.getTracks().forEach(track => track.stop());
+      if (objectUrl) {
+          URL.revokeObjectURL(objectUrl);
+      }
     };
-  }, [onEndStream]);
+  }, [sourceType, videoFile, onEndStream]);
   
   useEffect(() => {
     const healthInterval = setInterval(() => {
@@ -264,13 +287,13 @@ const BroadcasterView: React.FC<BroadcasterViewProps> = ({ streamTitle, onEndStr
 
 
   const toggleMute = () => {
-    if (!streamRef.current) return;
+    if (sourceType !== 'camera' || !streamRef.current) return;
     streamRef.current.getAudioTracks().forEach(track => { track.enabled = !track.enabled; });
     setIsMuted(prev => !prev);
   };
 
   const toggleVideo = () => {
-      if (!streamRef.current) return;
+      if (sourceType !== 'camera' || !streamRef.current) return;
       streamRef.current.getVideoTracks().forEach(track => { track.enabled = !track.enabled; });
       setIsVideoOff(prev => !prev);
   };
@@ -402,7 +425,15 @@ const BroadcasterView: React.FC<BroadcasterViewProps> = ({ streamTitle, onEndStr
           onMouseUp={handleMouseUp}
           onMouseLeave={handleMouseLeave}
         >
-            <video ref={videoRef} autoPlay playsInline muted className="absolute inset-0 w-full h-full object-cover" />
+            <video 
+              ref={videoRef} 
+              autoPlay 
+              playsInline 
+              muted={sourceType === 'camera'} 
+              loop={sourceType === 'video'}
+              src={videoUrl || ''}
+              className="absolute inset-0 w-full h-full object-cover" 
+            />
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/30 pointer-events-none"></div>
 
             <div className="absolute top-32 left-4 space-y-2 z-20 pointer-events-none">
@@ -528,6 +559,7 @@ const BroadcasterView: React.FC<BroadcasterViewProps> = ({ streamTitle, onEndStr
                     setIsHostToolsOpen(false);
                     setIsCreatePollModalOpen(true);
                 }}
+                sourceType={sourceType}
                 isMuted={isMuted}
                 onToggleMute={toggleMute}
                 isVideoOff={isVideoOff}

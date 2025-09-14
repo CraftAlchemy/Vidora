@@ -460,29 +460,31 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, current
                     )}
                 </div>
 
-                {/* Action Buttons */}
-                <button 
-                    onClick={handleSendLike}
-                    className="w-10 h-10 bg-black/40 rounded-full flex items-center justify-center shrink-0"
-                    aria-label="Send a like"
-                >
-                    <HeartIcon isFilled={true} className="w-6 h-6"/>
-                </button>
-                <button 
-                    onClick={() => setIsGiftModalOpen(true)} 
-                    className="w-10 h-10 bg-black/40 rounded-full flex items-center justify-center text-xl shrink-0"
-                    aria-label="Send a gift"
-                >
-                    <GiftIcon className="w-6 h-6" />
-                </button>
-                <button 
-                    onClick={handleShare}
-                    disabled={isSharing}
-                    className="w-10 h-10 bg-black/40 rounded-full flex items-center justify-center shrink-0 disabled:opacity-50"
-                    aria-label="Share stream"
-                >
-                    <ShareIcon className="w-6 h-6" />
-                </button>
+                {/* Vertically stacked Action Buttons */}
+                <div className="flex flex-col space-y-2">
+                    <button 
+                        onClick={handleShare}
+                        disabled={isSharing}
+                        className="w-10 h-10 bg-black/40 rounded-full flex items-center justify-center shrink-0 disabled:opacity-50"
+                        aria-label="Share stream"
+                    >
+                        <ShareIcon className="w-6 h-6" />
+                    </button>
+                    <button 
+                        onClick={() => setIsGiftModalOpen(true)} 
+                        className="w-10 h-10 bg-black/40 rounded-full flex items-center justify-center text-xl shrink-0"
+                        aria-label="Send a gift"
+                    >
+                        <GiftIcon className="w-6 h-6" />
+                    </button>
+                    <button 
+                        onClick={handleSendLike}
+                        className="w-10 h-10 bg-black/40 rounded-full flex items-center justify-center shrink-0"
+                        aria-label="Send a like"
+                    >
+                        <HeartIcon isFilled={true} className="w-6 h-6"/>
+                    </button>
+                </div>
               </div>
             </div>
             {pinnedMessage && (

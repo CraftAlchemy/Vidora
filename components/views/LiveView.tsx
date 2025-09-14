@@ -17,6 +17,8 @@ interface LiveViewProps {
 const LiveView: React.FC<LiveViewProps> = ({ setIsNavVisible, currentUser, onToggleFollow, onShareStream, onViewProfile, showSuccessToast }) => {
   const [isBroadcasting, setIsBroadcasting] = useState(false);
   const [myStreamTitle, setMyStreamTitle] = useState('');
+  const [myStreamSource, setMyStreamSource] = useState<'camera' | 'video'>('camera');
+  const [myStreamVideoFile, setMyStreamVideoFile] = useState<File | undefined>(undefined);
   const [isGoLiveModalOpen, setIsGoLiveModalOpen] = useState(false);
 
   useEffect(() => {
@@ -32,8 +34,10 @@ const LiveView: React.FC<LiveViewProps> = ({ setIsNavVisible, currentUser, onTog
     setIsGoLiveModalOpen(true);
   };
 
-  const handleStartStream = (title: string) => {
+  const handleStartStream = (title: string, source: 'camera' | 'video', videoFile?: File) => {
     setMyStreamTitle(title);
+    setMyStreamSource(source);
+    setMyStreamVideoFile(videoFile);
     setIsBroadcasting(true);
     setIsGoLiveModalOpen(false);
   };
@@ -41,11 +45,14 @@ const LiveView: React.FC<LiveViewProps> = ({ setIsNavVisible, currentUser, onTog
   const handleEndStream = () => {
     setIsBroadcasting(false);
     setMyStreamTitle('');
+    setMyStreamVideoFile(undefined);
   };
 
   if (isBroadcasting) {
     return <BroadcasterView 
               streamTitle={myStreamTitle} 
+              sourceType={myStreamSource}
+              videoFile={myStreamVideoFile}
               onEndStream={handleEndStream} 
               onViewProfile={onViewProfile} 
               showSuccessToast={showSuccessToast}
