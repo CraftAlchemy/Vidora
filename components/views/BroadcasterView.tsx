@@ -6,6 +6,7 @@ import HostToolsModal from '../HostToolsModal';
 import CreatePollModal from '../CreatePollModal';
 import LivePollDisplay from '../LivePollDisplay';
 import GiftAnimation from '../GiftAnimation';
+import EmojiPicker from '../EmojiPicker';
 
 interface BroadcasterViewProps {
   streamTitle: string;
@@ -13,54 +14,6 @@ interface BroadcasterViewProps {
   onViewProfile: (user: User) => void;
   showSuccessToast: (message: string) => void;
 }
-
-const emojiCategories = {
-    'Smileys & People': ['😀', '😂', '😍', '🤔', '😎', '😭', '🤯', '😡', '😴', '🥳', '🥺', '👍', '👎', '🙌', '🙏', '👋', '🤷', '🤦'],
-    'Animals & Nature': ['🐶', '🐱', '🐭', '🐰', '🦊', '🐻', '🐼', '🐨', '🐵', '🐸', '🐢', '🌸', '🌹', '🌻', '🌍', '☀️', '🌙', '⭐'],
-    'Food & Drink': ['🍎', '🍌', '🍇', '🍓', '🍔', '🍕', '🍟', '🍩', '☕', '🍺', '🍷', '🍹', '🍦', '🍰', '🍿', '🌮', '🍜', '🍣'],
-    'Activities & Objects': ['⚽', '🏀', '🏈', '⚾', '🎾', '🎮', '🎸', '🎤', '💻', '📱', '📷', '💡', '🚀', '✈️', '🚗', '🎁', '🎉', '💯'],
-};
-
-interface EmojiPickerProps {
-  onSelectEmoji: (emoji: string) => void;
-}
-
-const EmojiPicker: React.FC<EmojiPickerProps> = ({ onSelectEmoji }) => {
-  const [activeCategory, setActiveCategory] = useState(Object.keys(emojiCategories)[0]);
-  const categoryKeys = Object.keys(emojiCategories) as (keyof typeof emojiCategories)[];
-
-  return (
-    <div className="absolute bottom-full mb-2 right-0 bg-zinc-800 border border-zinc-700 rounded-lg shadow-lg z-20 animate-fade-in-up w-72 h-80 flex flex-col">
-       <div className="p-2 border-b border-zinc-700">
-        <div className="flex justify-around">
-          {categoryKeys.map((category, index) => (
-            <button
-              key={category}
-              onClick={() => setActiveCategory(category)}
-              className={`p-1 rounded-md text-lg ${activeCategory === category ? 'bg-zinc-600' : 'hover:bg-zinc-700'}`}
-              title={category}
-            >
-              {['😀', '🐶', '🍔', '⚽'][index]}
-            </button>
-          ))}
-        </div>
-      </div>
-      <div className="flex-1 overflow-y-auto p-2 scrollbar-hide">
-        <div className="grid grid-cols-7 gap-1">
-          {emojiCategories[activeCategory as keyof typeof emojiCategories].map(emoji => (
-            <button
-              key={emoji}
-              onClick={() => onSelectEmoji(emoji)}
-              className="text-2xl p-1 rounded-md hover:bg-zinc-700 transition-colors"
-            >
-              {emoji}
-            </button>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-};
 
 interface ModerationActionModalProps {
     user: User;
@@ -240,7 +193,10 @@ const BroadcasterView: React.FC<BroadcasterViewProps> = ({ streamTitle, onEndStr
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (emojiPickerRef.current && !emojiPickerRef.current.contains(event.target as Node)) {
+      const target = event.target as Node;
+      // Also close if the textarea is clicked
+      const isTextarea = target === textareaRef.current;
+      if (emojiPickerRef.current && (!emojiPickerRef.current.contains(target) || isTextarea)) {
         setShowEmojiPicker(false);
       }
     }
@@ -248,7 +204,7 @@ const BroadcasterView: React.FC<BroadcasterViewProps> = ({ streamTitle, onEndStr
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [emojiPickerRef]);
+  }, []);
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -503,26 +459,26 @@ const BroadcasterView: React.FC<BroadcasterViewProps> = ({ streamTitle, onEndStr
                     </div>
                     <div className="flex items-end space-x-2 mt-2">
                         {/* Chat Input Group */}
-                        <div className="flex-1 flex items-end bg-black/40 rounded-full px-2 py-1.5 min-h-[44px]">
+                        <div ref={emojiPickerRef} className="flex-1 flex items-end bg-black/40 rounded-full px-2 py-1.5 min-h-[44px] relative">
                             <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
                             <button onClick={() => fileInputRef.current?.click()} className="p-2 text-gray-300 hover:text-white shrink-0" aria-label="Attach image">
                                 <PaperclipIcon className="w-5 h-5"/>
                             </button>
-                            <div ref={emojiPickerRef} className="relative flex-1">
-                                {showEmojiPicker && <EmojiPicker onSelectEmoji={(emoji) => setNewMessage(m => m + emoji)} />}
-                                <textarea
-                                    ref={textareaRef}
-                                    rows={1}
-                                    placeholder="Send a message..."
-                                    value={newMessage}
-                                    onChange={(e) => setNewMessage(e.target.value)}
-                                    onKeyPress={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(); } }}
-                                    className="w-full bg-transparent text-sm focus:outline-none placeholder-gray-400 resize-none py-1 px-2 max-h-24 overflow-y-auto scrollbar-hide align-bottom"
-                                />
+                            <textarea
+                                ref={textareaRef}
+                                rows={1}
+                                placeholder="Send a message..."
+                                value={newMessage}
+                                onChange={(e) => setNewMessage(e.target.value)}
+                                onKeyPress={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(); } }}
+                                className="flex-1 w-full bg-transparent text-sm focus:outline-none placeholder-gray-400 resize-none py-1 px-2 max-h-24 overflow-y-auto scrollbar-hide align-bottom"
+                            />
+                            <div className="relative">
+                                <button onClick={() => setShowEmojiPicker(s => !s)} className="p-2 text-gray-300 hover:text-white shrink-0">
+                                    <EmojiIcon className="w-5 h-5"/>
+                                </button>
+                                {showEmojiPicker && <EmojiPicker className="absolute bottom-full mb-2 right-0" onSelectEmoji={(emoji) => setNewMessage(m => m + emoji)} />}
                             </div>
-                            <button onClick={() => setShowEmojiPicker(s => !s)} className="p-2 text-gray-300 hover:text-white shrink-0">
-                                <EmojiIcon className="w-5 h-5"/>
-                            </button>
                             {(newMessage.trim() || imageFile) && (
                                 <button
                                     onClick={handleSendMessage}

@@ -2,56 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Conversation, User } from '../../types';
 import { ChevronLeftIcon, SendIcon, PaperclipIcon, EmojiIcon, CloseIcon } from '../icons/Icons';
 import { mockUser } from '../../services/mockApi';
-
-const emojiCategories = {
-    'Smileys & People': ['😀', '😂', '😍', '🤔', '😎', '😭', '🤯', '😡', '😴', '🥳', '🥺', '👍', '👎', '🙌', '🙏', '👋', '🤷', '🤦'],
-    'Animals & Nature': ['🐶', '🐱', '🐭', '🐰', '🦊', '🐻', '🐼', '🐨', '🐵', '🐸', '🐢', '🌸', '🌹', '🌻', '🌍', '☀️', '🌙', '⭐'],
-    'Food & Drink': ['🍎', '🍌', '🍇', '🍓', '🍔', '🍕', '🍟', '🍩', '☕', '🍺', '🍷', '🍹', '🍦', '🍰', '🍿', '🌮', '🍜', '🍣'],
-    'Activities & Objects': ['⚽', '🏀', '🏈', '⚾', '🎾', '🎮', '🎸', '🎤', '💻', '📱', '📷', '💡', '🚀', '✈️', '🚗', '🎁', '🎉', '💯'],
-};
-
-// Emoji Picker Component defined in the same file for simplicity
-interface EmojiPickerProps {
-  onSelectEmoji: (emoji: string) => void;
-}
-
-const EmojiPicker: React.FC<EmojiPickerProps> = ({ onSelectEmoji }) => {
-  const [activeCategory, setActiveCategory] = useState(Object.keys(emojiCategories)[0]);
-  const categoryKeys = Object.keys(emojiCategories) as (keyof typeof emojiCategories)[];
-
-  return (
-    <div className="absolute bottom-full mb-2 left-0 bg-zinc-800 border border-zinc-700 rounded-lg shadow-lg z-20 animate-fade-in-up w-72 h-80 flex flex-col">
-      <div className="p-2 border-b border-zinc-700">
-        <div className="flex justify-around">
-          {categoryKeys.map((category, index) => (
-            <button
-              key={category}
-              onClick={() => setActiveCategory(category)}
-              className={`p-1 rounded-md text-lg ${activeCategory === category ? 'bg-zinc-600' : 'hover:bg-zinc-700'}`}
-              title={category}
-            >
-              {['😀', '🐶', '🍔', '⚽'][index]}
-            </button>
-          ))}
-        </div>
-      </div>
-      <div className="flex-1 overflow-y-auto p-2 scrollbar-hide">
-        <div className="grid grid-cols-7 gap-1">
-          {emojiCategories[activeCategory as keyof typeof emojiCategories].map(emoji => (
-            <button
-              key={emoji}
-              onClick={() => onSelectEmoji(emoji)}
-              className="text-2xl p-1 rounded-md hover:bg-zinc-700 transition-colors"
-            >
-              {emoji}
-            </button>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-};
-// End of Emoji Picker Component
+import EmojiPicker from '../EmojiPicker';
 
 interface ChatWindowViewProps {
   conversation: Conversation;
@@ -94,7 +45,10 @@ const ChatWindowView: React.FC<ChatWindowViewProps> = ({ conversation, onBack, o
   // Click away to close emoji picker
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (emojiPickerRef.current && !emojiPickerRef.current.contains(event.target as Node)) {
+      const target = event.target as Node;
+      // Also close if the textarea is clicked
+      const isTextarea = target === textareaRef.current;
+      if (emojiPickerRef.current && (!emojiPickerRef.current.contains(target) || isTextarea)) {
         setShowEmojiPicker(false);
       }
     }
@@ -102,7 +56,7 @@ const ChatWindowView: React.FC<ChatWindowViewProps> = ({ conversation, onBack, o
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [emojiPickerRef]);
+  }, []);
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -206,8 +160,8 @@ const ChatWindowView: React.FC<ChatWindowViewProps> = ({ conversation, onBack, o
           <button onClick={() => fileInputRef.current?.click()} className="p-2 text-gray-400 hover:text-white shrink-0">
             <PaperclipIcon />
           </button>
-          <div ref={emojiPickerRef} className="relative flex-1">
-            {showEmojiPicker && <EmojiPicker onSelectEmoji={(emoji) => setNewMessage(m => m + emoji)} />}
+          <div className="relative flex-1" ref={emojiPickerRef}>
+            {showEmojiPicker && <EmojiPicker className="absolute bottom-full mb-2 right-0" onSelectEmoji={(emoji) => setNewMessage(m => m + emoji)} />}
             <div className="relative">
                 <textarea
                   ref={textareaRef}
