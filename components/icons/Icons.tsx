@@ -161,7 +161,7 @@ export const TrophyIcon: React.FC<IconProps> = ({ isFilled, ...props }) => (
 export const FlameIcon: React.FC<IconProps> = (props) => (
   <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" {...props}>
     <path fillRule="evenodd" d="M12.316 3.051a1 1 0 01.633 1.265l-4 12a1 1 0 11-1.898-.632l4-12a1 1 0 011.265-.633zM10 18a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
-    <path d="M10 3a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 0110 3zM10 4.5a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5a.75.75 0 01.75-.75zM10 6a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 0110 6z" />
+    <path d="M10 3a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 0110 3zM10 4.5a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5a.75.75 0 011.75-.75zM10 6a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 0110 6z" />
   </svg>
 );
 
@@ -207,6 +207,12 @@ export const VideoCameraOffIcon: React.FC<IconProps> = (props) => (
     </svg>
 );
 
+export const PinIcon: React.FC<IconProps> = (props) => (
+  <svg fill="currentColor" viewBox="0 0 20 20" {...props}>
+    <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5.586l2.293 2.293a1 1 0 01-1.414 1.414L11 12.414V17a1 1 0 11-2 0v-4.586l-1.293 1.293a1 1 0 01-1.414-1.414L8 10.586V4a1 1 0 011-1z" clipRule="evenodd" />
+    <path d="M4 3a1 1 0 011-1h10a1 1 0 110 2H5a1 1 0 01-1-1z" />
+  </svg>
+);
 
 // Admin Panel Icons
 export const DashboardIcon: React.FC<IconProps> = (props) => (

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { LiveStream, User } from '../../types';
 import ViewerLiveView from './ViewerLiveView'; 
+import { SearchIcon } from '../icons/Icons';
 
 interface LiveDiscoveryViewProps {
   liveStreams: LiveStream[];
@@ -29,11 +30,17 @@ const LiveCard: React.FC<{ stream: LiveStream; onClick: () => void }> = ({ strea
 
 const LiveDiscoveryView: React.FC<LiveDiscoveryViewProps> = ({ liveStreams, onGoLive, setIsNavVisible, currentUser, onToggleFollow, onShareStream }) => {
   const [selectedStream, setSelectedStream] = useState<LiveStream | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     // Hide the nav when a stream is selected, show it when back on the discovery view.
     setIsNavVisible(selectedStream === null);
   }, [selectedStream, setIsNavVisible]);
+
+  const filteredStreams = liveStreams.filter(stream =>
+    stream.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    stream.user.username.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   if (selectedStream) {
     return <ViewerLiveView 
@@ -56,10 +63,36 @@ const LiveDiscoveryView: React.FC<LiveDiscoveryViewProps> = ({ liveStreams, onGo
           Go Live
         </button>
       </header>
-      <div className="p-4 grid grid-cols-2 gap-4">
-        {liveStreams.map(stream => (
-          <LiveCard key={stream.id} stream={stream} onClick={() => setSelectedStream(stream)} />
-        ))}
+      
+      <div className="p-4">
+        {/* Search Bar */}
+        <div className="relative mb-4">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <SearchIcon className="text-gray-400" />
+          </div>
+          <input
+            type="text"
+            placeholder="Search streams..."
+            aria-label="Search live streams by title or username"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full bg-zinc-800 border border-zinc-700 rounded-full py-2 pl-10 pr-4 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-pink-500"
+          />
+        </div>
+        
+        {/* Live Stream Grid */}
+        <div className="grid grid-cols-2 gap-4">
+          {filteredStreams.length > 0 ? (
+            filteredStreams.map(stream => (
+              <LiveCard key={stream.id} stream={stream} onClick={() => setSelectedStream(stream)} />
+            ))
+          ) : (
+            <div className="col-span-2 text-center text-gray-400 py-10">
+                <p className="font-semibold">No Results</p>
+                <p className="text-sm">No live streams found matching your search.</p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
