@@ -70,6 +70,8 @@ const ChatWindowView: React.FC<ChatWindowViewProps> = ({ conversation, onBack, o
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -101,6 +103,15 @@ const ChatWindowView: React.FC<ChatWindowViewProps> = ({ conversation, onBack, o
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [emojiPickerRef]);
+
+  useEffect(() => {
+    if (textareaRef.current) {
+        const el = textareaRef.current;
+        el.style.height = 'auto';
+        const maxHeight = 128; // max-h-32
+        el.style.height = `${Math.min(el.scrollHeight, maxHeight)}px`;
+    }
+  }, [newMessage]);
 
 
   const handleSendMessage = () => {
@@ -190,23 +201,24 @@ const ChatWindowView: React.FC<ChatWindowViewProps> = ({ conversation, onBack, o
             </button>
           </div>
         )}
-        <div className="flex items-center gap-2">
+        <div className="flex items-end gap-2">
           <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
-          <button onClick={() => fileInputRef.current?.click()} className="p-2 text-gray-400 hover:text-white">
+          <button onClick={() => fileInputRef.current?.click()} className="p-2 text-gray-400 hover:text-white shrink-0">
             <PaperclipIcon />
           </button>
           <div ref={emojiPickerRef} className="relative flex-1">
             {showEmojiPicker && <EmojiPicker onSelectEmoji={(emoji) => setNewMessage(m => m + emoji)} />}
             <div className="relative">
-                <input 
-                  type="text" 
+                <textarea
+                  ref={textareaRef}
+                  rows={1}
                   placeholder="Type a message..."
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                  className="w-full h-10 bg-zinc-800 rounded-full pl-4 pr-10 text-sm focus:outline-none focus:ring-1 focus:ring-pink-500 placeholder-gray-500"
+                  onKeyPress={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(); } }}
+                  className="w-full bg-zinc-800 rounded-2xl pl-4 pr-10 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-pink-500 placeholder-gray-500 resize-none max-h-32 overflow-y-auto scrollbar-hide"
                 />
-                 <button onClick={() => setShowEmojiPicker(s => !s)} className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-white">
+                 <button onClick={() => setShowEmojiPicker(s => !s)} className="absolute right-2.5 bottom-2 p-1 text-gray-400 hover:text-white">
                     <EmojiIcon className="w-5 h-5"/>
                 </button>
             </div>

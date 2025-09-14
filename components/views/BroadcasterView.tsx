@@ -141,6 +141,7 @@ const BroadcasterView: React.FC<BroadcasterViewProps> = ({ streamTitle, onEndStr
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     const startCamera = async () => {
@@ -240,6 +241,15 @@ const BroadcasterView: React.FC<BroadcasterViewProps> = ({ streamTitle, onEndStr
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [emojiPickerRef]);
+
+  useEffect(() => {
+    if (textareaRef.current) {
+        const el = textareaRef.current;
+        el.style.height = 'auto';
+        const maxHeight = 96; // max-h-24
+        el.style.height = `${Math.min(el.scrollHeight, maxHeight)}px`;
+    }
+  }, [newMessage]);
 
   const handleSendMessage = () => {
     if (newMessage.trim() === '') return;
@@ -414,24 +424,24 @@ const BroadcasterView: React.FC<BroadcasterViewProps> = ({ streamTitle, onEndStr
                     })}
                     <div ref={messagesEndRef} />
                     </div>
-                    <div className="flex items-center space-x-2 mt-2">
+                    <div className="flex items-end space-x-2 mt-2">
                         <div ref={emojiPickerRef} className="relative flex-1">
                             {showEmojiPicker && <EmojiPicker onSelectEmoji={(emoji) => setNewMessage(m => m + emoji)} />}
-                            <input
-                                type="text"
-                                placeholder="Send a message..."
-                                value={newMessage}
-                                onChange={(e) => setNewMessage(e.target.value)}
-                                onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                                className="w-full h-10 bg-black/40 rounded-full pl-4 pr-12 text-sm focus:outline-none focus:ring-2 focus:ring-pink-500 placeholder-gray-400"
-                            />
-                            <button onClick={() => setShowEmojiPicker(s => !s)} className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-300 hover:text-white">
-                                <EmojiIcon className="w-6 h-6"/>
-                            </button>
+                             <div className="relative">
+                                <textarea
+                                    ref={textareaRef}
+                                    rows={1}
+                                    placeholder="Send a message..."
+                                    value={newMessage}
+                                    onChange={(e) => setNewMessage(e.target.value)}
+                                    onKeyPress={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(); } }}
+                                    className="w-full bg-black/40 rounded-full pl-4 pr-12 text-sm focus:outline-none focus:ring-2 focus:ring-pink-500 placeholder-gray-400 resize-none py-2.5 max-h-24 overflow-y-auto scrollbar-hide"
+                                />
+                                <button onClick={() => setShowEmojiPicker(s => !s)} className="absolute right-3 bottom-2 p-1 text-gray-300 hover:text-white">
+                                    <EmojiIcon className="w-6 h-6"/>
+                                </button>
+                            </div>
                         </div>
-                        <button onClick={() => setIsCreatePollModalOpen(true)} className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 bg-black/40 hover:bg-zinc-700 transition-colors" aria-label="Create Poll">
-                            <PollIcon className="w-5 h-5"/>
-                        </button>
                         <button onClick={() => setIsHostToolsOpen(true)} className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 bg-black/40 hover:bg-zinc-700 transition-colors" aria-label="Open Host Tools">
                             <ShieldCheckIcon className="w-5 h-5"/>
                         </button>
@@ -447,7 +457,7 @@ const BroadcasterView: React.FC<BroadcasterViewProps> = ({ streamTitle, onEndStr
                     </div>
                 </div>
                 {pinnedMessage && (
-                    <div className="bg-pink-600/50 backdrop-blur-sm p-2.5 rounded-lg text-sm flex items-center gap-2 animate-fade-in-up pointer-events-none">
+                    <div className="bg-pink-600/50 backdrop-blur-sm p-2.5 rounded-lg text-sm flex items-center gap-2 animate-fade-in-up pointer-events-auto">
                         <PinIcon className="w-4 h-4 text-pink-200 shrink-0"/>
                         <p className="font-semibold break-words">{pinnedMessage}</p>
                     </div>
@@ -474,6 +484,10 @@ const BroadcasterView: React.FC<BroadcasterViewProps> = ({ streamTitle, onEndStr
                 onMuteUser={handleMuteUser}
                 onUnmuteUser={handleUnmuteUser}
                 onBanUser={handleBanUser}
+                onOpenCreatePoll={() => {
+                    setIsHostToolsOpen(false);
+                    setIsCreatePollModalOpen(true);
+                }}
             />
         )}
         {selectedUserForAction && (

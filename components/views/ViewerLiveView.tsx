@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { LiveStream, ChatMessage, User, Gift } from '../../types';
-import { CloseIcon, HeartIcon, SendIcon, EmojiIcon, GiftIcon, ShareIcon, CoinIcon, ChevronLeftIcon } from '../icons/Icons';
+import { CloseIcon, HeartIcon, SendIcon, EmojiIcon, GiftIcon, ShareIcon, CoinIcon, ChevronLeftIcon, PinIcon } from '../icons/Icons';
 import { mockUser, mockGifts, mockUsers } from '../../services/mockApi';
 import SendGiftModal from '../SendGiftModal';
 
@@ -99,6 +99,7 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, current
   const [isSharing, setIsSharing] = useState(false);
   const [localBalance, setLocalBalance] = useState(currentUser.wallet?.balance ?? 0);
   const [topGifters, setTopGifters] = useState<TopGifter[]>([]);
+  const [pinnedMessage, setPinnedMessage] = useState<string | null>(null);
   
   // State for Zen Mode (hide UI)
   const [isUiVisible, setIsUiVisible] = useState(true);
@@ -111,7 +112,8 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, current
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
   const heartCounter = useRef(0);
-  
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
   const isFollowing = currentUser.followingIds?.includes(stream.user.id);
   const isOwnStream = currentUser.id === stream.user.id;
 
@@ -152,9 +154,27 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, current
         handleGiftFromOtherUser(randomUser, randomGift);
       }
     }, 3500);
+    
+    const pinTimeout = setTimeout(() => {
+        if (document.visibilityState === 'visible') {
+            setPinnedMessage("Don't forget to follow and share the stream! ❤️");
+        }
+    }, 12000);
 
-    return () => clearInterval(intervalId);
+    return () => {
+        clearInterval(intervalId);
+        clearTimeout(pinTimeout);
+    };
   }, [stream.user.id]);
+
+  useEffect(() => {
+    if (textareaRef.current) {
+        const el = textareaRef.current;
+        el.style.height = 'auto';
+        const maxHeight = 96; // 6rem or max-h-24
+        el.style.height = `${Math.min(el.scrollHeight, maxHeight)}px`;
+    }
+  }, [newMessage]);
 
   const handleGiftFromOtherUser = (user: User, gift: Gift) => {
     const giftMessage: ChatMessage = {
@@ -300,7 +320,7 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, current
     const podiumOrder = [1, 0, 2];
     const sortedGifters = [...gifters];
     return (
-        <div className="flex justify-center items-end gap-2 p-2 bg-black/30 rounded-lg animate-fade-in-up pointer-events-none">
+        <div className="flex justify-center items-end gap-2 p-2 bg-black/30 rounded-lg animate-fade-in-up pointer-events-auto">
             {podiumOrder.map(index => {
                 const gifter = sortedGifters[index];
                 const rank = [2, 1, 3][index];
@@ -384,61 +404,72 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, current
                   {messages.map(msg => <ChatBubble key={msg.id} message={msg} />)}
                   <div ref={messagesEndRef} />
               </div>
-              <div className="flex items-center space-x-2 mt-2">
-                  <div className="relative flex-1">
-                      <input
-                          type="text"
-                          placeholder="Add a comment..."
-                          value={newMessage}
-                          onChange={(e) => setNewMessage(e.target.value)}
-                          onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                          className={`w-full h-10 bg-black/40 rounded-full pl-4 ${newMessage.trim() ? 'pr-20' : 'pr-12'} text-sm focus:outline-none focus:ring-2 focus:ring-pink-500 placeholder-gray-400 transition-all`}
-                      />
-                      <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center">
-                          <div ref={emojiPickerRef} className="relative">
-                              {showEmojiPicker && <EmojiPicker onSelectEmoji={(emoji) => setNewMessage(m => m + emoji)} />}
-                              <button onClick={() => setShowEmojiPicker(s => !s)} className="p-1 text-gray-300 hover:text-white">
-                                  <EmojiIcon className="w-6 h-6"/>
-                              </button>
-                          </div>
-                          {newMessage.trim() && (
-                              <button 
-                                  onClick={handleSendMessage} 
-                                  className="w-8 h-8 bg-pink-600 rounded-full flex items-center justify-center shrink-0 ml-1"
-                                  aria-label="Send message"
-                              >
-                                  <SendIcon />
-                              </button>
-                          )}
-                      </div>
-                  </div>
+              <div className="flex items-end space-x-2 mt-2">
+                <div className="relative flex-1">
+                    <div ref={emojiPickerRef} className="relative">
+                         {showEmojiPicker && <EmojiPicker onSelectEmoji={(emoji) => setNewMessage(m => m + emoji)} />}
+                    </div>
+                    <textarea
+                        ref={textareaRef}
+                        rows={1}
+                        placeholder="Add a comment..."
+                        value={newMessage}
+                        onChange={(e) => setNewMessage(e.target.value)}
+                        onKeyPress={(e) => {
+                            if (e.key === 'Enter' && !e.shiftKey) {
+                                e.preventDefault();
+                                handleSendMessage();
+                            }
+                        }}
+                        className={`w-full bg-black/40 rounded-full pl-4 ${newMessage.trim() ? 'pr-20' : 'pr-12'} text-sm focus:outline-none focus:ring-2 focus:ring-pink-500 placeholder-gray-400 transition-all resize-none py-2.5 max-h-24 overflow-y-auto scrollbar-hide`}
+                    />
+                    <div className="absolute right-2 bottom-2 flex items-center">
+                        <button onClick={() => setShowEmojiPicker(s => !s)} className="p-1 text-gray-300 hover:text-white">
+                            <EmojiIcon className="w-6 h-6"/>
+                        </button>
+                        {newMessage.trim() && (
+                            <button 
+                                onClick={handleSendMessage} 
+                                className="w-8 h-8 bg-pink-600 rounded-full flex items-center justify-center shrink-0 ml-1 animate-fade-in-up"
+                                aria-label="Send message"
+                            >
+                                <SendIcon />
+                            </button>
+                        )}
+                    </div>
+                </div>
 
-                  <button 
-                      onClick={handleSendLike}
-                      className="w-10 h-10 bg-black/40 rounded-full flex items-center justify-center shrink-0"
-                      aria-label="Send a like"
-                  >
-                      <HeartIcon isFilled={true} className="w-6 h-6"/>
-                  </button>
+                <button 
+                    onClick={handleSendLike}
+                    className="w-10 h-10 bg-black/40 rounded-full flex items-center justify-center shrink-0"
+                    aria-label="Send a like"
+                >
+                    <HeartIcon isFilled={true} className="w-6 h-6"/>
+                </button>
 
-                  <button 
-                      onClick={() => setIsGiftModalOpen(true)} 
-                      className="w-10 h-10 bg-black/40 rounded-full flex items-center justify-center text-xl shrink-0"
-                      aria-label="Send a gift"
-                  >
-                      <GiftIcon className="w-6 h-6" />
-                  </button>
-                  <button 
-                      onClick={handleShare}
-                      disabled={isSharing}
-                      className="w-10 h-10 bg-black/40 rounded-full flex items-center justify-center shrink-0 disabled:opacity-50"
-                      aria-label="Share stream"
-                  >
-                      <ShareIcon className="w-6 h-6" />
-                  </button>
+                <button 
+                    onClick={() => setIsGiftModalOpen(true)} 
+                    className="w-10 h-10 bg-black/40 rounded-full flex items-center justify-center text-xl shrink-0"
+                    aria-label="Send a gift"
+                >
+                    <GiftIcon className="w-6 h-6" />
+                </button>
+                <button 
+                    onClick={handleShare}
+                    disabled={isSharing}
+                    className="w-10 h-10 bg-black/40 rounded-full flex items-center justify-center shrink-0 disabled:opacity-50"
+                    aria-label="Share stream"
+                >
+                    <ShareIcon className="w-6 h-6" />
+                </button>
               </div>
             </div>
-            {/* Dynamic part: top gifters podium, appears above the stable part */}
+            {pinnedMessage && (
+                <div className="bg-pink-600/50 backdrop-blur-sm p-2.5 rounded-lg text-sm flex items-center gap-2 animate-fade-in-up pointer-events-auto">
+                    <PinIcon className="w-4 h-4 text-pink-200 shrink-0"/>
+                    <p className="font-semibold break-words">{pinnedMessage}</p>
+                </div>
+            )}
             {topGifters.length > 0 && (
                 <TopGifterPodium gifters={topGifters} />
             )}

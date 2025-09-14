@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { CloseIcon, PinIcon, MoreVerticalIcon, MuteUserIcon, BanUserIcon } from './icons/Icons';
+import { CloseIcon, PinIcon, MoreVerticalIcon, MuteUserIcon, BanUserIcon, PollIcon } from './icons/Icons';
 import { User } from '../types';
 
 interface HostToolsModalProps {
@@ -13,11 +13,12 @@ interface HostToolsModalProps {
   onMuteUser: (userId: string) => void;
   onUnmuteUser: (userId: string) => void;
   onBanUser: (userId: string) => void;
+  onOpenCreatePoll: () => void;
 }
 
 const HostToolsModal: React.FC<HostToolsModalProps> = ({ 
     onClose, onSetPinnedMessage, pinnedMessage, events, viewers, onViewProfile,
-    mutedUserIds, onMuteUser, onUnmuteUser, onBanUser
+    mutedUserIds, onMuteUser, onUnmuteUser, onBanUser, onOpenCreatePoll
 }) => {
     const [message, setMessage] = useState(pinnedMessage);
     const [actionMenuForUser, setActionMenuForUser] = useState<string | null>(null);
@@ -75,6 +76,20 @@ const HostToolsModal: React.FC<HostToolsModalProps> = ({
                                 <button onClick={handleClear} className="px-3 py-1.5 text-xs font-semibold bg-zinc-700 rounded-md hover:bg-zinc-600 transition-colors">Clear</button>
                                 <button onClick={handlePin} className="px-3 py-1.5 text-xs font-semibold bg-pink-600 rounded-md hover:bg-pink-700 transition-colors">Pin Message</button>
                             </div>
+                        </div>
+                    </div>
+
+                    {/* Polls */}
+                    <div>
+                        <h3 className="text-sm font-semibold text-gray-400 mb-2 uppercase tracking-wider">Polls</h3>
+                        <div className="bg-zinc-800 p-4 rounded-lg">
+                             <button 
+                                onClick={onOpenCreatePoll}
+                                className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm font-semibold bg-pink-600 rounded-md hover:bg-pink-700 transition-colors"
+                            >
+                                <PollIcon className="w-5 h-5" />
+                                Create New Poll
+                            </button>
                         </div>
                     </div>
                     

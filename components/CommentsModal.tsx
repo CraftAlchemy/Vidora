@@ -79,6 +79,7 @@ const CommentsModal: React.FC<CommentsModalProps> = ({ comments, currentUser, on
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     // Scroll to bottom when modal opens or new comments are added
@@ -97,6 +98,16 @@ const CommentsModal: React.FC<CommentsModalProps> = ({ comments, currentUser, on
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [emojiPickerRef]);
+
+  useEffect(() => {
+    if (textareaRef.current) {
+        const el = textareaRef.current;
+        el.style.height = 'auto';
+        const maxHeight = 96; // max-h-24
+        el.style.height = `${Math.min(el.scrollHeight, maxHeight)}px`;
+    }
+  }, [newComment]);
+
 
   const handleSendComment = () => {
     if (newComment.trim()) {
@@ -123,21 +134,24 @@ const CommentsModal: React.FC<CommentsModalProps> = ({ comments, currentUser, on
         </main>
 
         <footer className="flex-shrink-0 p-4 bg-zinc-900 border-t border-zinc-800">
-          <div className="flex items-center gap-2">
+          <div className="flex items-end gap-2">
             <img src={currentUser.avatarUrl} alt="avatar" className="w-9 h-9 rounded-full" />
              <div ref={emojiPickerRef} className="relative flex-1">
                 {showEmojiPicker && <EmojiPicker onSelectEmoji={(emoji) => setNewComment(c => c + emoji)} />}
-                <input
-                    type="text"
-                    placeholder="Add a comment..."
-                    value={newComment}
-                    onChange={(e) => setNewComment(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && handleSendComment()}
-                    className="w-full p-2.5 bg-zinc-800 rounded-full border border-zinc-700 focus:outline-none focus:ring-2 focus:ring-pink-500 text-sm px-4 pr-12"
-                />
-                <button onClick={() => setShowEmojiPicker(s => !s)} className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-white">
-                    <EmojiIcon className="w-5 h-5" />
-                </button>
+                <div className="relative">
+                    <textarea
+                        ref={textareaRef}
+                        rows={1}
+                        placeholder="Add a comment..."
+                        value={newComment}
+                        onChange={(e) => setNewComment(e.target.value)}
+                        onKeyPress={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendComment(); } }}
+                        className="w-full bg-zinc-800 rounded-full border border-zinc-700 focus:outline-none focus:ring-2 focus:ring-pink-500 text-sm px-4 pr-12 py-2.5 resize-none max-h-24 overflow-y-auto scrollbar-hide"
+                    />
+                    <button onClick={() => setShowEmojiPicker(s => !s)} className="absolute right-3 bottom-2 p-1 text-gray-400 hover:text-white">
+                        <EmojiIcon className="w-5 h-5" />
+                    </button>
+                </div>
             </div>
             <button 
                 onClick={handleSendComment} 
