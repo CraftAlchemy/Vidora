@@ -81,13 +81,13 @@ const LiveDiscoveryView: React.FC<LiveDiscoveryViewProps> = ({ liveStreams, onGo
         </div>
         
         {/* Live Stream Grid */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
           {filteredStreams.length > 0 ? (
             filteredStreams.map(stream => (
               <LiveCard key={stream.id} stream={stream} onClick={() => setSelectedStream(stream)} />
             ))
           ) : (
-            <div className="col-span-2 text-center text-gray-400 py-10">
+            <div className="col-span-2 sm:col-span-3 md:col-span-4 text-center text-gray-400 py-10">
                 <p className="font-semibold">No Results</p>
                 <p className="text-sm">No live streams found matching your search.</p>
             </div>

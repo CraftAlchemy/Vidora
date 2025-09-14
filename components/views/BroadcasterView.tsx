@@ -225,9 +225,9 @@ const BroadcasterView: React.FC<BroadcasterViewProps> = ({ streamTitle, onEndStr
 
   return (
     <>
-        <div className="h-full w-full bg-black text-white flex flex-col relative">
-            <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/30"></div>
+        <div className="h-full w-full bg-black text-white relative overflow-hidden">
+            <video ref={videoRef} autoPlay playsInline muted className="absolute inset-0 w-full h-full object-cover" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/30 pointer-events-none"></div>
 
              {/* Gift Animation Area */}
             <div className="absolute top-24 right-4 z-20 space-y-2 pointer-events-none">
@@ -266,8 +266,7 @@ const BroadcasterView: React.FC<BroadcasterViewProps> = ({ streamTitle, onEndStr
                         <p className="font-semibold break-words">{pinnedMessage}</p>
                     </div>
                 )}
-
-                <div className="h-48 overflow-y-auto space-y-1 pr-2 scrollbar-hide mb-4" style={{ maskImage: 'linear-gradient(to bottom, transparent 0%, black 10%, black 90%, transparent 100%)' }}>
+                <div className="max-h-48 overflow-y-auto space-y-1 pr-2 scrollbar-hide mb-4" style={{ maskImage: 'linear-gradient(to bottom, transparent 0%, black 10%, black 90%, transparent 100%)' }}>
                 {messages.map(msg => {
                     const user = mockUsers.find(u => u.id === msg.senderId);
                     return user ? <ChatBubble key={msg.id} message={msg} user={user} /> : null;

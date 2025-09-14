@@ -114,6 +114,7 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, current
   const heartCounter = useRef(0);
   
   const isFollowing = currentUser.followingIds?.includes(stream.user.id);
+  const isOwnStream = currentUser.id === stream.user.id;
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -332,7 +333,7 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, current
   return (
     <>
       <div 
-        className="h-full w-full bg-black text-white flex flex-col relative overflow-hidden select-none"
+        className="h-full w-full bg-black text-white relative overflow-hidden select-none"
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleDragEnd}
@@ -340,19 +341,20 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, current
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseLeave}
-        >
-        <div className="absolute inset-0 z-0">
-            <img src={stream.thumbnailUrl} alt={stream.title} className="w-full h-full object-cover"/>
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/30"></div>
-        </div>
-        
+      >
+        {/* Background */}
+        <img src={stream.thumbnailUrl} alt={stream.title} className="absolute inset-0 w-full h-full object-cover"/>
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/30 pointer-events-none"></div>
+
+        {/* Floating Hearts Area */}
         <div className="absolute bottom-24 right-4 h-96 w-20 pointer-events-none z-20">
           {floatingHearts.map(heart => (
             <FloatingHeart key={heart.id} onAnimationEnd={() => removeHeart(heart.id)} />
           ))}
         </div>
 
-        <div className="absolute top-24 right-4 z-20 space-y-2 pointer-events-none">
+        {/* Gift Animation Area */}
+        <div className="absolute top-24 right-4 z-30 space-y-2 pointer-events-none">
             {giftAnimationQueue.map(giftEvent => (
                 <GiftAnimation 
                     key={giftEvent.id} 
@@ -361,97 +363,101 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, current
                 />
             ))}
         </div>
-
-        <header className={`relative z-10 flex justify-between items-start p-4 transition-all duration-300 ease-in-out ${isUiVisible ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-full pointer-events-none'}`}>
-          <div className="flex items-center bg-black/40 p-2 rounded-lg">
-            <img src={stream.user.avatarUrl} alt={stream.user.username} className="w-8 h-8 rounded-full mr-3" />
-            <div>
-                <p className="font-bold text-sm">@{stream.user.username}</p>
-                <p className="text-xs">{stream.title}</p>
+        
+        {/* UI Container */}
+        <div className={`absolute inset-0 flex flex-col justify-between transition-all duration-300 ease-in-out ${isUiVisible ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-full pointer-events-none'}`}>
+          <header className="flex justify-between items-start p-4">
+            <div className="flex items-center bg-black/40 p-2 rounded-lg">
+              <img src={stream.user.avatarUrl} alt={stream.user.username} className="w-8 h-8 rounded-full mr-3" />
+              <div>
+                  <p className="font-bold text-sm">@{stream.user.username}</p>
+                  <p className="text-xs">{stream.title}</p>
+              </div>
+              {!isOwnStream && !isFollowing && (
+                  <button
+                    onClick={() => onToggleFollow(stream.user.id)}
+                    className="ml-3 w-6 h-6 rounded-full bg-pink-500 text-white flex items-center justify-center text-lg font-bold shrink-0 hover:bg-pink-600 transition-colors"
+                    aria-label={`Follow ${stream.user.username}`}
+                  >
+                    +
+                  </button>
+              )}
             </div>
-            <button
-              onClick={() => onToggleFollow(stream.user.id)}
-              className={`ml-3 px-3 py-1 text-xs font-bold rounded-md transition-colors ${
-                  isFollowing ? 'bg-transparent border border-gray-400 text-gray-300' : 'bg-white text-black'
-              }`}
-            >
-              {isFollowing ? 'Following' : 'Follow'}
-            </button>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="bg-black/40 p-2 rounded-lg text-xs">{stream.viewers.toLocaleString()} watching</div>
-            <button onClick={onBack} className="p-2 bg-black/40 rounded-full">
-              <CloseIcon />
-            </button>
-          </div>
-        </header>
+            <div className="flex items-center gap-2">
+              <div className="bg-black/40 p-2 rounded-lg text-xs">{stream.viewers.toLocaleString()} watching</div>
+              <button onClick={onBack} className="p-2 bg-black/40 rounded-full">
+                <CloseIcon />
+              </button>
+            </div>
+          </header>
 
-        <div className={`flex-1 px-4 transition-all duration-300 ease-in-out ${isUiVisible ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-full pointer-events-none'}`}>
-            {topGifters.length > 0 && <TopGifterPodium gifters={topGifters}/>}
+          <div className="flex-1 flex flex-col justify-end px-4">
+              {topGifters.length > 0 && <TopGifterPodium gifters={topGifters}/>}
+          </div>
+
+          <footer className="p-4 space-y-2">
+              <div className="h-48 overflow-y-auto space-y-1 pr-2 scrollbar-hide" style={{ maskImage: 'linear-gradient(to bottom, transparent 0%, black 10%, black 90%, transparent 100%)' }}>
+                  {messages.map(msg => <ChatBubble key={msg.id} message={msg} />)}
+                  <div ref={messagesEndRef} />
+              </div>
+              <div className="flex items-center space-x-2">
+                  <div className="relative flex-1">
+                      <input
+                          type="text"
+                          placeholder="Add a comment..."
+                          value={newMessage}
+                          onChange={(e) => setNewMessage(e.target.value)}
+                          onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                          className={`w-full h-10 bg-black/40 rounded-full pl-4 ${newMessage.trim() ? 'pr-20' : 'pr-12'} text-sm focus:outline-none focus:ring-2 focus:ring-pink-500 placeholder-gray-400 transition-all`}
+                      />
+                      <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center">
+                          <div ref={emojiPickerRef} className="relative">
+                              {showEmojiPicker && <EmojiPicker onSelectEmoji={(emoji) => setNewMessage(m => m + emoji)} />}
+                              <button onClick={() => setShowEmojiPicker(s => !s)} className="p-1 text-gray-300 hover:text-white">
+                                  <EmojiIcon className="w-6 h-6"/>
+                              </button>
+                          </div>
+                          {newMessage.trim() && (
+                              <button 
+                                  onClick={handleSendMessage} 
+                                  className="w-8 h-8 bg-pink-600 rounded-full flex items-center justify-center shrink-0 ml-1"
+                                  aria-label="Send message"
+                              >
+                                  <SendIcon />
+                              </button>
+                          )}
+                      </div>
+                  </div>
+
+                  <button 
+                      onClick={handleSendLike}
+                      className="w-10 h-10 bg-black/40 rounded-full flex items-center justify-center shrink-0"
+                      aria-label="Send a like"
+                  >
+                      <HeartIcon isFilled={true} className="w-6 h-6"/>
+                  </button>
+
+                  <button 
+                      onClick={() => setIsGiftModalOpen(true)} 
+                      className="w-10 h-10 bg-black/40 rounded-full flex items-center justify-center text-xl shrink-0"
+                      aria-label="Send a gift"
+                  >
+                      <GiftIcon className="w-6 h-6" />
+                  </button>
+                  <button 
+                      onClick={handleShare}
+                      disabled={isSharing}
+                      className="w-10 h-10 bg-black/40 rounded-full flex items-center justify-center shrink-0 disabled:opacity-50"
+                      aria-label="Share stream"
+                  >
+                      <ShareIcon className="w-6 h-6" />
+                  </button>
+              </div>
+          </footer>
         </div>
 
-        <footer className={`relative z-10 p-4 pb-24 space-y-2 transition-all duration-300 ease-in-out ${isUiVisible ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-full pointer-events-none'}`}>
-            <div className="h-48 overflow-y-auto space-y-1 pr-2 scrollbar-hide" style={{ maskImage: 'linear-gradient(to bottom, transparent 0%, black 10%, black 90%, transparent 100%)' }}>
-                {messages.map(msg => <ChatBubble key={msg.id} message={msg} />)}
-                <div ref={messagesEndRef} />
-            </div>
-            <div className="flex items-center space-x-2">
-                <div className="relative flex-1">
-                    <input
-                        type="text"
-                        placeholder="Add a comment..."
-                        value={newMessage}
-                        onChange={(e) => setNewMessage(e.target.value)}
-                        onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                        className={`w-full h-10 bg-black/40 rounded-full pl-4 ${newMessage.trim() ? 'pr-20' : 'pr-12'} text-sm focus:outline-none focus:ring-2 focus:ring-pink-500 placeholder-gray-400 transition-all`}
-                    />
-                    <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center">
-                        <div ref={emojiPickerRef} className="relative">
-                            {showEmojiPicker && <EmojiPicker onSelectEmoji={(emoji) => setNewMessage(m => m + emoji)} />}
-                            <button onClick={() => setShowEmojiPicker(s => !s)} className="p-1 text-gray-300 hover:text-white">
-                                <EmojiIcon className="w-6 h-6"/>
-                            </button>
-                        </div>
-                        {newMessage.trim() && (
-                             <button 
-                                onClick={handleSendMessage} 
-                                className="w-8 h-8 bg-pink-600 rounded-full flex items-center justify-center shrink-0 ml-1"
-                                aria-label="Send message"
-                            >
-                                <SendIcon />
-                            </button>
-                        )}
-                    </div>
-                </div>
-
-                <button 
-                    onClick={handleSendLike}
-                    className="w-10 h-10 bg-black/40 rounded-full flex items-center justify-center shrink-0"
-                    aria-label="Send a like"
-                >
-                    <HeartIcon isFilled={true} className="w-6 h-6"/>
-                </button>
-
-                 <button 
-                    onClick={() => setIsGiftModalOpen(true)} 
-                    className="w-10 h-10 bg-black/40 rounded-full flex items-center justify-center text-xl shrink-0"
-                    aria-label="Send a gift"
-                >
-                    <GiftIcon className="w-6 h-6" />
-                </button>
-                 <button 
-                    onClick={handleShare}
-                    disabled={isSharing}
-                    className="w-10 h-10 bg-black/40 rounded-full flex items-center justify-center shrink-0 disabled:opacity-50"
-                    aria-label="Share stream"
-                >
-                    <ShareIcon className="w-6 h-6" />
-                </button>
-            </div>
-        </footer>
-
         {!isUiVisible && (
-            <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none animate-pulse">
+            <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none animate-pulse z-20">
                 <div className="bg-black/40 p-2 rounded-full">
                     <ChevronLeftIcon className="w-6 h-6 text-white/70" />
                 </div>

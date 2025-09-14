@@ -402,6 +402,10 @@ const App: React.FC = () => {
         return <AuthView onLoginSuccess={handleLogin} />;
     }
 
+    if (activeView === 'admin') {
+        return <AdminPanel user={currentUser} onExit={() => handleNavigate('profile')} />
+    }
+
     const renderView = () => {
         switch (activeView) {
             case 'feed':
@@ -437,15 +441,13 @@ const App: React.FC = () => {
                 return <SettingsView onBack={() => handleNavigate('profile')} onLogout={handleLogout} />;
             case 'purchase':
                 return selectedCoinPack ? <PurchaseCoinsView pack={selectedCoinPack} onBack={() => handleNavigate('wallet')} onPurchaseComplete={handlePurchaseComplete} /> : null;
-            case 'admin':
-                return <AdminPanel user={currentUser} onExit={() => handleNavigate('profile')} />
             default:
                 return <FeedView videos={videos} currentUser={currentUser} onOpenComments={handleOpenComments} setIsNavVisible={setIsNavVisible} onToggleFollow={handleToggleFollow} onShareVideo={handleShareVideo} />;
         }
     };
 
     return (
-        <div className="h-screen w-screen bg-black font-sans overflow-hidden relative">
+        <div className="h-[100dvh] w-full max-w-lg mx-auto bg-black font-sans shadow-2xl overflow-hidden relative">
             {successMessage && <SuccessToast message={successMessage} />}
 
             <main className="h-full w-full">

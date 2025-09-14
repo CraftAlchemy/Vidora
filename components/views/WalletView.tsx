@@ -95,7 +95,7 @@ const WalletView: React.FC<WalletViewProps> = ({ user, onBack, onNavigateToPurch
         {/* Buy Coins Section */}
         <div className="mb-6">
             <h3 className="text-lg font-bold mb-3">Buy Coins</h3>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {coinPacks.map(pack => (
                     <button 
                         key={pack.amount}
