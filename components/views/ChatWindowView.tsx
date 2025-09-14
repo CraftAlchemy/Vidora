@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Conversation } from '../../types';
+import { Conversation, User } from '../../types';
 import { ChevronLeftIcon, SendIcon, PaperclipIcon, EmojiIcon, CloseIcon } from '../icons/Icons';
 import { mockUser } from '../../services/mockApi';
 
@@ -57,9 +57,10 @@ interface ChatWindowViewProps {
   conversation: Conversation;
   onBack: () => void;
   onSendMessage: (text: string, imageFile?: File) => void;
+  onViewProfile: (user: User) => void;
 }
 
-const ChatWindowView: React.FC<ChatWindowViewProps> = ({ conversation, onBack, onSendMessage }) => {
+const ChatWindowView: React.FC<ChatWindowViewProps> = ({ conversation, onBack, onSendMessage, onViewProfile }) => {
   const [newMessage, setNewMessage] = useState('');
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -134,11 +135,13 @@ const ChatWindowView: React.FC<ChatWindowViewProps> = ({ conversation, onBack, o
         <button onClick={onBack} className="mr-4">
           <ChevronLeftIcon />
         </button>
-        <img src={conversation.user.avatarUrl} alt={conversation.user.username} className="w-9 h-9 rounded-full mr-3" />
-        <div className="flex-1">
-            <p className="font-bold text-sm">@{conversation.user.username}</p>
-            <p className="text-xs text-green-400">Online</p>
-        </div>
+        <button onClick={() => onViewProfile(conversation.user)} className="flex items-center flex-1">
+          <img src={conversation.user.avatarUrl} alt={conversation.user.username} className="w-9 h-9 rounded-full mr-3" />
+          <div className="text-left">
+              <p className="font-bold text-sm">@{conversation.user.username}</p>
+              <p className="text-xs text-green-400">Online</p>
+          </div>
+        </button>
       </header>
       
       <main className="flex-1 overflow-y-auto p-4 space-y-4">
@@ -146,7 +149,11 @@ const ChatWindowView: React.FC<ChatWindowViewProps> = ({ conversation, onBack, o
           const isCurrentUser = msg.senderId === mockUser.id;
           return (
             <div key={msg.id} className={`flex items-end gap-2 ${isCurrentUser ? 'justify-end' : 'justify-start'}`}>
-              {!isCurrentUser && <img src={conversation.user.avatarUrl} alt={conversation.user.username} className="w-7 h-7 rounded-full mb-1" />}
+              {!isCurrentUser && (
+                <button onClick={() => onViewProfile(conversation.user)}>
+                    <img src={conversation.user.avatarUrl} alt={conversation.user.username} className="w-7 h-7 rounded-full mb-1" />
+                </button>
+              )}
               <div className="flex flex-col max-w-xs md:max-w-md">
                 <div className={`p-3 rounded-2xl ${isCurrentUser ? 'bg-pink-600/80 backdrop-blur-sm rounded-br-lg' : 'bg-zinc-700 rounded-bl-lg'}`}>
                   {msg.imageUrl && (

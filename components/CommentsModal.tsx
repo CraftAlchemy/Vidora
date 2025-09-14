@@ -8,6 +8,7 @@ interface CommentsModalProps {
   currentUser: User;
   onClose: () => void;
   onAddComment: (commentText: string) => void;
+  onViewProfile: (user: User) => void;
 }
 
 const emojiCategories = {
@@ -60,9 +61,11 @@ const EmojiPicker: React.FC<EmojiPickerProps> = ({ onSelectEmoji }) => {
 };
 // End of Emoji Picker Component
 
-const Comment: React.FC<{ comment: CommentType }> = ({ comment }) => (
+const Comment: React.FC<{ comment: CommentType; onViewProfile: (user: User) => void; }> = ({ comment, onViewProfile }) => (
   <div className="flex items-start gap-3 p-2">
-    <img src={comment.user.avatarUrl} alt={comment.user.username} className="w-9 h-9 rounded-full" />
+    <button onClick={() => onViewProfile(comment.user)}>
+        <img src={comment.user.avatarUrl} alt={comment.user.username} className="w-9 h-9 rounded-full" />
+    </button>
     <div className="flex-1">
       <p className="text-xs text-gray-400">@{comment.user.username}</p>
       <p className="text-sm">{comment.text}</p>
@@ -71,7 +74,7 @@ const Comment: React.FC<{ comment: CommentType }> = ({ comment }) => (
   </div>
 );
 
-const CommentsModal: React.FC<CommentsModalProps> = ({ comments, currentUser, onClose, onAddComment }) => {
+const CommentsModal: React.FC<CommentsModalProps> = ({ comments, currentUser, onClose, onAddComment, onViewProfile }) => {
   const [newComment, setNewComment] = useState('');
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -115,7 +118,7 @@ const CommentsModal: React.FC<CommentsModalProps> = ({ comments, currentUser, on
 
         <main ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4">
           {comments.map(comment => (
-            <Comment key={comment.id} comment={comment} />
+            <Comment key={comment.id} comment={comment} onViewProfile={onViewProfile} />
           ))}
         </main>
 

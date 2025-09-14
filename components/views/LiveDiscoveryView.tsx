@@ -10,6 +10,7 @@ interface LiveDiscoveryViewProps {
   currentUser: User;
   onToggleFollow: (userId: string) => void;
   onShareStream: (streamId: string) => void;
+  onViewProfile: (user: User) => void;
 }
 
 const LiveCard: React.FC<{ stream: LiveStream; onClick: () => void }> = ({ stream, onClick }) => (
@@ -28,7 +29,7 @@ const LiveCard: React.FC<{ stream: LiveStream; onClick: () => void }> = ({ strea
   </div>
 );
 
-const LiveDiscoveryView: React.FC<LiveDiscoveryViewProps> = ({ liveStreams, onGoLive, setIsNavVisible, currentUser, onToggleFollow, onShareStream }) => {
+const LiveDiscoveryView: React.FC<LiveDiscoveryViewProps> = ({ liveStreams, onGoLive, setIsNavVisible, currentUser, onToggleFollow, onShareStream, onViewProfile }) => {
   const [selectedStream, setSelectedStream] = useState<LiveStream | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -49,6 +50,7 @@ const LiveDiscoveryView: React.FC<LiveDiscoveryViewProps> = ({ liveStreams, onGo
             currentUser={currentUser}
             onToggleFollow={onToggleFollow}
             onShareStream={onShareStream}
+            onViewProfile={onViewProfile}
           />;
   }
 

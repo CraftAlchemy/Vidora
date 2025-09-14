@@ -101,10 +101,11 @@ export interface Gift {
   category: 'Trending' | 'Classic' | 'Premium' | 'Fun';
 }
 
+// FIX: Added missing GiftEvent interface for gift animations.
 export interface GiftEvent {
   id: string;
-  gift: Gift;
   user: User;
+  gift: Gift;
 }
 
 export interface WalletTransaction {

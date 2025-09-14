@@ -1,5 +1,5 @@
 import React from 'react';
-import { Conversation } from '../../types';
+import { Conversation, User } from '../../types';
 // Fix: Correct import for Icons which is now created.
 import { ChevronLeftIcon } from '../icons/Icons';
 
@@ -7,9 +7,10 @@ interface ChatInboxViewProps {
   conversations: Conversation[];
   onSelectChat: (conversationId: string) => void;
   onBack?: () => void; // Optional back navigation for integration
+  onViewProfile: (user: User) => void;
 }
 
-const ChatInboxView: React.FC<ChatInboxViewProps> = ({ conversations, onSelectChat, onBack }) => {
+const ChatInboxView: React.FC<ChatInboxViewProps> = ({ conversations, onSelectChat, onBack, onViewProfile }) => {
   return (
     <div className="h-full w-full bg-zinc-900 text-white flex flex-col pb-20">
       <header className="sticky top-0 bg-zinc-900 bg-opacity-80 backdrop-blur-sm z-10 flex items-center p-4 border-b border-zinc-800">
@@ -27,7 +28,9 @@ const ChatInboxView: React.FC<ChatInboxViewProps> = ({ conversations, onSelectCh
             className="flex items-center p-4 border-b border-zinc-800 cursor-pointer hover:bg-zinc-800"
             onClick={() => onSelectChat(convo.id)}
           >
-            <img src={convo.user.avatarUrl} alt={convo.user.username} className="w-12 h-12 rounded-full mr-4" />
+            <button onClick={(e) => { e.stopPropagation(); onViewProfile(convo.user); }} className="relative z-10">
+              <img src={convo.user.avatarUrl} alt={convo.user.username} className="w-12 h-12 rounded-full mr-4" />
+            </button>
             <div className="flex-1 overflow-hidden">
               <div className="flex justify-between items-center">
                 <p className="font-bold truncate">@{convo.user.username}</p>

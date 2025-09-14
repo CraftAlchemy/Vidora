@@ -1,13 +1,17 @@
 import React, { useState } from 'react';
 import { User, Video } from '../../types';
 import { View } from '../../App';
-import { SettingsIcon, GridIcon, CoinIcon, FlameIcon, StarIcon, BadgeIcon, AdminPanelIcon } from '../icons/Icons';
+import { SettingsIcon, GridIcon, CoinIcon, FlameIcon, StarIcon, BadgeIcon, AdminPanelIcon, ChevronLeftIcon } from '../icons/Icons';
 
 interface ProfileViewProps {
   user: User;
+  currentUser: User;
+  isOwnProfile: boolean;
   videos: Video[];
   onNavigate: (view: View) => void;
   onEditProfile: () => void;
+  onBack?: () => void;
+  onToggleFollow: (userId: string) => void;
 }
 
 const StatItem: React.FC<{ value: string; label: string }> = ({ value, label }) => (
@@ -17,29 +21,42 @@ const StatItem: React.FC<{ value: string; label: string }> = ({ value, label }) 
   </div>
 );
 
-const ProfileView: React.FC<ProfileViewProps> = ({ user, videos, onNavigate, onEditProfile }) => {
+const ProfileView: React.FC<ProfileViewProps> = ({ user, currentUser, isOwnProfile, videos, onNavigate, onEditProfile, onBack, onToggleFollow }) => {
   const [activeTab, setActiveTab] = useState<'videos' | 'badges'>('videos');
   const userVideos = videos.filter(v => v.user.id === user.id);
   const xpForNextLevel = (user.level || 1) * 200;
   const xpProgress = user.xp ? (user.xp / xpForNextLevel) * 100 : 0;
   const totalLikes = userVideos.reduce((sum, video) => sum + video.likes, 0);
+  const isFollowing = currentUser.followingIds?.includes(user.id);
 
   return (
     <div className="h-full w-full bg-zinc-900 text-white overflow-y-auto pb-16">
-      <header className="p-4 flex justify-end items-center space-x-4 max-w-2xl mx-auto">
-        <button 
-          onClick={() => onNavigate('wallet')} 
-          className="flex items-center bg-zinc-800/80 backdrop-blur-sm px-3 py-1.5 rounded-full text-sm font-semibold hover:bg-zinc-700 transition-colors"
-        >
-          <CoinIcon className="w-5 h-5 text-yellow-400" />
-          <span className="ml-2">{user.wallet?.balance.toLocaleString()}</span>
-        </button>
-        <button onClick={() => onNavigate('settings')}>
-          <SettingsIcon />
-        </button>
+      <header className="relative p-4 flex justify-end items-center space-x-4 max-w-2xl mx-auto">
+        {onBack && (
+            <button onClick={onBack} className="absolute left-4 top-1/2 -translate-y-1/2 p-2 z-10">
+                <ChevronLeftIcon />
+            </button>
+        )}
+        
+        {isOwnProfile ? (
+          <>
+            <button 
+              onClick={() => onNavigate('wallet')} 
+              className="flex items-center bg-zinc-800/80 backdrop-blur-sm px-3 py-1.5 rounded-full text-sm font-semibold hover:bg-zinc-700 transition-colors"
+            >
+              <CoinIcon className="w-5 h-5 text-yellow-400" />
+              <span className="ml-2">{user.wallet?.balance.toLocaleString()}</span>
+            </button>
+            <button onClick={() => onNavigate('settings')}>
+              <SettingsIcon />
+            </button>
+          </>
+        ) : (
+            <div className="w-16 h-8" /> // Placeholder for spacing
+        )}
       </header>
       
-      <div className="max-w-2xl mx-auto">
+      <div className="max-w-2xl mx-auto -mt-12 pt-12">
         <div className="flex flex-col items-center px-4">
           <img src={user.avatarUrl} alt={user.username} className="w-24 h-24 rounded-full object-cover border-4 border-zinc-800" />
           <h1 className="text-xl font-bold mt-3">@{user.username}</h1>
@@ -73,11 +90,30 @@ const ProfileView: React.FC<ProfileViewProps> = ({ user, videos, onNavigate, onE
         </div>
 
         <div className="px-4 flex space-x-2">
-          <button onClick={onEditProfile} className="flex-1 py-2 bg-zinc-700 rounded-md font-semibold text-sm">Edit profile</button>
-          <button className="flex-1 py-2 bg-zinc-700 rounded-md font-semibold text-sm">Share profile</button>
+          {isOwnProfile ? (
+            <>
+              <button onClick={onEditProfile} className="flex-1 py-2 bg-zinc-700 rounded-md font-semibold text-sm">Edit profile</button>
+              <button className="flex-1 py-2 bg-zinc-700 rounded-md font-semibold text-sm">Share profile</button>
+            </>
+          ) : (
+             <>
+                <button 
+                  onClick={() => onToggleFollow(user.id)} 
+                  className={`flex-1 py-2 rounded-md font-semibold text-sm transition-colors ${isFollowing ? 'bg-zinc-700 text-white' : 'bg-pink-600 text-white'}`}
+                >
+                    {isFollowing ? 'Following' : 'Follow'}
+                </button>
+                <button 
+                  onClick={() => alert(`Start chat with ${user.username}`)} 
+                  className="flex-1 py-2 bg-zinc-700 rounded-md font-semibold text-sm"
+                >
+                    Message
+                </button>
+            </>
+          )}
         </div>
 
-        {user.role === 'admin' && (
+        {isOwnProfile && user.role === 'admin' && (
           <div className="px-4 mt-4">
             <button 
               onClick={() => onNavigate('admin')}

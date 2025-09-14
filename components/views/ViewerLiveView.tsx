@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { LiveStream, ChatMessage, User, Gift, GiftEvent } from '../../types';
+import { LiveStream, ChatMessage, User, Gift } from '../../types';
 import { CloseIcon, HeartIcon, SendIcon, EmojiIcon, GiftIcon, ShareIcon, CoinIcon, ChevronLeftIcon } from '../icons/Icons';
 import { mockUser, mockGifts, mockUsers } from '../../services/mockApi';
 import SendGiftModal from '../SendGiftModal';
-import GiftAnimation from '../GiftAnimation';
 
 interface ViewerLiveViewProps {
   stream: LiveStream;
@@ -11,6 +10,7 @@ interface ViewerLiveViewProps {
   currentUser: User;
   onToggleFollow: (userId: string) => void;
   onShareStream: (streamId: string) => void;
+  onViewProfile: (user: User) => void;
 }
 
 type TopGifter = {
@@ -88,7 +88,7 @@ const FloatingHeart: React.FC<{ onAnimationEnd: () => void }> = ({ onAnimationEn
     );
 };
 
-const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, currentUser, onToggleFollow, onShareStream }) => {
+const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, currentUser, onToggleFollow, onShareStream, onViewProfile }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([
     { id: '1', senderId: stream.user.id, text: `Welcome to the stream!`, isRead: true, timestamp: '' },
   ]);
@@ -98,7 +98,6 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, current
   const [floatingHearts, setFloatingHearts] = useState<{ id: number }[]>([]);
   const [isSharing, setIsSharing] = useState(false);
   const [localBalance, setLocalBalance] = useState(currentUser.wallet?.balance ?? 0);
-  const [giftAnimationQueue, setGiftAnimationQueue] = useState<GiftEvent[]>([]);
   const [topGifters, setTopGifters] = useState<TopGifter[]>([]);
   
   // State for Zen Mode (hide UI)
@@ -161,10 +160,8 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, current
     const giftMessage: ChatMessage = {
         id: `gift-${Date.now()}-${user.id}`, senderId: user.id, text: `sent a ${gift.name}! ${gift.icon}`, timestamp: '', isRead: true,
     };
-     const newGiftEvent: GiftEvent = { id: `giftevent-${Date.now()}-${user.id}`, gift, user };
 
     setMessages(prev => [...prev.slice(-20), giftMessage]);
-    setGiftAnimationQueue(prev => [...prev, newGiftEvent]);
     updateTopGifters(user, gift.price);
   };
   
@@ -232,10 +229,6 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, current
     }
   };
 
-  const handleAnimationComplete = (id: string) => {
-    setGiftAnimationQueue(prev => prev.filter(g => g.id !== id));
-  };
-
   // --- Universal Swipe/Drag Handlers ---
   const handleDragStart = (clientX: number, clientY: number) => {
     touchStartX.current = clientX;
@@ -292,7 +285,9 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, current
 
     return (
       <div className="flex items-start gap-2 p-1 text-shadow-sm animate-fade-in-up">
-        <img src={user.avatarUrl} alt="avatar" className="w-6 h-6 rounded-full"/>
+        <button onClick={() => onViewProfile(user)}>
+            <img src={user.avatarUrl} alt="avatar" className="w-6 h-6 rounded-full"/>
+        </button>
         <div className="flex flex-col">
           <span className="text-xs text-gray-300">@{user.username}</span>
           <p className="text-sm bg-black/25 px-3 py-1.5 rounded-xl">{message.text}</p>
@@ -305,7 +300,7 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, current
     const podiumOrder = [1, 0, 2];
     const sortedGifters = [...gifters];
     return (
-        <div className="flex justify-center items-end gap-2 p-2 bg-black/30 rounded-lg">
+        <div className="flex justify-center items-end gap-2 p-2 bg-black/30 rounded-lg animate-fade-in-up pointer-events-none">
             {podiumOrder.map(index => {
                 const gifter = sortedGifters[index];
                 const rank = [2, 1, 3][index];
@@ -313,7 +308,7 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, current
                 const size = rank === 1 ? 'w-12 h-12' : 'w-10 h-10';
                 const medal = ['🥇', '🥈', '🥉'][rank - 1];
                 return (
-                    <div key={gifter.user.id} className="flex flex-col items-center">
+                    <button key={gifter.user.id} onClick={() => onViewProfile(gifter.user)} className="flex flex-col items-center pointer-events-auto">
                         <div className="relative">
                            <img src={gifter.user.avatarUrl} alt={gifter.user.username} className={`${size} rounded-full border-2 ${rank === 1 ? 'border-yellow-400' : 'border-zinc-500'}`} />
                            <span className="absolute -bottom-2 -right-2 text-lg">{medal}</span>
@@ -323,7 +318,7 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, current
                           <CoinIcon className="w-3 h-3 mr-0.5"/>
                           {gifter.amount}
                         </div>
-                    </div>
+                    </button>
                 );
             })}
         </div>
@@ -333,7 +328,7 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, current
   return (
     <>
       <div 
-        className="h-full w-full bg-black text-white relative overflow-hidden select-none"
+        className="absolute inset-0 w-full h-full bg-black text-white overflow-hidden select-none"
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleDragEnd}
@@ -352,37 +347,26 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, current
             <FloatingHeart key={heart.id} onAnimationEnd={() => removeHeart(heart.id)} />
           ))}
         </div>
-
-        {/* Gift Animation Area */}
-        <div className="absolute top-24 right-4 z-30 space-y-2 pointer-events-none">
-            {giftAnimationQueue.map(giftEvent => (
-                <GiftAnimation 
-                    key={giftEvent.id} 
-                    giftEvent={giftEvent} 
-                    onAnimationComplete={() => handleAnimationComplete(giftEvent.id)} 
-                />
-            ))}
-        </div>
         
         {/* UI Container */}
-        <div className={`absolute inset-0 flex flex-col justify-between transition-all duration-300 ease-in-out ${isUiVisible ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-full pointer-events-none'}`}>
-          <header className="flex justify-between items-start p-4">
-            <div className="flex items-center bg-black/40 p-2 rounded-lg">
+        <div className={`absolute inset-0 flex flex-col transition-all duration-300 ease-in-out ${isUiVisible ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-full pointer-events-none'}`}>
+          <header className="absolute top-0 left-0 right-0 p-4 flex justify-between items-start">
+            <button onClick={() => onViewProfile(stream.user)} className="flex items-center bg-black/40 p-2 rounded-lg">
               <img src={stream.user.avatarUrl} alt={stream.user.username} className="w-8 h-8 rounded-full mr-3" />
               <div>
                   <p className="font-bold text-sm">@{stream.user.username}</p>
                   <p className="text-xs">{stream.title}</p>
               </div>
               {!isOwnStream && !isFollowing && (
-                  <button
-                    onClick={() => onToggleFollow(stream.user.id)}
+                  <div
+                    onClick={(e) => { e.stopPropagation(); onToggleFollow(stream.user.id); }}
                     className="ml-3 w-6 h-6 rounded-full bg-pink-500 text-white flex items-center justify-center text-lg font-bold shrink-0 hover:bg-pink-600 transition-colors"
                     aria-label={`Follow ${stream.user.username}`}
                   >
                     +
-                  </button>
+                  </div>
               )}
-            </div>
+            </button>
             <div className="flex items-center gap-2">
               <div className="bg-black/40 p-2 rounded-lg text-xs">{stream.viewers.toLocaleString()} watching</div>
               <button onClick={onBack} className="p-2 bg-black/40 rounded-full">
@@ -391,16 +375,16 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, current
             </div>
           </header>
 
-          <div className="flex-1 flex flex-col justify-end px-4">
-              {topGifters.length > 0 && <TopGifterPodium gifters={topGifters}/>}
-          </div>
-
-          <footer className="p-4 space-y-2">
+          <div className="flex-1"></div>
+          
+          <footer className="p-4 flex flex-col-reverse gap-2">
+            {/* Stable part: chat input and action buttons */}
+            <div>
               <div className="h-48 overflow-y-auto space-y-1 pr-2 scrollbar-hide" style={{ maskImage: 'linear-gradient(to bottom, transparent 0%, black 10%, black 90%, transparent 100%)' }}>
                   {messages.map(msg => <ChatBubble key={msg.id} message={msg} />)}
                   <div ref={messagesEndRef} />
               </div>
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-2 mt-2">
                   <div className="relative flex-1">
                       <input
                           type="text"
@@ -453,6 +437,11 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, current
                       <ShareIcon className="w-6 h-6" />
                   </button>
               </div>
+            </div>
+            {/* Dynamic part: top gifters podium, appears above the stable part */}
+            {topGifters.length > 0 && (
+                <TopGifterPodium gifters={topGifters} />
+            )}
           </footer>
         </div>
 

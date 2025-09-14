@@ -10,9 +10,11 @@ interface LiveViewProps {
   currentUser: User;
   onToggleFollow: (userId: string) => void;
   onShareStream: (streamId: string) => void;
+  onViewProfile: (user: User) => void;
+  showSuccessToast: (message: string) => void;
 }
 
-const LiveView: React.FC<LiveViewProps> = ({ setIsNavVisible, currentUser, onToggleFollow, onShareStream }) => {
+const LiveView: React.FC<LiveViewProps> = ({ setIsNavVisible, currentUser, onToggleFollow, onShareStream, onViewProfile, showSuccessToast }) => {
   const [isBroadcasting, setIsBroadcasting] = useState(false);
   const [myStreamTitle, setMyStreamTitle] = useState('');
   const [isGoLiveModalOpen, setIsGoLiveModalOpen] = useState(false);
@@ -42,7 +44,12 @@ const LiveView: React.FC<LiveViewProps> = ({ setIsNavVisible, currentUser, onTog
   };
 
   if (isBroadcasting) {
-    return <BroadcasterView streamTitle={myStreamTitle} onEndStream={handleEndStream} />;
+    return <BroadcasterView 
+              streamTitle={myStreamTitle} 
+              onEndStream={handleEndStream} 
+              onViewProfile={onViewProfile} 
+              showSuccessToast={showSuccessToast}
+            />;
   }
 
   return (
@@ -54,6 +61,7 @@ const LiveView: React.FC<LiveViewProps> = ({ setIsNavVisible, currentUser, onTog
         currentUser={currentUser}
         onToggleFollow={onToggleFollow}
         onShareStream={onShareStream}
+        onViewProfile={onViewProfile}
       />
       {isGoLiveModalOpen && (
         <GoLiveModal 

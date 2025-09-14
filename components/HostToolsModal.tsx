@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { CloseIcon, PinIcon, MoreVerticalIcon } from './icons/Icons';
+import React, { useState, useRef, useEffect } from 'react';
+import { CloseIcon, PinIcon, MoreVerticalIcon, MuteUserIcon, BanUserIcon } from './icons/Icons';
 import { User } from '../types';
 
 interface HostToolsModalProps {
@@ -8,10 +8,20 @@ interface HostToolsModalProps {
   pinnedMessage: string;
   events: { type: 'follow' | 'gift'; user: User; text: string }[];
   viewers: User[];
+  onViewProfile: (user: User) => void;
+  mutedUserIds: string[];
+  onMuteUser: (userId: string) => void;
+  onUnmuteUser: (userId: string) => void;
+  onBanUser: (userId: string) => void;
 }
 
-const HostToolsModal: React.FC<HostToolsModalProps> = ({ onClose, onSetPinnedMessage, pinnedMessage, events, viewers }) => {
+const HostToolsModal: React.FC<HostToolsModalProps> = ({ 
+    onClose, onSetPinnedMessage, pinnedMessage, events, viewers, onViewProfile,
+    mutedUserIds, onMuteUser, onUnmuteUser, onBanUser
+}) => {
     const [message, setMessage] = useState(pinnedMessage);
+    const [actionMenuForUser, setActionMenuForUser] = useState<string | null>(null);
+    const actionMenuRef = useRef<HTMLDivElement>(null);
 
     const handlePin = () => {
         onSetPinnedMessage(message);
@@ -21,6 +31,20 @@ const HostToolsModal: React.FC<HostToolsModalProps> = ({ onClose, onSetPinnedMes
         setMessage('');
         onSetPinnedMessage('');
     };
+    
+    const toggleActionMenu = (userId: string) => {
+        setActionMenuForUser(prev => (prev === userId ? null : userId));
+    };
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (actionMenuRef.current && !actionMenuRef.current.contains(event.target as Node)) {
+                setActionMenuForUser(null);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-70 flex justify-center items-end z-50">
@@ -77,20 +101,47 @@ const HostToolsModal: React.FC<HostToolsModalProps> = ({ onClose, onSetPinnedMes
                     <div>
                         <h3 className="text-sm font-semibold text-gray-400 mb-2 uppercase tracking-wider">Viewers ({viewers.length})</h3>
                          <div className="bg-zinc-800 p-2 rounded-lg max-h-48 overflow-y-auto scrollbar-hide">
-                            {viewers.map(viewer => (
+                            {viewers.map(viewer => {
+                                const isMuted = mutedUserIds.includes(viewer.id);
+                                return (
                                 <div key={viewer.id} className="flex items-center justify-between p-2 hover:bg-zinc-700/50 rounded-md">
-                                    <div className="flex items-center">
+                                    <button onClick={() => onViewProfile(viewer)} className="flex items-center text-left">
                                         <img src={viewer.avatarUrl} alt={viewer.username} className="w-8 h-8 rounded-full mr-3" />
                                         <div>
-                                            <p className="font-semibold text-sm">@{viewer.username}</p>
+                                            <p className="font-semibold text-sm flex items-center gap-2">
+                                                @{viewer.username}
+                                                {/* FIX: The 'title' prop is not valid on the Icon component. Wrapped the icon in a span with a title attribute to provide the tooltip and fix the type error. */}
+                                                {isMuted && <span title="Muted"><MuteUserIcon className="w-4 h-4 text-yellow-500" /></span>}
+                                            </p>
                                             <p className="text-xs text-gray-400">Level {viewer.level}</p>
                                         </div>
-                                    </div>
-                                    <button className="p-1 text-gray-400 hover:text-white">
-                                        <MoreVerticalIcon />
                                     </button>
+                                    <div className="relative" ref={actionMenuForUser === viewer.id ? actionMenuRef : null}>
+                                        <button onClick={() => toggleActionMenu(viewer.id)} className="p-1 text-gray-400 hover:text-white">
+                                            <MoreVerticalIcon />
+                                        </button>
+                                        {actionMenuForUser === viewer.id && (
+                                            <div className="absolute right-0 bottom-full mb-1 w-36 bg-zinc-700 rounded-md shadow-lg z-10 animate-fade-in-up">
+                                                <button 
+                                                    onClick={() => {
+                                                        isMuted ? onUnmuteUser(viewer.id) : onMuteUser(viewer.id);
+                                                        setActionMenuForUser(null);
+                                                    }}
+                                                    className="flex items-center gap-2 w-full text-left px-3 py-2 text-sm hover:bg-zinc-600 rounded-t-md"
+                                                >
+                                                    <MuteUserIcon className="w-4 h-4" /> {isMuted ? 'Unmute' : 'Mute'}
+                                                </button>
+                                                <button 
+                                                    onClick={() => { onBanUser(viewer.id); setActionMenuForUser(null); }}
+                                                    className="flex items-center gap-2 w-full text-left px-3 py-2 text-sm text-red-400 hover:bg-zinc-600 rounded-b-md"
+                                                >
+                                                    <BanUserIcon className="w-4 h-4"/> Ban
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
-                            ))}
+                            )})}
                         </div>
                     </div>
                 </main>

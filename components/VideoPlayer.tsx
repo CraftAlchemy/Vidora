@@ -10,9 +10,10 @@ interface VideoPlayerProps {
   currentUser: User;
   onToggleFollow: (userId: string) => void;
   onShareVideo: (videoId: string) => void;
+  onViewProfile: (user: User) => void;
 }
 
-const VideoPlayer: React.FC<VideoPlayerProps> = ({ video, isActive, onOpenComments, currentUser, onToggleFollow, onShareVideo }) => {
+const VideoPlayer: React.FC<VideoPlayerProps> = ({ video, isActive, onOpenComments, currentUser, onToggleFollow, onShareVideo, onViewProfile }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
@@ -116,8 +117,10 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ video, isActive, onOpenCommen
 
       <div className="absolute bottom-0 left-0 right-0 p-4 pb-20 text-white bg-gradient-to-t from-black/50 to-transparent">
         <div className="flex items-center">
-          <img src={video.user.avatarUrl} alt={video.user.username} className="w-10 h-10 rounded-full border-2 border-white" />
-          <h3 className="font-bold ml-3">@{video.user.username}</h3>
+          <button onClick={() => onViewProfile(video.user)} className="flex items-center">
+            <img src={video.user.avatarUrl} alt={video.user.username} className="w-10 h-10 rounded-full border-2 border-white" />
+            <h3 className="font-bold ml-3">@{video.user.username}</h3>
+          </button>
           {!isOwnProfile && (
             <button
               onClick={() => onToggleFollow(video.user.id)}

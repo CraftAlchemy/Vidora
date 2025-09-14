@@ -49,6 +49,7 @@ const App: React.FC = () => {
     const [isDailyRewardOpen, setIsDailyRewardOpen] = useState(false);
     const [isCommentsModalOpen, setIsCommentsModalOpen] = useState(false);
     const [activeVideoForComments, setActiveVideoForComments] = useState<Video | null>(null);
+    const [viewedProfileUser, setViewedProfileUser] = useState<User | null>(null);
     
     // Purchase flow state
     const [selectedCoinPack, setSelectedCoinPack] = useState<CoinPack | null>(null);
@@ -97,10 +98,30 @@ const App: React.FC = () => {
         if (view === 'inbox') {
             setSelectedConversationId(null);
         }
+        if (view === 'profile') {
+            setViewedProfileUser(null);
+        }
     };
     
     const handleBack = () => {
-        setActiveView(previousView);
+        if (activeView === 'profile' && viewedProfileUser) {
+            setActiveView(previousView);
+            setViewedProfileUser(null);
+        } else {
+             setActiveView(previousView);
+        }
+    };
+    
+    const handleViewProfile = (userToView: User) => {
+        if (!currentUser) return;
+        if (userToView.id === currentUser.id) {
+            setViewedProfileUser(null);
+            handleNavigate('profile');
+        } else {
+            setPreviousView(activeView);
+            setViewedProfileUser(userToView);
+            setActiveView('profile');
+        }
     };
 
     const handleNavigateToUpload = () => {
@@ -409,13 +430,15 @@ const App: React.FC = () => {
     const renderView = () => {
         switch (activeView) {
             case 'feed':
-                return <FeedView videos={videos} currentUser={currentUser} onOpenComments={handleOpenComments} setIsNavVisible={setIsNavVisible} onToggleFollow={handleToggleFollow} onShareVideo={handleShareVideo} />;
+                return <FeedView videos={videos} currentUser={currentUser} onOpenComments={handleOpenComments} setIsNavVisible={setIsNavVisible} onToggleFollow={handleToggleFollow} onShareVideo={handleShareVideo} onViewProfile={handleViewProfile} />;
             case 'live':
                 return <LiveView 
                     setIsNavVisible={setIsNavVisible} 
                     currentUser={currentUser}
                     onToggleFollow={handleToggleFollow}
                     onShareStream={handleShareStream}
+                    onViewProfile={handleViewProfile}
+                    showSuccessToast={showSuccessToast}
                 />;
             case 'inbox': {
                 if (selectedConversationId) {
@@ -425,16 +448,28 @@ const App: React.FC = () => {
                                     conversation={conversation} 
                                     onBack={handleBackToInbox} 
                                     onSendMessage={(text, imageFile) => handleSendMessage(conversation.id, text, imageFile)}
+                                    onViewProfile={handleViewProfile}
                                 />;
                     }
                 }
                 return <ChatInboxView 
                             conversations={conversations} 
                             onSelectChat={handleSelectConversation} 
+                            onViewProfile={handleViewProfile}
                         />;
             }
             case 'profile':
-                return <ProfileView user={currentUser} videos={videos} onNavigate={handleNavigate} onEditProfile={handleEditProfile} />;
+                const userForProfile = viewedProfileUser || currentUser;
+                return <ProfileView 
+                            user={userForProfile}
+                            currentUser={currentUser}
+                            isOwnProfile={userForProfile.id === currentUser.id}
+                            videos={videos} 
+                            onNavigate={handleNavigate} 
+                            onEditProfile={handleEditProfile}
+                            onBack={viewedProfileUser ? handleBack : undefined}
+                            onToggleFollow={handleToggleFollow}
+                        />;
             case 'wallet':
                 return <WalletView user={currentUser} onBack={() => handleNavigate('profile')} onNavigateToPurchase={handleNavigateToPurchase} />;
             case 'settings':
@@ -442,7 +477,7 @@ const App: React.FC = () => {
             case 'purchase':
                 return selectedCoinPack ? <PurchaseCoinsView pack={selectedCoinPack} onBack={() => handleNavigate('wallet')} onPurchaseComplete={handlePurchaseComplete} /> : null;
             default:
-                return <FeedView videos={videos} currentUser={currentUser} onOpenComments={handleOpenComments} setIsNavVisible={setIsNavVisible} onToggleFollow={handleToggleFollow} onShareVideo={handleShareVideo} />;
+                return <FeedView videos={videos} currentUser={currentUser} onOpenComments={handleOpenComments} setIsNavVisible={setIsNavVisible} onToggleFollow={handleToggleFollow} onShareVideo={handleShareVideo} onViewProfile={handleViewProfile} />;
         }
     };
 
@@ -472,6 +507,7 @@ const App: React.FC = () => {
                     currentUser={currentUser}
                     onClose={handleCloseComments}
                     onAddComment={handleAddComment}
+                    onViewProfile={handleViewProfile}
                 />
             )}
         </div>

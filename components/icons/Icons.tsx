@@ -71,7 +71,6 @@ export const MusicIcon: React.FC<IconProps> = (props) => (
   </svg>
 );
 
-// FIX: Add and export PlayIcon and PauseIcon
 export const PlayIcon: React.FC<IconProps> = (props) => (
     <svg className="w-10 h-10 text-white" fill="currentColor" viewBox="0 0 20 20" {...props}><path d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm8 7l-4 3V7l4 3z"></path></svg>
 );
@@ -213,6 +212,20 @@ export const PinIcon: React.FC<IconProps> = (props) => (
     <path d="M4 3a1 1 0 011-1h10a1 1 0 110 2H5a1 1 0 01-1-1z" />
   </svg>
 );
+
+// Moderation Icons
+export const MuteUserIcon: React.FC<IconProps> = (props) => (
+  <svg fill="currentColor" viewBox="0 0 20 20" {...props}>
+    <path fillRule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217zM12.293 7.293a1 1 0 011.414 0L15 8.586l1.293-1.293a1 1 0 111.414 1.414L16.414 10l1.293 1.293a1 1 0 01-1.414 1.414L15 11.414l-1.293 1.293a1 1 0 01-1.414-1.414L13.586 10l-1.293-1.293a1 1 0 010-1.414z" clipRule="evenodd" />
+  </svg>
+);
+
+export const BanUserIcon: React.FC<IconProps> = (props) => (
+  <svg fill="currentColor" viewBox="0 0 20 20" {...props}>
+    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM4.33 4.33a6 6 0 118.486 8.486A6 6 0 014.33 4.33z" clipRule="evenodd" />
+  </svg>
+);
+
 
 // Admin Panel Icons
 export const DashboardIcon: React.FC<IconProps> = (props) => (
