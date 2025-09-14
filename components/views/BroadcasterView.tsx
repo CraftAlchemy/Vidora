@@ -1,8 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { mockUsers, mockUser } from '../../services/mockApi';
-import { User, ChatMessage } from '../../types';
+import { mockUsers, mockUser, mockGifts } from '../../services/mockApi';
+import { User, ChatMessage, GiftEvent } from '../../types';
 import { SendIcon, EmojiIcon, MicrophoneIcon, MicrophoneOffIcon, VideoIcon, VideoCameraOffIcon, ShieldCheckIcon, PinIcon } from '../icons/Icons';
 import HostToolsModal from '../HostToolsModal';
+import GiftAnimation from '../GiftAnimation';
 
 interface BroadcasterViewProps {
   streamTitle: string;
@@ -70,10 +71,11 @@ const BroadcasterView: React.FC<BroadcasterViewProps> = ({ streamTitle, onEndStr
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOff, setIsVideoOff] = useState(false);
   
-  // State for Host Tools
+  // State for Host Tools & Animations
   const [isHostToolsOpen, setIsHostToolsOpen] = useState(false);
   const [pinnedMessage, setPinnedMessage] = useState('');
   const [events, setEvents] = useState<{ type: 'follow' | 'gift'; user: User; text: string }[]>([]);
+  const [giftAnimationQueue, setGiftAnimationQueue] = useState<GiftEvent[]>([]);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
@@ -117,17 +119,25 @@ const BroadcasterView: React.FC<BroadcasterViewProps> = ({ streamTitle, onEndStr
                 id: `msg-${Date.now()}`, senderId: randomUser.id, text: randomMessageText, timestamp: '', isRead: true,
             };
             setMessages(prev => [...prev.slice(-15), newChatMessage]);
-        } else if (activityType < 0.9) { // 20% chance of a follow
+        } else if (activityType < 0.85) { // 15% chance of a follow
             const newEvent = { type: 'follow' as const, user: randomUser, text: 'started following.' };
             setEvents(prev => [...prev.slice(-10), newEvent]);
-        } else { // 10% chance of a gift
-            const giftText = "sent a Rose! 🌹";
+        } else { // 15% chance of a gift
+            const randomGift = mockGifts[Math.floor(Math.random() * mockGifts.length)];
+            const giftText = `sent a ${randomGift.name}! ${randomGift.icon}`;
+
             const newGiftMessage: ChatMessage = {
                 id: `gift-${Date.now()}`, senderId: randomUser.id, text: giftText, timestamp: '', isRead: true,
+            };
+             const newGiftEvent: GiftEvent = {
+                id: `giftevent-${Date.now()}`,
+                gift: randomGift,
+                user: randomUser,
             };
             const newEvent = { type: 'gift' as const, user: randomUser, text: giftText };
             setMessages(prev => [...prev.slice(-15), newGiftMessage]);
             setEvents(prev => [...prev.slice(-10), newEvent]);
+            setGiftAnimationQueue(prev => [...prev, newGiftEvent]);
       }
     }, 3000 + Math.random() * 2000);
 
@@ -188,6 +198,10 @@ const BroadcasterView: React.FC<BroadcasterViewProps> = ({ streamTitle, onEndStr
     setPinnedMessage(message);
     setIsHostToolsOpen(false);
   };
+
+  const handleAnimationComplete = (id: string) => {
+    setGiftAnimationQueue(prev => prev.filter(g => g.id !== id));
+  };
   
   const ChatBubble: React.FC<{ message: ChatMessage; user: User }> = ({ message, user }) => {
     const isBroadcaster = user.id === mockUser.id;
@@ -228,6 +242,18 @@ const BroadcasterView: React.FC<BroadcasterViewProps> = ({ streamTitle, onEndStr
         <div className="h-full w-full bg-black text-white flex flex-col relative">
             <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/30"></div>
+
+             {/* Gift Animation Area */}
+            <div className="absolute top-24 right-4 z-20 space-y-2">
+              {giftAnimationQueue.map(giftEvent => (
+                  <GiftAnimation 
+                      key={giftEvent.id} 
+                      giftEvent={giftEvent} 
+                      onAnimationComplete={() => handleAnimationComplete(giftEvent.id)} 
+                  />
+              ))}
+            </div>
+
 
             <header className="absolute top-0 left-0 right-0 z-10 flex justify-between items-start p-4">
                 <div className="space-y-2">

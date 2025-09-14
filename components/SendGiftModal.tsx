@@ -35,9 +35,12 @@ const SendGiftModal: React.FC<SendGiftModalProps> = ({ gifts, balance, onSend, o
               <ChevronLeftIcon />
             </button>
           ) : (
-            <div className="flex items-center text-yellow-400 bg-black/30 px-3 py-1 rounded-full">
-              <CoinIcon className="w-5 h-5 mr-1.5" />
-              <span className="font-bold">{balance.toLocaleString()}</span>
+             <div className="flex items-center gap-2">
+                <div className="flex items-center text-yellow-400 bg-black/30 px-3 py-1 rounded-full">
+                    <CoinIcon className="w-5 h-5 mr-1.5" />
+                    <span className="font-bold">{balance.toLocaleString()}</span>
+                </div>
+                <button onClick={() => alert('Navigate to purchase coins screen!')} className="text-xs bg-pink-600 px-2 py-1 rounded-full font-semibold">Top up</button>
             </div>
           )}
           <h2 className="text-lg font-bold absolute left-1/2 -translate-x-1/2">
@@ -80,16 +83,24 @@ const SendGiftModal: React.FC<SendGiftModalProps> = ({ gifts, balance, onSend, o
                 ))}
               </nav>
               <div className="grid grid-cols-4 gap-4 text-center h-[280px] overflow-y-auto pr-2">
-                {filteredGifts.map(gift => (
-                  <button key={gift.id} onClick={() => setSelectedGift(gift)} className="flex flex-col items-center p-2 rounded-lg hover:bg-zinc-700/50 transition-colors">
-                    <span className="text-4xl">{gift.icon}</span>
-                    <span className="text-xs mt-1">{gift.name}</span>
-                    <div className="flex items-center text-xs font-bold text-yellow-400">
-                       <CoinIcon className="w-3 h-3 mr-0.5" />
-                       {gift.price}
-                    </div>
-                  </button>
-                ))}
+                {filteredGifts.map(gift => {
+                  const isAffordable = balance >= gift.price;
+                  return (
+                    <button 
+                      key={gift.id} 
+                      onClick={() => setSelectedGift(gift)} 
+                      disabled={!isAffordable}
+                      className={`flex flex-col items-center p-2 rounded-lg transition-all ${isAffordable ? 'hover:bg-zinc-700/50' : 'opacity-40 grayscale'}`}
+                    >
+                      <span className="text-4xl">{gift.icon}</span>
+                      <span className="text-xs mt-1">{gift.name}</span>
+                      <div className="flex items-center text-xs font-bold text-yellow-400">
+                        <CoinIcon className="w-3 h-3 mr-0.5" />
+                        {gift.price}
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             </>
           )}

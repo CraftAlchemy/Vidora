@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { LiveStream, ChatMessage, User, Gift } from '../../types';
-import { CloseIcon, HeartIcon, SendIcon, EmojiIcon, GiftIcon, ShareIcon } from '../icons/Icons';
+import { LiveStream, ChatMessage, User, Gift, GiftEvent } from '../../types';
+import { CloseIcon, HeartIcon, SendIcon, EmojiIcon, GiftIcon, ShareIcon, CoinIcon } from '../icons/Icons';
 import { mockUser, mockGifts, mockUsers } from '../../services/mockApi';
 import SendGiftModal from '../SendGiftModal';
+import GiftAnimation from '../GiftAnimation';
 
 interface ViewerLiveViewProps {
   stream: LiveStream;
@@ -10,6 +11,11 @@ interface ViewerLiveViewProps {
   currentUser: User;
   onToggleFollow: (userId: string) => void;
   onShareStream: (streamId: string) => void;
+}
+
+type TopGifter = {
+    user: User;
+    amount: number;
 }
 
 const emojiCategories = {
@@ -91,6 +97,9 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, current
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [floatingHearts, setFloatingHearts] = useState<{ id: number }[]>([]);
   const [isSharing, setIsSharing] = useState(false);
+  const [localBalance, setLocalBalance] = useState(currentUser.wallet?.balance ?? 0);
+  const [giftAnimationQueue, setGiftAnimationQueue] = useState<GiftEvent[]>([]);
+  const [topGifters, setTopGifters] = useState<TopGifter[]>([]);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
@@ -119,32 +128,50 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, current
 
   useEffect(() => {
     const otherUsers = mockUsers.filter(u => u.id !== mockUser.id && u.id !== stream.user.id);
-    const sampleMessages = [
-        'This is awesome! 🔥', 'Wow, great stream!', 'Hello from Brazil! 🇧🇷',
-        'What game is this?', 'LOL 😂', 'Can you say hi to me?', 'First time here, loving it.',
-        'Let\'s gooooo!', 'Any tips for beginners?', 'This is so cool!', 'Love the energy!',
-    ];
+    const sampleMessages = [ 'This is awesome! 🔥', 'Wow, great stream!', 'Hello from Brazil! 🇧🇷', 'LOL 😂' ];
 
     const intervalId = setInterval(() => {
-        const randomUser = otherUsers[Math.floor(Math.random() * otherUsers.length)];
+      const randomUser = otherUsers[Math.floor(Math.random() * otherUsers.length)];
+      const eventType = Math.random();
+
+      if (eventType < 0.8) { // 80% chance of a message
         const randomMessageText = sampleMessages[Math.floor(Math.random() * sampleMessages.length)];
-
         const newMessage: ChatMessage = {
-            id: `msg-${Date.now()}-${Math.random()}`,
-            senderId: randomUser.id,
-            text: randomMessageText,
-            timestamp: '',
-            isRead: true,
+            id: `msg-${Date.now()}-${Math.random()}`, senderId: randomUser.id, text: randomMessageText, timestamp: '', isRead: true,
         };
-        
-        setTimeout(() => {
-             setMessages(prevMessages => [...prevMessages, newMessage]);
-        }, Math.random() * 2000);
-
+        setMessages(prev => [...prev, newMessage]);
+      } else { // 20% chance of a gift
+        const randomGift = mockGifts[Math.floor(Math.random() * 5)]; // Smaller gifts are more common
+        handleGiftFromOtherUser(randomUser, randomGift);
+      }
     }, 3500);
 
     return () => clearInterval(intervalId);
   }, [stream.user.id]);
+
+  const handleGiftFromOtherUser = (user: User, gift: Gift) => {
+    const giftMessage: ChatMessage = {
+        id: `gift-${Date.now()}-${user.id}`, senderId: user.id, text: `sent a ${gift.name}! ${gift.icon}`, timestamp: '', isRead: true,
+    };
+     const newGiftEvent: GiftEvent = { id: `giftevent-${Date.now()}-${user.id}`, gift, user };
+
+    setMessages(prev => [...prev, giftMessage]);
+    setGiftAnimationQueue(prev => [...prev, newGiftEvent]);
+    updateTopGifters(user, gift.price);
+  };
+  
+  const updateTopGifters = (user: User, amount: number) => {
+    setTopGifters(prev => {
+        const userIndex = prev.findIndex(g => g.user.id === user.id);
+        let newGifters = [...prev];
+        if (userIndex > -1) {
+            newGifters[userIndex].amount += amount;
+        } else {
+            newGifters.push({ user, amount });
+        }
+        return newGifters.sort((a, b) => b.amount - a.amount).slice(0, 3);
+    });
+  };
 
   const handleSendMessage = () => {
     if (newMessage.trim() === '') return;
@@ -161,19 +188,13 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, current
   };
 
   const handleSendGift = (gift: Gift) => {
-    if ((mockUser.wallet?.balance ?? 0) < gift.price) {
+    if (localBalance < gift.price) {
         alert("You don't have enough coins!");
         return;
     }
     
-    const giftMessage: ChatMessage = {
-        id: `gift-${Date.now()}`,
-        senderId: mockUser.id,
-        text: `sent a ${gift.name}! ${gift.icon}`,
-        timestamp: '',
-        isRead: true,
-    };
-    setMessages(prevMessages => [...prevMessages, giftMessage]);
+    setLocalBalance(prev => prev - gift.price);
+    handleGiftFromOtherUser(currentUser, gift); // Re-use the same logic
     setIsGiftModalOpen(false);
   };
   
@@ -215,6 +236,10 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, current
     }
   };
 
+  const handleAnimationComplete = (id: string) => {
+    setGiftAnimationQueue(prev => prev.filter(g => g.id !== id));
+  };
+
   const ChatBubble: React.FC<{message: ChatMessage}> = ({ message }) => {
     const user = mockUsers.find(u => u.id === message.senderId) || stream.user;
     const isGift = message.id.startsWith('gift-');
@@ -243,6 +268,38 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, current
     );
   };
 
+  const TopGifterPodium: React.FC<{ gifters: TopGifter[] }> = ({ gifters }) => {
+    const podiumOrder = [1, 0, 2]; // 2nd, 1st, 3rd place
+    const sortedGifters = [...gifters];
+
+    return (
+        <div className="flex justify-center items-end gap-2 p-2 bg-black/30 rounded-lg">
+            {podiumOrder.map(index => {
+                const gifter = sortedGifters[index];
+                const rank = [2, 1, 3][index];
+                if (!gifter) return <div key={rank} className="w-12"></div>;
+                
+                const size = rank === 1 ? 'w-12 h-12' : 'w-10 h-10';
+                const medal = ['🥇', '🥈', '🥉'][rank - 1];
+
+                return (
+                    <div key={gifter.user.id} className="flex flex-col items-center">
+                        <div className="relative">
+                           <img src={gifter.user.avatarUrl} alt={gifter.user.username} className={`${size} rounded-full border-2 ${rank === 1 ? 'border-yellow-400' : 'border-zinc-500'}`} />
+                           <span className="absolute -bottom-2 -right-2 text-lg">{medal}</span>
+                        </div>
+                        <p className="text-xs font-bold mt-1.5 truncate max-w-[60px]">@{gifter.user.username}</p>
+                        <div className="flex items-center text-xs text-yellow-400">
+                          <CoinIcon className="w-3 h-3 mr-0.5"/>
+                          {gifter.amount}
+                        </div>
+                    </div>
+                );
+            })}
+        </div>
+    );
+  };
+
   return (
     <>
       <div className="h-full w-full bg-black text-white flex flex-col relative">
@@ -251,10 +308,22 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, current
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/30"></div>
         </div>
         
+        {/* Floating Hearts Area */}
         <div className="absolute bottom-24 right-4 h-96 w-20 pointer-events-none z-20">
           {floatingHearts.map(heart => (
             <FloatingHeart key={heart.id} onAnimationEnd={() => removeHeart(heart.id)} />
           ))}
+        </div>
+
+        {/* Gift Animation Area */}
+        <div className="absolute top-24 right-4 z-20 space-y-2">
+            {giftAnimationQueue.map(giftEvent => (
+                <GiftAnimation 
+                    key={giftEvent.id} 
+                    giftEvent={giftEvent} 
+                    onAnimationComplete={() => handleAnimationComplete(giftEvent.id)} 
+                />
+            ))}
         </div>
 
         <header className="relative z-10 flex justify-between items-start p-4">
@@ -283,7 +352,9 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, current
           </div>
         </header>
 
-        <div className="flex-1"></div>
+        <div className="flex-1 px-4">
+            {topGifters.length > 0 && <TopGifterPodium gifters={topGifters}/>}
+        </div>
 
         <footer className="relative z-10 p-4 pb-24 space-y-2">
             <div className="h-48 overflow-y-auto space-y-1 pr-2 scrollbar-hide" style={{ maskImage: 'linear-gradient(to bottom, transparent 0%, black 10%, black 90%, transparent 100%)' }}>
@@ -348,7 +419,7 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, current
         {isGiftModalOpen && (
             <SendGiftModal 
                 gifts={mockGifts}
-                balance={mockUser.wallet?.balance ?? 0}
+                balance={localBalance}
                 onSend={handleSendGift}
                 onClose={() => setIsGiftModalOpen(false)}
             />

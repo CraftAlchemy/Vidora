@@ -210,13 +210,17 @@ export const mockNotifications: Notification[] = [
 
 export const mockGifts: Gift[] = [
     { id: 'g1', name: 'Rose', price: 10, icon: '🌹', category: 'Classic' },
-    { id: 'g2', name: 'Diamond', price: 1000, icon: '💎', category: 'Premium' },
-    { id: 'g3', name: 'GG', price: 50, icon: '🎮', category: 'Trending' },
     { id: 'g4', name: 'Heart', price: 25, icon: '💖', category: 'Classic' },
-    { id: 'g5', name: 'Crown', price: 5000, icon: '👑', category: 'Premium' },
-    { id: 'g6', name: 'UFO', price: 500, icon: '🛸', category: 'Fun' },
-    { id: 'g7', name: 'Fire', price: 100, icon: '🔥', category: 'Trending' },
+    { id: 'g3', name: 'GG', price: 50, icon: '🎮', category: 'Trending' },
     { id: 'g8', name: 'Duck', price: 20, icon: '🦆', category: 'Fun' },
+    { id: 'g7', name: 'Fire', price: 100, icon: '🔥', category: 'Trending' },
+    { id: 'g6', name: 'UFO', price: 500, icon: '🛸', category: 'Fun' },
+    { id: 'g9', name: 'Rocket', price: 2500, icon: '🚀', category: 'Trending' },
+    { id: 'g10', name: 'Teddy', price: 750, icon: '🧸', category: 'Fun' },
+    { id: 'g2', name: 'Diamond', price: 1000, icon: '💎', category: 'Premium' },
+    { id: 'g5', name: 'Crown', price: 5000, icon: '👑', category: 'Premium' },
+    { id: 'g11', name: 'Money Gun', price: 8000, icon: '💸', category: 'Premium' },
+    { id: 'g12', name: 'Castle', price: 20000, icon: '🏰', category: 'Premium' },
 ];
 
 export const mockTopGifters: LeaderboardUser[] = [

@@ -101,6 +101,12 @@ export interface Gift {
   category: 'Trending' | 'Classic' | 'Premium' | 'Fun';
 }
 
+export interface GiftEvent {
+  id: string;
+  gift: Gift;
+  user: User;
+}
+
 export interface WalletTransaction {
     id: string;
     type: 'purchase' | 'gift_received' | 'gift_sent' | 'reward' | 'payout';
