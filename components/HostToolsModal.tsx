@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { CloseIcon, PinIcon, MoreVerticalIcon, MuteUserIcon, BanUserIcon, PollIcon, MicrophoneIcon, MicrophoneOffIcon, VideoIcon, VideoCameraOffIcon } from './icons/Icons';
 import { User } from '../types';
+import { BroadcastSource } from './views/LiveView';
 
 interface HostToolsModalProps {
   onClose: () => void;
@@ -14,7 +15,7 @@ interface HostToolsModalProps {
   onUnmuteUser: (userId: string) => void;
   onBanUser: (userId: string) => void;
   onOpenCreatePoll: () => void;
-  sourceType: 'camera' | 'video';
+  sourceType: BroadcastSource;
   isMuted: boolean;
   onToggleMute: () => void;
   isVideoOff: boolean;

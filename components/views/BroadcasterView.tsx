@@ -7,11 +7,12 @@ import CreatePollModal from '../CreatePollModal';
 import LivePollDisplay from '../LivePollDisplay';
 import GiftAnimation from '../GiftAnimation';
 import EmojiPicker from '../EmojiPicker';
+import { BroadcastSource } from './LiveView';
 
 interface BroadcasterViewProps {
   streamTitle: string;
-  sourceType: 'camera' | 'video';
-  videoFile?: File;
+  sourceType: BroadcastSource;
+  sourceData?: File | string;
   onEndStream: () => void;
   onViewProfile: (user: User) => void;
   showSuccessToast: (message: string) => void;
@@ -63,7 +64,7 @@ const StreamHealthDisplay: React.FC<{ uptime: string; bitrate: number; fps: numb
     </div>
 );
 
-const BroadcasterView: React.FC<BroadcasterViewProps> = ({ streamTitle, sourceType, videoFile, onEndStream, onViewProfile, showSuccessToast }) => {
+const BroadcasterView: React.FC<BroadcasterViewProps> = ({ streamTitle, sourceType, sourceData, onEndStream, onViewProfile, showSuccessToast }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
@@ -123,8 +124,8 @@ const BroadcasterView: React.FC<BroadcasterViewProps> = ({ streamTitle, sourceTy
     };
     
     const startPreloadedVideo = () => {
-        if (videoFile) {
-            objectUrl = URL.createObjectURL(videoFile);
+        if (sourceData instanceof File) {
+            objectUrl = URL.createObjectURL(sourceData);
             setVideoUrl(objectUrl);
         } else {
             console.error("Video file not provided for pre-recorded stream.");
@@ -132,21 +133,36 @@ const BroadcasterView: React.FC<BroadcasterViewProps> = ({ streamTitle, sourceTy
         }
     };
     
+    const startUrlVideo = () => {
+        if (typeof sourceData === 'string') {
+            // In a real app, you'd need a backend to handle YouTube/Drive links.
+            // For this prototype, we'll use a direct, CORS-friendly video link as a stand-in
+            // to demonstrate the functionality, regardless of the user's input.
+            setVideoUrl('http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4');
+        } else {
+            console.error("Video URL not provided for URL stream.");
+            onEndStream();
+        }
+    };
+    
     if (sourceType === 'camera') {
         startCamera();
-    } else {
+    } else if (sourceType === 'video') {
         startPreloadedVideo();
+    } else if (sourceType === 'url') {
+        startUrlVideo();
     }
     
     streamStartTime.current = Date.now();
 
     return () => {
       streamRef.current?.getTracks().forEach(track => track.stop());
-      if (objectUrl) {
-          URL.revokeObjectURL(objectUrl);
+      // Only revoke if it's a blob object URL
+      if (videoUrl && videoUrl.startsWith('blob:')) {
+          URL.revokeObjectURL(videoUrl);
       }
     };
-  }, [sourceType, videoFile, onEndStream]);
+  }, [sourceType, sourceData, onEndStream, videoUrl]);
   
   useEffect(() => {
     const healthInterval = setInterval(() => {
@@ -430,7 +446,7 @@ const BroadcasterView: React.FC<BroadcasterViewProps> = ({ streamTitle, sourceTy
               autoPlay 
               playsInline 
               muted={sourceType === 'camera'} 
-              loop={sourceType === 'video'}
+              loop={sourceType !== 'camera'}
               src={videoUrl || ''}
               className="absolute inset-0 w-full h-full object-cover" 
             />

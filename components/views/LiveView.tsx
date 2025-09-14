@@ -14,11 +14,13 @@ interface LiveViewProps {
   showSuccessToast: (message: string) => void;
 }
 
+export type BroadcastSource = 'camera' | 'video' | 'url';
+
 const LiveView: React.FC<LiveViewProps> = ({ setIsNavVisible, currentUser, onToggleFollow, onShareStream, onViewProfile, showSuccessToast }) => {
   const [isBroadcasting, setIsBroadcasting] = useState(false);
   const [myStreamTitle, setMyStreamTitle] = useState('');
-  const [myStreamSource, setMyStreamSource] = useState<'camera' | 'video'>('camera');
-  const [myStreamVideoFile, setMyStreamVideoFile] = useState<File | undefined>(undefined);
+  const [myStreamSource, setMyStreamSource] = useState<BroadcastSource>('camera');
+  const [myStreamSourceData, setMyStreamSourceData] = useState<File | string | undefined>(undefined);
   const [isGoLiveModalOpen, setIsGoLiveModalOpen] = useState(false);
 
   useEffect(() => {
@@ -34,10 +36,10 @@ const LiveView: React.FC<LiveViewProps> = ({ setIsNavVisible, currentUser, onTog
     setIsGoLiveModalOpen(true);
   };
 
-  const handleStartStream = (title: string, source: 'camera' | 'video', videoFile?: File) => {
+  const handleStartStream = (title: string, source: BroadcastSource, data?: File | string) => {
     setMyStreamTitle(title);
     setMyStreamSource(source);
-    setMyStreamVideoFile(videoFile);
+    setMyStreamSourceData(data);
     setIsBroadcasting(true);
     setIsGoLiveModalOpen(false);
   };
@@ -45,14 +47,14 @@ const LiveView: React.FC<LiveViewProps> = ({ setIsNavVisible, currentUser, onTog
   const handleEndStream = () => {
     setIsBroadcasting(false);
     setMyStreamTitle('');
-    setMyStreamVideoFile(undefined);
+    setMyStreamSourceData(undefined);
   };
 
   if (isBroadcasting) {
     return <BroadcasterView 
               streamTitle={myStreamTitle} 
               sourceType={myStreamSource}
-              videoFile={myStreamVideoFile}
+              sourceData={myStreamSourceData}
               onEndStream={handleEndStream} 
               onViewProfile={onViewProfile} 
               showSuccessToast={showSuccessToast}

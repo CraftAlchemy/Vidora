@@ -1,15 +1,17 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { CloseIcon } from './icons/Icons';
+import { BroadcastSource } from './views/LiveView';
 
 interface GoLiveModalProps {
   onClose: () => void;
-  onStartStream: (title: string, source: 'camera' | 'video', videoFile?: File) => void;
+  onStartStream: (title: string, source: BroadcastSource, data?: File | string) => void;
 }
 
 const GoLiveModal: React.FC<GoLiveModalProps> = ({ onClose, onStartStream }) => {
   const [title, setTitle] = useState('');
-  const [source, setSource] = useState<'camera' | 'video'>('camera');
+  const [source, setSource] = useState<BroadcastSource>('camera');
   const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [videoUrl, setVideoUrl] = useState('');
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -37,17 +39,38 @@ const GoLiveModal: React.FC<GoLiveModalProps> = ({ onClose, onStartStream }) => 
     }
   };
 
-  const handleStart = () => {
-    if (title.trim()) {
-        if (source === 'video' && !videoFile) {
-            alert('Please select a video file to broadcast.');
-            return;
-        }
-      onStartStream(title, source, videoFile || undefined);
+  const isValidUrl = (url: string) => {
+    try {
+        new URL(url);
+        return true;
+    } catch (_) {
+        return false;
     }
   };
 
-  const isStartDisabled = !title.trim() || (source === 'video' && !videoFile);
+  const handleStart = () => {
+    if (!title.trim()) return;
+
+    if (source === 'video') {
+        if (!videoFile) {
+            alert('Please select a video file to broadcast.');
+            return;
+        }
+        onStartStream(title, 'video', videoFile);
+    } else if (source === 'url') {
+        if (!isValidUrl(videoUrl)) {
+            alert('Please enter a valid video URL.');
+            return;
+        }
+        onStartStream(title, 'url', videoUrl);
+    } else {
+        onStartStream(title, 'camera');
+    }
+  };
+
+  const isStartDisabled = !title.trim() || 
+                        (source === 'video' && !videoFile) ||
+                        (source === 'url' && !isValidUrl(videoUrl));
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-50 p-4">
@@ -62,18 +85,24 @@ const GoLiveModal: React.FC<GoLiveModalProps> = ({ onClose, onStartStream }) => 
         <main className="flex-1 overflow-y-auto p-6 space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-400 mb-2">Broadcast Source</label>
-            <div className="flex bg-zinc-700 rounded-lg p-1">
+            <div className="grid grid-cols-3 bg-zinc-700 rounded-lg p-1">
               <button
                 onClick={() => setSource('camera')}
-                className={`flex-1 py-2 text-sm font-semibold rounded-md transition-colors ${source === 'camera' ? 'bg-pink-600' : ''}`}
+                className={`py-2 text-xs font-semibold rounded-md transition-colors ${source === 'camera' ? 'bg-pink-600' : ''}`}
               >
                 Camera
               </button>
               <button
                 onClick={() => setSource('video')}
-                className={`flex-1 py-2 text-sm font-semibold rounded-md transition-colors ${source === 'video' ? 'bg-pink-600' : ''}`}
+                className={`py-2 text-xs font-semibold rounded-md transition-colors ${source === 'video' ? 'bg-pink-600' : ''}`}
               >
-                Video
+                Video File
+              </button>
+              <button
+                onClick={() => setSource('url')}
+                className={`py-2 text-xs font-semibold rounded-md transition-colors ${source === 'url' ? 'bg-pink-600' : ''}`}
+              >
+                From URL
               </button>
             </div>
           </div>
@@ -111,6 +140,20 @@ const GoLiveModal: React.FC<GoLiveModalProps> = ({ onClose, onStartStream }) => 
                 </div>
               )}
               <input ref={fileInputRef} type="file" accept="video/*" className="hidden" onChange={handleFileChange} />
+            </div>
+          )}
+          
+          {source === 'url' && (
+             <div className="animate-fade-in-up">
+              <label htmlFor="video-url" className="block text-sm font-medium text-gray-400 mb-1">Video URL</label>
+              <input
+                id="video-url"
+                type="url"
+                value={videoUrl}
+                onChange={(e) => setVideoUrl(e.target.value)}
+                placeholder="Enter YouTube, Drive, or video URL"
+                className="w-full p-2 bg-zinc-700 rounded-md border border-zinc-600 focus:outline-none focus:ring-2 focus:ring-pink-500"
+              />
             </div>
           )}
         </main>
