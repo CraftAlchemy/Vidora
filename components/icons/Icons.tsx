@@ -112,6 +112,18 @@ export const ChevronRightIcon: React.FC<IconProps> = (props) => (
   </svg>
 );
 
+export const ChevronUpIcon: React.FC<IconProps> = (props) => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" {...props}>
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+  </svg>
+);
+
+export const ChevronDownIcon: React.FC<IconProps> = (props) => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" {...props}>
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+  </svg>
+);
+
 export const CoinIcon: React.FC<IconProps> = (props) => (
   <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20" {...props}>
     <path d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.414-1.415L11 9.586V6z" />
@@ -211,6 +223,14 @@ export const PinIcon: React.FC<IconProps> = (props) => (
     <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5.586l2.293 2.293a1 1 0 01-1.414 1.414L11 12.414V17a1 1 0 11-2 0v-4.586l-1.293 1.293a1 1 0 01-1.414-1.414L8 10.586V4a1 1 0 011-1z" clipRule="evenodd" />
     <path d="M4 3a1 1 0 011-1h10a1 1 0 110 2H5a1 1 0 01-1-1z" />
   </svg>
+);
+
+export const PollIcon: React.FC<IconProps> = (props) => (
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" {...props}><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+);
+
+export const SignalIcon: React.FC<IconProps> = (props) => (
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" {...props}><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 6L9 17l-5-5" /></svg>
 );
 
 // Moderation Icons

@@ -101,7 +101,7 @@ export interface Gift {
   category: 'Trending' | 'Classic' | 'Premium' | 'Fun';
 }
 
-// FIX: Added missing GiftEvent interface for gift animations.
+// FIX: Added the missing GiftEvent interface. This type is used for displaying gift animations in live streams.
 export interface GiftEvent {
   id: string;
   user: User;
@@ -135,4 +135,16 @@ export interface Report {
     reason: string;
     timestamp: string;
     status: 'pending' | 'resolved' | 'dismissed';
+}
+
+export interface PollOption {
+  id: string;
+  text: string;
+  votes: number;
+}
+
+export interface Poll {
+  question: string;
+  options: PollOption[];
+  totalVotes: number;
 }
