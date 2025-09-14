@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { LiveStream, ChatMessage, User, Gift } from '../../types';
-import { CloseIcon, HeartIcon, SendIcon, EmojiIcon, GiftIcon, ShareIcon, CoinIcon, ChevronLeftIcon, PinIcon } from '../icons/Icons';
+import { CloseIcon, HeartIcon, SendIcon, EmojiIcon, GiftIcon, ShareIcon, CoinIcon, ChevronLeftIcon, PinIcon, PaperclipIcon } from '../icons/Icons';
 import { mockUser, mockGifts, mockUsers } from '../../services/mockApi';
 import SendGiftModal from '../SendGiftModal';
 
@@ -95,6 +95,8 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, current
   const [newMessage, setNewMessage] = useState('');
   const [isGiftModalOpen, setIsGiftModalOpen] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [floatingHearts, setFloatingHearts] = useState<{ id: number }[]>([]);
   const [isSharing, setIsSharing] = useState(false);
   const [localBalance, setLocalBalance] = useState(currentUser.wallet?.balance ?? 0);
@@ -113,6 +115,7 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, current
   const emojiPickerRef = useRef<HTMLDivElement>(null);
   const heartCounter = useRef(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isFollowing = currentUser.followingIds?.includes(stream.user.id);
   const isOwnStream = currentUser.id === stream.user.id;
@@ -198,18 +201,51 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, current
     });
   };
 
-  const handleSendMessage = () => {
-    if (newMessage.trim() === '') return;
+  const handleSendMessage = async () => {
+    if (newMessage.trim() === '' && !imageFile) return;
+
+    let imageUrl: string | undefined = undefined;
+    if (imageFile) {
+        imageUrl = await new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.readAsDataURL(imageFile);
+        });
+    }
+
     const message: ChatMessage = {
       id: `msg-${Date.now()}`,
       senderId: mockUser.id,
       text: newMessage,
       timestamp: '',
       isRead: true,
+      imageUrl,
     };
     setMessages(prevMessages => [...prevMessages, message]);
     setNewMessage('');
+    
+    // Reset image state
+    setImageFile(null);
+    if (imagePreview) URL.revokeObjectURL(imagePreview);
+    setImagePreview(null);
+    
     setShowEmojiPicker(false);
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+        const file = e.target.files[0];
+        setImageFile(file);
+        if (imagePreview) URL.revokeObjectURL(imagePreview);
+        setImagePreview(URL.createObjectURL(file));
+        e.target.value = ''; // Allow selecting the same file again
+    }
+  };
+
+  const removeImagePreview = () => {
+      setImageFile(null);
+      if (imagePreview) URL.revokeObjectURL(imagePreview);
+      setImagePreview(null);
   };
 
   const handleSendGift = (gift: Gift) => {
@@ -277,11 +313,21 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, current
   };
 
   // Touch Events
-  const handleTouchStart = (e: React.TouchEvent) => handleDragStart(e.targetTouches[0].clientX, e.targetTouches[0].clientY);
+  const handleTouchStart = (e: React.TouchEvent) => {
+    const target = e.target as HTMLElement;
+    if (target.tagName === 'TEXTAREA' || target.closest('button')) {
+        return;
+    }
+    handleDragStart(e.targetTouches[0].clientX, e.targetTouches[0].clientY);
+  };
   const handleTouchMove = (e: React.TouchEvent) => handleDragMove(e.targetTouches[0].clientX, e.targetTouches[0].clientY);
 
   // Mouse Events
   const handleMouseDown = (e: React.MouseEvent) => {
+    const target = e.target as HTMLElement;
+    if (target.tagName === 'TEXTAREA' || target.closest('button')) {
+        return;
+    }
     e.preventDefault();
     setIsDragging(true);
     handleDragStart(e.clientX, e.clientY);
@@ -310,7 +356,10 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, current
         </button>
         <div className="flex flex-col">
           <span className="text-xs text-gray-300">@{user.username}</span>
-          <p className="text-sm bg-black/25 px-3 py-1.5 rounded-xl">{message.text}</p>
+          <div className="text-sm bg-black/25 p-3 rounded-xl">
+              {message.imageUrl && <img src={message.imageUrl} alt="sent content" className="rounded-lg mb-1 max-h-40" />}
+              {message.text && <span>{message.text}</span>}
+          </div>
         </div>
       </div>
     );
@@ -400,6 +449,14 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, current
           <footer className="p-4 flex flex-col-reverse gap-2">
             {/* Stable part: chat input and action buttons */}
             <div>
+              {imagePreview && (
+                  <div className="self-start p-2 relative w-24 bg-black/40 rounded-lg pointer-events-auto mb-2">
+                      <img src={imagePreview} alt="Preview" className="rounded-md w-full" />
+                      <button onClick={removeImagePreview} className="absolute -top-1 -right-1 bg-black/70 rounded-full p-0.5 text-white hover:bg-black">
+                          <CloseIcon className="w-4 h-4" />
+                      </button>
+                  </div>
+              )}
               <div className="h-48 overflow-y-auto space-y-1 pr-2 scrollbar-hide" style={{ maskImage: 'linear-gradient(to bottom, transparent 0%, black 10%, black 90%, transparent 100%)' }}>
                   {messages.map(msg => <ChatBubble key={msg.id} message={msg} />)}
                   <div ref={messagesEndRef} />
@@ -409,6 +466,7 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, current
                     <div ref={emojiPickerRef} className="relative">
                          {showEmojiPicker && <EmojiPicker onSelectEmoji={(emoji) => setNewMessage(m => m + emoji)} />}
                     </div>
+                    <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
                     <textarea
                         ref={textareaRef}
                         rows={1}
@@ -421,13 +479,16 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, current
                                 handleSendMessage();
                             }
                         }}
-                        className={`w-full bg-black/40 rounded-full pl-4 ${newMessage.trim() ? 'pr-20' : 'pr-12'} text-sm focus:outline-none focus:ring-2 focus:ring-pink-500 placeholder-gray-400 transition-all resize-none py-2.5 max-h-24 overflow-y-auto scrollbar-hide`}
+                        className={`w-full bg-black/40 rounded-full pl-12 ${ (newMessage.trim() || imageFile) ? 'pr-20' : 'pr-12' } text-sm focus:outline-none focus:ring-2 focus:ring-pink-500 placeholder-gray-400 transition-all resize-none py-2.5 max-h-24 overflow-y-auto scrollbar-hide`}
                     />
+                    <button onClick={() => fileInputRef.current?.click()} className="absolute left-3 bottom-2 p-1 text-gray-300 hover:text-white">
+                        <PaperclipIcon className="w-5 h-5"/>
+                    </button>
                     <div className="absolute right-2 bottom-2 flex items-center">
                         <button onClick={() => setShowEmojiPicker(s => !s)} className="p-1 text-gray-300 hover:text-white">
                             <EmojiIcon className="w-6 h-6"/>
                         </button>
-                        {newMessage.trim() && (
+                        {(newMessage.trim() || imageFile) && (
                             <button 
                                 onClick={handleSendMessage} 
                                 className="w-8 h-8 bg-pink-600 rounded-full flex items-center justify-center shrink-0 ml-1 animate-fade-in-up"
