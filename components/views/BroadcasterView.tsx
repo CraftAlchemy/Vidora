@@ -244,7 +244,7 @@ const BroadcasterView: React.FC<BroadcasterViewProps> = ({ streamTitle, onEndStr
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/30"></div>
 
              {/* Gift Animation Area */}
-            <div className="absolute top-24 right-4 z-20 space-y-2">
+            <div className="absolute top-24 right-4 z-20 space-y-2 pointer-events-none">
               {giftAnimationQueue.map(giftEvent => (
                   <GiftAnimation 
                       key={giftEvent.id} 

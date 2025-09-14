@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { LiveStream, ChatMessage, User, Gift, GiftEvent } from '../../types';
-import { CloseIcon, HeartIcon, SendIcon, EmojiIcon, GiftIcon, ShareIcon, CoinIcon } from '../icons/Icons';
+import { CloseIcon, HeartIcon, SendIcon, EmojiIcon, GiftIcon, ShareIcon, CoinIcon, ChevronLeftIcon } from '../icons/Icons';
 import { mockUser, mockGifts, mockUsers } from '../../services/mockApi';
 import SendGiftModal from '../SendGiftModal';
 import GiftAnimation from '../GiftAnimation';
@@ -100,6 +100,14 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, current
   const [localBalance, setLocalBalance] = useState(currentUser.wallet?.balance ?? 0);
   const [giftAnimationQueue, setGiftAnimationQueue] = useState<GiftEvent[]>([]);
   const [topGifters, setTopGifters] = useState<TopGifter[]>([]);
+  
+  // State for Zen Mode (hide UI)
+  const [isUiVisible, setIsUiVisible] = useState(true);
+  const [isDragging, setIsDragging] = useState(false);
+  const touchStartX = useRef(0);
+  const touchStartY = useRef(0);
+  const touchEndX = useRef(0);
+  const swipeDirection = useRef<'horizontal' | 'vertical' | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
@@ -113,7 +121,6 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, current
 
   useEffect(scrollToBottom, [messages]);
   
-  // Click away to close emoji picker
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (emojiPickerRef.current && !emojiPickerRef.current.contains(event.target as Node)) {
@@ -134,14 +141,14 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, current
       const randomUser = otherUsers[Math.floor(Math.random() * otherUsers.length)];
       const eventType = Math.random();
 
-      if (eventType < 0.8) { // 80% chance of a message
+      if (eventType < 0.8) {
         const randomMessageText = sampleMessages[Math.floor(Math.random() * sampleMessages.length)];
         const newMessage: ChatMessage = {
             id: `msg-${Date.now()}-${Math.random()}`, senderId: randomUser.id, text: randomMessageText, timestamp: '', isRead: true,
         };
-        setMessages(prev => [...prev, newMessage]);
-      } else { // 20% chance of a gift
-        const randomGift = mockGifts[Math.floor(Math.random() * 5)]; // Smaller gifts are more common
+        setMessages(prev => [...prev.slice(-20), newMessage]);
+      } else {
+        const randomGift = mockGifts[Math.floor(Math.random() * 5)];
         handleGiftFromOtherUser(randomUser, randomGift);
       }
     }, 3500);
@@ -155,7 +162,7 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, current
     };
      const newGiftEvent: GiftEvent = { id: `giftevent-${Date.now()}-${user.id}`, gift, user };
 
-    setMessages(prev => [...prev, giftMessage]);
+    setMessages(prev => [...prev.slice(-20), giftMessage]);
     setGiftAnimationQueue(prev => [...prev, newGiftEvent]);
     updateTopGifters(user, gift.price);
   };
@@ -194,7 +201,7 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, current
     }
     
     setLocalBalance(prev => prev - gift.price);
-    handleGiftFromOtherUser(currentUser, gift); // Re-use the same logic
+    handleGiftFromOtherUser(currentUser, gift);
     setIsGiftModalOpen(false);
   };
   
@@ -209,28 +216,16 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, current
   
   const handleShare = async () => {
     if (isSharing) return;
-
     const shareUrl = `https://vidora.app/stream/${stream.id}`;
-    const shareData = {
-      title: `Watch ${stream.user.username}'s live stream!`,
-      text: stream.title,
-      url: shareUrl,
-    };
-
+    const shareData = { title: `Watch ${stream.user.username}'s live stream!`, text: stream.title, url: shareUrl };
     setIsSharing(true);
     try {
-      if (navigator.share) {
-        await navigator.share(shareData);
-      } else {
-        await navigator.clipboard.writeText(shareUrl);
-      }
+      if (navigator.share) await navigator.share(shareData);
+      else await navigator.clipboard.writeText(shareUrl);
       onShareStream(stream.id);
     } catch (error) {
-      if (error instanceof DOMException && error.name === 'AbortError') {
-          console.log('Share was cancelled by the user.');
-      } else {
-          console.error('Error sharing:', error);
-      }
+      if (error instanceof DOMException && error.name === 'AbortError') console.log('Share cancelled.');
+      else console.error('Error sharing:', error);
     } finally {
         setIsSharing(false);
     }
@@ -238,6 +233,57 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, current
 
   const handleAnimationComplete = (id: string) => {
     setGiftAnimationQueue(prev => prev.filter(g => g.id !== id));
+  };
+
+  // --- Universal Swipe/Drag Handlers ---
+  const handleDragStart = (clientX: number, clientY: number) => {
+    touchStartX.current = clientX;
+    touchStartY.current = clientY;
+    touchEndX.current = clientX;
+    swipeDirection.current = null;
+  };
+
+  const handleDragMove = (clientX: number, clientY: number) => {
+    touchEndX.current = clientX;
+    if (swipeDirection.current === null) {
+      const deltaX = Math.abs(clientX - touchStartX.current);
+      const deltaY = Math.abs(clientY - touchStartY.current);
+      if (deltaX > 10 || deltaY > 10) {
+        swipeDirection.current = deltaX > deltaY ? 'horizontal' : 'vertical';
+      }
+    }
+  };
+
+  const handleDragEnd = () => {
+    if (swipeDirection.current !== 'horizontal') return;
+    const swipeDistance = touchEndX.current - touchStartX.current;
+    const swipeThreshold = 50;
+    if (swipeDistance > swipeThreshold) setIsUiVisible(false); // Swipe Right to Hide
+    else if (swipeDistance < -swipeThreshold) setIsUiVisible(true); // Swipe Left to Show
+  };
+
+  // Touch Events
+  const handleTouchStart = (e: React.TouchEvent) => handleDragStart(e.targetTouches[0].clientX, e.targetTouches[0].clientY);
+  const handleTouchMove = (e: React.TouchEvent) => handleDragMove(e.targetTouches[0].clientX, e.targetTouches[0].clientY);
+
+  // Mouse Events
+  const handleMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+    handleDragStart(e.clientX, e.clientY);
+  };
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging) return;
+    e.preventDefault();
+    handleDragMove(e.clientX, e.clientY);
+  };
+  const handleMouseUp = () => {
+    if (!isDragging) return;
+    setIsDragging(false);
+    handleDragEnd();
+  };
+  const handleMouseLeave = () => {
+    if (isDragging) handleMouseUp();
   };
 
   const ChatBubble: React.FC<{message: ChatMessage}> = ({ message }) => {
@@ -269,19 +315,16 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, current
   };
 
   const TopGifterPodium: React.FC<{ gifters: TopGifter[] }> = ({ gifters }) => {
-    const podiumOrder = [1, 0, 2]; // 2nd, 1st, 3rd place
+    const podiumOrder = [1, 0, 2];
     const sortedGifters = [...gifters];
-
     return (
         <div className="flex justify-center items-end gap-2 p-2 bg-black/30 rounded-lg">
             {podiumOrder.map(index => {
                 const gifter = sortedGifters[index];
                 const rank = [2, 1, 3][index];
                 if (!gifter) return <div key={rank} className="w-12"></div>;
-                
                 const size = rank === 1 ? 'w-12 h-12' : 'w-10 h-10';
                 const medal = ['🥇', '🥈', '🥉'][rank - 1];
-
                 return (
                     <div key={gifter.user.id} className="flex flex-col items-center">
                         <div className="relative">
@@ -302,21 +345,28 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, current
 
   return (
     <>
-      <div className="h-full w-full bg-black text-white flex flex-col relative">
+      <div 
+        className="h-full w-full bg-black text-white flex flex-col relative overflow-hidden select-none"
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleDragEnd}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseLeave}
+        >
         <div className="absolute inset-0 z-0">
             <img src={stream.thumbnailUrl} alt={stream.title} className="w-full h-full object-cover"/>
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/30"></div>
         </div>
         
-        {/* Floating Hearts Area */}
         <div className="absolute bottom-24 right-4 h-96 w-20 pointer-events-none z-20">
           {floatingHearts.map(heart => (
             <FloatingHeart key={heart.id} onAnimationEnd={() => removeHeart(heart.id)} />
           ))}
         </div>
 
-        {/* Gift Animation Area */}
-        <div className="absolute top-24 right-4 z-20 space-y-2">
+        <div className="absolute top-24 right-4 z-20 space-y-2 pointer-events-none">
             {giftAnimationQueue.map(giftEvent => (
                 <GiftAnimation 
                     key={giftEvent.id} 
@@ -326,7 +376,7 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, current
             ))}
         </div>
 
-        <header className="relative z-10 flex justify-between items-start p-4">
+        <header className={`relative z-10 flex justify-between items-start p-4 transition-all duration-300 ease-in-out ${isUiVisible ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-full pointer-events-none'}`}>
           <div className="flex items-center bg-black/40 p-2 rounded-lg">
             <img src={stream.user.avatarUrl} alt={stream.user.username} className="w-8 h-8 rounded-full mr-3" />
             <div>
@@ -336,9 +386,7 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, current
             <button
               onClick={() => onToggleFollow(stream.user.id)}
               className={`ml-3 px-3 py-1 text-xs font-bold rounded-md transition-colors ${
-                  isFollowing
-                      ? 'bg-transparent border border-gray-400 text-gray-300'
-                      : 'bg-white text-black'
+                  isFollowing ? 'bg-transparent border border-gray-400 text-gray-300' : 'bg-white text-black'
               }`}
             >
               {isFollowing ? 'Following' : 'Follow'}
@@ -352,11 +400,11 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, current
           </div>
         </header>
 
-        <div className="flex-1 px-4">
+        <div className={`flex-1 px-4 transition-all duration-300 ease-in-out ${isUiVisible ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-full pointer-events-none'}`}>
             {topGifters.length > 0 && <TopGifterPodium gifters={topGifters}/>}
         </div>
 
-        <footer className="relative z-10 p-4 pb-24 space-y-2">
+        <footer className={`relative z-10 p-4 pb-24 space-y-2 transition-all duration-300 ease-in-out ${isUiVisible ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-full pointer-events-none'}`}>
             <div className="h-48 overflow-y-auto space-y-1 pr-2 scrollbar-hide" style={{ maskImage: 'linear-gradient(to bottom, transparent 0%, black 10%, black 90%, transparent 100%)' }}>
                 {messages.map(msg => <ChatBubble key={msg.id} message={msg} />)}
                 <div ref={messagesEndRef} />
@@ -415,6 +463,14 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, current
                 </button>
             </div>
         </footer>
+
+        {!isUiVisible && (
+            <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none animate-pulse">
+                <div className="bg-black/40 p-2 rounded-full">
+                    <ChevronLeftIcon className="w-6 h-6 text-white/70" />
+                </div>
+            </div>
+        )}
 
         {isGiftModalOpen && (
             <SendGiftModal 
