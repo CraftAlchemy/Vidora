@@ -346,22 +346,34 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, current
     if (isDragging) handleMouseUp();
   };
 
-  const ChatBubble: React.FC<{message: ChatMessage}> = ({ message }) => {
+  const ChatBubble: React.FC<{ message: ChatMessage }> = ({ message }) => {
     const user = mockUsers.find(u => u.id === message.senderId) || stream.user;
+    const isBroadcaster = message.senderId === stream.user.id;
+    const isCurrentUser = message.senderId === currentUser.id;
+
+    let badge = null;
+    if (isBroadcaster) {
+        badge = <span className="text-xs font-bold text-pink-400 ml-1.5">[Host]</span>;
+    } else if (isCurrentUser) {
+        badge = <span className="text-xs font-bold text-cyan-400 ml-1.5">[You]</span>;
+    }
 
     return (
-      <div className="flex items-start gap-2 p-1 text-shadow-sm animate-fade-in-up">
-        <button onClick={() => onViewProfile(user)}>
-            <img src={user.avatarUrl} alt="avatar" className="w-6 h-6 rounded-full"/>
-        </button>
-        <div className="flex flex-col">
-          <span className="text-xs text-gray-300">@{user.username}</span>
-          <div className="text-sm bg-black/25 p-3 rounded-xl">
-              {message.imageUrl && <img src={message.imageUrl} alt="sent content" className="rounded-lg mb-1 max-h-40" />}
-              {message.text && <span>{message.text}</span>}
-          </div>
+        <div className={`flex items-start gap-2.5 p-1 w-full ${isBroadcaster ? 'flex-row-reverse' : ''}`}>
+            <button onClick={() => onViewProfile(user)} className="shrink-0">
+                <img src={user.avatarUrl} alt={user.username} className="w-8 h-8 rounded-full" />
+            </button>
+            <div className={`flex flex-col max-w-[80%] ${isBroadcaster ? 'items-end' : 'items-start'}`}>
+                <div className="flex items-center mb-0.5">
+                    <span className="text-xs text-gray-400 px-1">@{user.username}</span>
+                    {badge}
+                </div>
+                <div className={`text-sm px-3.5 py-2.5 rounded-2xl break-words ${isBroadcaster ? 'bg-pink-600 text-white rounded-br-md' : 'bg-zinc-700 text-white rounded-bl-md'}`}>
+                    {message.imageUrl && <img src={message.imageUrl} alt="sent content" className="rounded-lg mb-1.5 max-h-40" />}
+                    {message.text && <span>{message.text}</span>}
+                </div>
+            </div>
         </div>
-      </div>
     );
   };
 
@@ -462,44 +474,39 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, current
                   <div ref={messagesEndRef} />
               </div>
               <div className="flex items-end space-x-2 mt-2">
-                <div className="relative flex-1">
-                    <div ref={emojiPickerRef} className="relative">
-                         {showEmojiPicker && <EmojiPicker onSelectEmoji={(emoji) => setNewMessage(m => m + emoji)} />}
-                    </div>
+                {/* Input field group */}
+                <div className="flex-1 flex items-end bg-black/40 rounded-full px-2 py-1.5 min-h-[44px]">
                     <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
-                    <textarea
-                        ref={textareaRef}
-                        rows={1}
-                        placeholder="Add a comment..."
-                        value={newMessage}
-                        onChange={(e) => setNewMessage(e.target.value)}
-                        onKeyPress={(e) => {
-                            if (e.key === 'Enter' && !e.shiftKey) {
-                                e.preventDefault();
-                                handleSendMessage();
-                            }
-                        }}
-                        className={`w-full bg-black/40 rounded-full pl-12 ${ (newMessage.trim() || imageFile) ? 'pr-20' : 'pr-12' } text-sm focus:outline-none focus:ring-2 focus:ring-pink-500 placeholder-gray-400 transition-all resize-none py-2.5 max-h-24 overflow-y-auto scrollbar-hide`}
-                    />
-                    <button onClick={() => fileInputRef.current?.click()} className="absolute left-3 bottom-2 p-1 text-gray-300 hover:text-white">
+                    <button onClick={() => fileInputRef.current?.click()} className="p-2 text-gray-300 hover:text-white shrink-0" aria-label="Attach an image">
                         <PaperclipIcon className="w-5 h-5"/>
                     </button>
-                    <div className="absolute right-2 bottom-2 flex items-center">
-                        <button onClick={() => setShowEmojiPicker(s => !s)} className="p-1 text-gray-300 hover:text-white">
-                            <EmojiIcon className="w-6 h-6"/>
-                        </button>
-                        {(newMessage.trim() || imageFile) && (
-                            <button 
-                                onClick={handleSendMessage} 
-                                className="w-8 h-8 bg-pink-600 rounded-full flex items-center justify-center shrink-0 ml-1 animate-fade-in-up"
-                                aria-label="Send message"
-                            >
-                                <SendIcon />
-                            </button>
-                        )}
+                    <div ref={emojiPickerRef} className="relative flex-1">
+                        {showEmojiPicker && <EmojiPicker onSelectEmoji={(emoji) => setNewMessage(m => m + emoji)} />}
+                        <textarea
+                            ref={textareaRef}
+                            rows={1}
+                            placeholder="Add a comment..."
+                            value={newMessage}
+                            onChange={(e) => setNewMessage(e.target.value)}
+                            onKeyPress={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(); } }}
+                            className="w-full bg-transparent text-sm focus:outline-none placeholder-gray-400 resize-none py-1 px-2 max-h-24 overflow-y-auto scrollbar-hide align-bottom"
+                        />
                     </div>
+                    <button onClick={() => setShowEmojiPicker(s => !s)} className="p-2 text-gray-300 hover:text-white shrink-0">
+                        <EmojiIcon className="w-5 h-5"/>
+                    </button>
+                    {(newMessage.trim() || imageFile) && (
+                        <button 
+                            onClick={handleSendMessage} 
+                            className="w-8 h-8 bg-pink-600 rounded-full flex items-center justify-center shrink-0 ml-1 animate-fade-in-up"
+                            aria-label="Send message"
+                        >
+                            <SendIcon />
+                        </button>
+                    )}
                 </div>
 
+                {/* Action Buttons */}
                 <button 
                     onClick={handleSendLike}
                     className="w-10 h-10 bg-black/40 rounded-full flex items-center justify-center shrink-0"
@@ -507,7 +514,6 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, current
                 >
                     <HeartIcon isFilled={true} className="w-6 h-6"/>
                 </button>
-
                 <button 
                     onClick={() => setIsGiftModalOpen(true)} 
                     className="w-10 h-10 bg-black/40 rounded-full flex items-center justify-center text-xl shrink-0"

@@ -356,15 +356,15 @@ const BroadcasterView: React.FC<BroadcasterViewProps> = ({ streamTitle, onEndStr
     const handleUserClick = () => isBroadcaster ? onViewProfile(user) : setSelectedUserForAction(user);
 
     return (
-        <button onClick={handleUserClick} className={`flex items-end gap-2 p-1 text-shadow-sm animate-fade-in-up w-full text-left ${isBroadcaster ? 'flex-row-reverse' : ''}`}>
-            <img src={user.avatarUrl} alt="avatar" className="w-6 h-6 rounded-full self-start" />
+        <button onClick={handleUserClick} className={`flex items-start gap-2.5 p-1 w-full text-left ${isBroadcaster ? 'flex-row-reverse' : ''}`}>
+            <img src={user.avatarUrl} alt={user.username} className="w-8 h-8 rounded-full" />
             <div className={`flex flex-col max-w-[80%] ${isBroadcaster ? 'items-end' : 'items-start'}`}>
-                <span className="text-xs text-gray-300 px-1">
-                {isBroadcaster ? 'You' : `@${user.username}`}
+                <span className="text-xs text-gray-400 px-1 mb-0.5">
+                    {isBroadcaster ? 'You' : `@${user.username}`}
                 </span>
-                <div className={`text-sm p-3 rounded-xl break-words ${isBroadcaster ? 'bg-pink-600' : 'bg-black/25'}`}>
+                <div className={`text-sm px-3.5 py-2.5 rounded-2xl break-words ${isBroadcaster ? 'bg-pink-600 text-white rounded-br-md' : 'bg-zinc-700 text-white rounded-bl-md'}`}>
                     {message.imageUrl && (
-                        <img src={message.imageUrl} alt="sent content" className="rounded-lg mb-1 max-h-40" />
+                        <img src={message.imageUrl} alt="sent content" className="rounded-lg mb-1.5 max-h-40" />
                     )}
                     {message.text && <span>{message.text}</span>}
                 </div>
@@ -502,9 +502,14 @@ const BroadcasterView: React.FC<BroadcasterViewProps> = ({ streamTitle, onEndStr
                     <div ref={messagesEndRef} />
                     </div>
                     <div className="flex items-end space-x-2 mt-2">
-                        <div ref={emojiPickerRef} className="relative flex-1">
-                            {showEmojiPicker && <EmojiPicker onSelectEmoji={(emoji) => setNewMessage(m => m + emoji)} />}
-                             <div className="relative">
+                        {/* Chat Input Group */}
+                        <div className="flex-1 flex items-end bg-black/40 rounded-full px-2 py-1.5 min-h-[44px]">
+                            <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
+                            <button onClick={() => fileInputRef.current?.click()} className="p-2 text-gray-300 hover:text-white shrink-0" aria-label="Attach image">
+                                <PaperclipIcon className="w-5 h-5"/>
+                            </button>
+                            <div ref={emojiPickerRef} className="relative flex-1">
+                                {showEmojiPicker && <EmojiPicker onSelectEmoji={(emoji) => setNewMessage(m => m + emoji)} />}
                                 <textarea
                                     ref={textareaRef}
                                     rows={1}
@@ -512,17 +517,24 @@ const BroadcasterView: React.FC<BroadcasterViewProps> = ({ streamTitle, onEndStr
                                     value={newMessage}
                                     onChange={(e) => setNewMessage(e.target.value)}
                                     onKeyPress={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(); } }}
-                                    className="w-full bg-black/40 rounded-full pl-4 pr-12 text-sm focus:outline-none focus:ring-2 focus:ring-pink-500 placeholder-gray-400 resize-none py-2.5 max-h-24 overflow-y-auto scrollbar-hide"
+                                    className="w-full bg-transparent text-sm focus:outline-none placeholder-gray-400 resize-none py-1 px-2 max-h-24 overflow-y-auto scrollbar-hide align-bottom"
                                 />
-                                <button onClick={() => setShowEmojiPicker(s => !s)} className="absolute right-3 bottom-2 p-1 text-gray-300 hover:text-white">
-                                    <EmojiIcon className="w-6 h-6"/>
-                                </button>
                             </div>
+                            <button onClick={() => setShowEmojiPicker(s => !s)} className="p-2 text-gray-300 hover:text-white shrink-0">
+                                <EmojiIcon className="w-5 h-5"/>
+                            </button>
+                            {(newMessage.trim() || imageFile) && (
+                                <button
+                                    onClick={handleSendMessage}
+                                    className="w-8 h-8 bg-pink-600 rounded-full flex items-center justify-center shrink-0 ml-1 animate-fade-in-up"
+                                    aria-label="Send message"
+                                >
+                                    <SendIcon />
+                                </button>
+                            )}
                         </div>
-                        <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
-                        <button onClick={() => fileInputRef.current?.click()} className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 bg-black/40 hover:bg-zinc-700 transition-colors" aria-label="Attach image">
-                            <PaperclipIcon className="w-5 h-5"/>
-                        </button>
+
+                        {/* Host Action Buttons */}
                         <button onClick={() => setIsHostToolsOpen(true)} className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 bg-black/40 hover:bg-zinc-700 transition-colors" aria-label="Open Host Tools">
                             <ShieldCheckIcon className="w-5 h-5"/>
                         </button>
@@ -531,9 +543,6 @@ const BroadcasterView: React.FC<BroadcasterViewProps> = ({ streamTitle, onEndStr
                         </button>
                         <button onClick={toggleVideo} className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 transition-colors ${isVideoOff ? 'bg-red-600' : 'bg-black/40 hover:bg-zinc-700'}`} aria-label={isVideoOff ? 'Turn on camera' : 'Turn off camera'}>
                             {isVideoOff ? <VideoCameraOffIcon className="w-5 h-5"/> : <VideoIcon className="w-5 h-5"/>}
-                        </button>
-                        <button onClick={handleSendMessage} className="w-10 h-10 bg-pink-600 rounded-full flex items-center justify-center shrink-0 disabled:opacity-50" disabled={!newMessage.trim() && !imageFile} aria-label="Send message">
-                            <SendIcon />
                         </button>
                     </div>
                 </div>
