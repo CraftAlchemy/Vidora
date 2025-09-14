@@ -400,7 +400,7 @@ const BroadcasterView: React.FC<BroadcasterViewProps> = ({ streamTitle, onEndStr
             </header>
 
             {activePoll && (
-                <div className={`absolute top-28 right-4 z-10 w-72 transition-transform duration-300 ease-in-out ${isUiVisible ? 'translate-x-0' : 'translate-x-[200%]'}`}>
+                <div className={`absolute inset-0 z-10 pointer-events-none transition-transform duration-300 ease-in-out ${isUiVisible ? 'translate-x-0' : '-translate-x-full'}`}>
                     <LivePollDisplay poll={activePoll} onEndPoll={() => setActivePoll(null)} />
                 </div>
             )}

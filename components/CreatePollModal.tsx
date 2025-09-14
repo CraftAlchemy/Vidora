@@ -42,15 +42,15 @@ const CreatePollModal: React.FC<CreatePollModalProps> = ({ onClose, onLaunchPoll
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-50 p-4">
-      <div className="bg-zinc-800 rounded-lg shadow-xl w-full max-w-sm text-white relative animate-fade-in-up">
-        <header className="flex items-center justify-between p-4 border-b border-zinc-700">
+      <div className="bg-zinc-800 rounded-lg shadow-xl w-full max-w-sm text-white relative animate-fade-in-up flex flex-col max-h-[90vh]">
+        <header className="flex items-center justify-between p-4 border-b border-zinc-700 flex-shrink-0">
           <h2 className="text-lg font-bold">Create a Poll</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-white">
             <CloseIcon />
           </button>
         </header>
 
-        <main className="p-6 space-y-4">
+        <main className="p-6 space-y-4 overflow-y-auto">
           <div>
             <label htmlFor="poll-question" className="block text-sm font-medium text-gray-400 mb-1">
               Question
@@ -102,7 +102,7 @@ const CreatePollModal: React.FC<CreatePollModalProps> = ({ onClose, onLaunchPoll
           )}
         </main>
         
-        <footer className="p-4 border-t border-zinc-700">
+        <footer className="p-4 border-t border-zinc-700 flex-shrink-0">
             <button
               onClick={handleLaunch}
               disabled={!canLaunch}
