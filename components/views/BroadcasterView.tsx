@@ -205,20 +205,6 @@ const BroadcasterView: React.FC<BroadcasterViewProps> = ({ streamTitle, onEndStr
   
   const ChatBubble: React.FC<{ message: ChatMessage; user: User }> = ({ message, user }) => {
     const isBroadcaster = user.id === mockUser.id;
-    const isGift = message.id.startsWith('gift-');
-
-    if (isGift) {
-        return (
-            <div className="flex items-center gap-2 p-2 my-1 text-shadow-sm bg-yellow-400/20 rounded-lg animate-fade-in-up">
-                <img src={user.avatarUrl} alt="avatar" className="w-6 h-6 rounded-full"/>
-                <div className="flex-1">
-                    <p className="text-sm font-semibold text-yellow-300">
-                       <span className="font-bold">@{user.username}</span> {message.text}
-                    </p>
-                </div>
-            </div>
-        )
-    }
 
     return (
         <div className={`flex items-end gap-2 p-1 text-shadow-sm animate-fade-in-up w-full ${isBroadcaster ? 'justify-end' : 'justify-start'}`}>

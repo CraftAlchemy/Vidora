@@ -288,20 +288,6 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, current
 
   const ChatBubble: React.FC<{message: ChatMessage}> = ({ message }) => {
     const user = mockUsers.find(u => u.id === message.senderId) || stream.user;
-    const isGift = message.id.startsWith('gift-');
-
-    if (isGift) {
-        return (
-            <div className="flex items-center gap-2 p-2 my-1 text-shadow-sm bg-yellow-400/20 rounded-lg animate-fade-in-up">
-                <img src={user.avatarUrl} alt="avatar" className="w-6 h-6 rounded-full"/>
-                <div className="flex-1">
-                    <p className="text-sm font-semibold text-yellow-300">
-                       <span className="font-bold">@{user.username}</span> {message.text}
-                    </p>
-                </div>
-            </div>
-        )
-    }
 
     return (
       <div className="flex items-start gap-2 p-1 text-shadow-sm animate-fade-in-up">
