@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { CloseIcon, PinIcon, MoreVerticalIcon, MuteUserIcon, BanUserIcon, PollIcon, MicrophoneIcon, MicrophoneOffIcon, VideoIcon, VideoCameraOffIcon } from './icons/Icons';
+import { CloseIcon, PinIcon, MoreVerticalIcon, MuteUserIcon, BanUserIcon, PollIcon, MicrophoneIcon, MicrophoneOffIcon, VideoIcon, VideoCameraOffIcon, VolumeUpIcon, VolumeOffIcon } from './icons/Icons';
 import { User } from '../types';
 import { BroadcastSource } from './views/LiveView';
 
@@ -60,12 +60,16 @@ interface HostToolsModalProps {
   onToggleMute: () => void;
   isVideoOff: boolean;
   onToggleVideo: () => void;
+  isEmbed: boolean;
+  isSourceMuted: boolean;
+  onToggleSourceMute: () => void;
 }
 
 const HostToolsModal: React.FC<HostToolsModalProps> = ({ 
     onClose, onSetPinnedMessage, pinnedMessage, events, viewers, onViewProfile,
     mutedUserIds, onMuteUser, onUnmuteUser, onBanUser, onOpenCreatePoll,
-    sourceType, isMuted, onToggleMute, isVideoOff, onToggleVideo
+    sourceType, isMuted, onToggleMute, isVideoOff, onToggleVideo,
+    isEmbed, isSourceMuted, onToggleSourceMute
 }) => {
     const [message, setMessage] = useState(pinnedMessage);
     const [selectedViewerForAction, setSelectedViewerForAction] = useState<User | null>(null);
@@ -92,28 +96,45 @@ const HostToolsModal: React.FC<HostToolsModalProps> = ({
 
                 <main className="flex-1 overflow-y-auto p-4 space-y-6">
                     {/* Stream Controls */}
-                    {sourceType === 'camera' && (
+                    {(sourceType !== 'url' || isEmbed) && (
                         <div>
-                            <h3 className="text-sm font-semibold text-gray-400 mb-2 uppercase tracking-wider">Stream Controls</h3>
+                            <h3 className="text-sm font-semibold text-gray-400 mb-2 uppercase tracking-wider">
+                                {sourceType === 'camera' ? 'Stream Controls' : 'Broadcast Controls'}
+                            </h3>
                             <div className="bg-zinc-800 p-2 rounded-lg flex justify-around">
-                                <button
-                                    onClick={onToggleMute}
-                                    className={`flex flex-col items-center gap-1 p-2 rounded-md w-24 transition-colors ${
-                                        isMuted ? 'bg-red-600/50 text-red-300' : 'hover:bg-zinc-700'
-                                    }`}
-                                >
-                                    {isMuted ? <MicrophoneOffIcon className="w-6 h-6"/> : <MicrophoneIcon className="w-6 h-6"/>}
-                                    <span className="text-xs font-semibold">{isMuted ? 'Unmute' : 'Mute Mic'}</span>
-                                </button>
-                                <button
-                                    onClick={onToggleVideo}
-                                    className={`flex flex-col items-center gap-1 p-2 rounded-md w-24 transition-colors ${
-                                        isVideoOff ? 'bg-red-600/50 text-red-300' : 'hover:bg-zinc-700'
-                                    }`}
-                                >
-                                    {isVideoOff ? <VideoCameraOffIcon className="w-6 h-6"/> : <VideoIcon className="w-6 h-6"/>}
-                                    <span className="text-xs font-semibold">{isVideoOff ? 'Cam On' : 'Cam Off'}</span>
-                                </button>
+                                {sourceType === 'camera' && (
+                                    <>
+                                        <button
+                                            onClick={onToggleMute}
+                                            className={`flex flex-col items-center gap-1 p-2 rounded-md w-24 transition-colors ${
+                                                isMuted ? 'bg-red-600/50 text-red-300' : 'hover:bg-zinc-700'
+                                            }`}
+                                        >
+                                            {isMuted ? <MicrophoneOffIcon className="w-6 h-6"/> : <MicrophoneIcon className="w-6 h-6"/>}
+                                            <span className="text-xs font-semibold">{isMuted ? 'Unmute' : 'Mute Mic'}</span>
+                                        </button>
+                                        <button
+                                            onClick={onToggleVideo}
+                                            className={`flex flex-col items-center gap-1 p-2 rounded-md w-24 transition-colors ${
+                                                isVideoOff ? 'bg-red-600/50 text-red-300' : 'hover:bg-zinc-700'
+                                            }`}
+                                        >
+                                            {isVideoOff ? <VideoCameraOffIcon className="w-6 h-6"/> : <VideoIcon className="w-6 h-6"/>}
+                                            <span className="text-xs font-semibold">{isVideoOff ? 'Cam On' : 'Cam Off'}</span>
+                                        </button>
+                                    </>
+                                )}
+                                {(sourceType === 'video' || (sourceType === 'url' && isEmbed)) && (
+                                     <button
+                                        onClick={onToggleSourceMute}
+                                        className={`flex flex-col items-center gap-1 p-2 rounded-md w-24 transition-colors ${
+                                            isSourceMuted ? 'bg-red-600/50 text-red-300' : 'hover:bg-zinc-700'
+                                        }`}
+                                    >
+                                        {isSourceMuted ? <VolumeOffIcon className="w-6 h-6"/> : <VolumeUpIcon className="w-6 h-6"/>}
+                                        <span className="text-xs font-semibold">{isSourceMuted ? 'Unmute Source' : 'Mute Source'}</span>
+                                    </button>
+                                )}
                             </div>
                         </div>
                     )}

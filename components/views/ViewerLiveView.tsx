@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { LiveStream, ChatMessage, User, Gift } from '../../types';
-import { CloseIcon, HeartIcon, SendIcon, EmojiIcon, GiftIcon, ShareIcon, CoinIcon, ChevronLeftIcon, PinIcon, PaperclipIcon } from '../icons/Icons';
+import { CloseIcon, HeartIcon, SendIcon, EmojiIcon, GiftIcon, ShareIcon, CoinIcon, ChevronLeftIcon, PinIcon, PaperclipIcon, VolumeUpIcon, VolumeOffIcon } from '../icons/Icons';
 import { mockUser, mockGifts, mockUsers } from '../../services/mockApi';
 import SendGiftModal from '../SendGiftModal';
 import EmojiPicker from '../EmojiPicker';
@@ -54,6 +54,7 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, current
   const [localBalance, setLocalBalance] = useState(currentUser.wallet?.balance ?? 0);
   const [topGifters, setTopGifters] = useState<TopGifter[]>([]);
   const [pinnedMessage, setPinnedMessage] = useState<string | null>(null);
+  const [isMuted, setIsMuted] = useState(true);
   
   // State for Zen Mode (hide UI)
   const [isUiVisible, setIsUiVisible] = useState(true);
@@ -72,7 +73,7 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, current
   const isFollowing = currentUser.followingIds?.includes(stream.user.id);
   const isOwnStream = currentUser.id === stream.user.id;
   
-  const embedUrl = useMemo(() => stream.videoUrl ? getYouTubeEmbedUrl(stream.videoUrl) : null, [stream.videoUrl]);
+  const embedUrl = useMemo(() => stream.videoUrl ? getYouTubeEmbedUrl(stream.videoUrl, isMuted) : null, [stream.videoUrl, isMuted]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -379,6 +380,7 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, current
         {stream.videoUrl ? (
             embedUrl ? (
                 <iframe
+                    key={embedUrl}
                     src={embedUrl}
                     title={stream.title}
                     className="absolute inset-0 w-full h-full object-cover"
@@ -487,6 +489,15 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, current
 
                 {/* Vertically stacked Action Buttons */}
                 <div className="flex flex-col space-y-2">
+                    {embedUrl && (
+                        <button 
+                            onClick={() => setIsMuted(prev => !prev)}
+                            className="w-10 h-10 bg-black/40 rounded-full flex items-center justify-center shrink-0"
+                            aria-label={isMuted ? "Unmute video" : "Mute video"}
+                        >
+                            {isMuted ? <VolumeOffIcon className="w-6 h-6" /> : <VolumeUpIcon className="w-6 h-6" />}
+                        </button>
+                    )}
                     <button 
                         onClick={handleShare}
                         disabled={isSharing}

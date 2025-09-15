@@ -27,11 +27,13 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ video, isActive, onOpenCommen
   const [isMuted, setIsMuted] = useState(true); // Start muted for autoplay
   const [volume, setVolume] = useState(1);
   const [showVolumeSlider, setShowVolumeSlider] = useState(false);
-  const volumeSliderTimeout = useRef<NodeJS.Timeout | null>(null);
+  // FIX: Replaced NodeJS.Timeout with ReturnType<typeof setTimeout> for browser compatibility.
+  const volumeSliderTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // New state and refs for double-tap feature
   const [likeAnimation, setLikeAnimation] = useState<{ key: number, x: number, y: number } | null>(null);
-  const tapTimeout = useRef<NodeJS.Timeout | null>(null);
+  // FIX: Replaced NodeJS.Timeout with ReturnType<typeof setTimeout> for browser compatibility.
+  const tapTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastTap = useRef(0);
 
   const isFollowing = currentUser.followingIds?.includes(video.user.id);

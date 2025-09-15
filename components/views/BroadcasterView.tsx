@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { mockUsers, mockUser, mockGifts } from '../../services/mockApi';
 import { User, ChatMessage, Poll, GiftEvent } from '../../types';
-import { SendIcon, EmojiIcon, ShieldCheckIcon, PinIcon, MuteUserIcon, BanUserIcon, CloseIcon, SignalIcon, PollIcon, ChevronRightIcon, PaperclipIcon } from '../icons/Icons';
+import { SendIcon, EmojiIcon, ShieldCheckIcon, PinIcon, MuteUserIcon, BanUserIcon, CloseIcon, SignalIcon, PollIcon, ChevronRightIcon, PaperclipIcon, VolumeUpIcon, VolumeOffIcon } from '../icons/Icons';
 import HostToolsModal from '../HostToolsModal';
 import CreatePollModal from '../CreatePollModal';
 import LivePollDisplay from '../LivePollDisplay';
@@ -79,6 +79,7 @@ const BroadcasterView: React.FC<BroadcasterViewProps> = ({ streamTitle, sourceTy
 
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOff, setIsVideoOff] = useState(false);
+  const [isSourceMuted, setIsSourceMuted] = useState(true);
   
   const [isHostToolsOpen, setIsHostToolsOpen] = useState(false);
   const [pinnedMessage, setPinnedMessage] = useState('');
@@ -140,7 +141,7 @@ const BroadcasterView: React.FC<BroadcasterViewProps> = ({ streamTitle, sourceTy
     
     const startUrlVideo = () => {
         if (typeof sourceData === 'string') {
-            const potentialEmbedUrl = getYouTubeEmbedUrl(sourceData);
+            const potentialEmbedUrl = getYouTubeEmbedUrl(sourceData, isSourceMuted);
             if (potentialEmbedUrl) {
                 setEmbedUrl(potentialEmbedUrl);
                 setVideoUrl(null);
@@ -170,7 +171,7 @@ const BroadcasterView: React.FC<BroadcasterViewProps> = ({ streamTitle, sourceTy
           URL.revokeObjectURL(objectUrl);
       }
     };
-  }, [sourceType, sourceData, onEndStream]);
+  }, [sourceType, sourceData, onEndStream, isSourceMuted]);
   
   useEffect(() => {
     const healthInterval = setInterval(() => {
@@ -451,6 +452,7 @@ const BroadcasterView: React.FC<BroadcasterViewProps> = ({ streamTitle, sourceTy
         >
             {embedUrl ? (
                 <iframe
+                    key={embedUrl}
                     src={embedUrl}
                     title={streamTitle}
                     className="absolute inset-0 w-full h-full object-cover pointer-events-none"
@@ -463,7 +465,7 @@ const BroadcasterView: React.FC<BroadcasterViewProps> = ({ streamTitle, sourceTy
                   ref={videoRef} 
                   autoPlay 
                   playsInline 
-                  muted={sourceType === 'camera'} 
+                  muted={sourceType === 'camera' || isSourceMuted} 
                   loop={sourceType !== 'camera'}
                   src={videoUrl || ''}
                   className="absolute inset-0 w-full h-full object-cover" 
@@ -599,6 +601,9 @@ const BroadcasterView: React.FC<BroadcasterViewProps> = ({ streamTitle, sourceTy
                 onToggleMute={toggleMute}
                 isVideoOff={isVideoOff}
                 onToggleVideo={toggleVideo}
+                isEmbed={!!embedUrl}
+                isSourceMuted={isSourceMuted}
+                onToggleSourceMute={() => setIsSourceMuted(p => !p)}
             />
         )}
         {selectedUserForAction && (
