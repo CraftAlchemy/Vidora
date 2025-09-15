@@ -21,6 +21,14 @@ interface AdminPanelProps {
 
 type AdminView = 'dashboard' | 'users' | 'content' | 'moderation' | 'financials' | 'gifts' | 'verification' | 'corbeil' | 'settings';
 
+export interface MonetizationSettings {
+  currencySymbol: string;
+  processingFeePercent: number;
+  minPayoutAmount: number;
+  isPaypalEnabled: boolean;
+  isBankTransferEnabled: boolean;
+}
+
 const AdminPanel: React.FC<AdminPanelProps> = ({ user, onExit, onSendSystemMessage, showSuccessToast }) => {
   const [activeView, setActiveView] = useState<AdminView>('dashboard');
 
@@ -59,6 +67,14 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ user, onExit, onSendSystemMessa
     accountVerified: "Congratulations {username}! Your account has been successfully verified.",
     accountRestored: "Welcome back, {username}! Your account has been restored and is now active.",
     payoutRejected: "Your recent payout request for ${amount} has been rejected. Please contact support for more details."
+  });
+
+  const [monetizationSettings, setMonetizationSettings] = useState<MonetizationSettings>({
+    currencySymbol: '$',
+    processingFeePercent: 5,
+    minPayoutAmount: 50,
+    isPaypalEnabled: true,
+    isBankTransferEnabled: true,
   });
 
   useEffect(() => {
@@ -341,6 +357,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ user, onExit, onSendSystemMessa
                                 onSetSidebarLayout={setSidebarLayout}
                                 notificationTemplates={notificationTemplates}
                                 onUpdateTemplate={handleUpdateTemplate}
+                                monetizationSettings={monetizationSettings}
+                                onSetMonetizationSettings={setMonetizationSettings}
                                 showSuccessToast={showSuccessToast}
                               />;
       default: return null;
