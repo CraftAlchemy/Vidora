@@ -1,62 +1,155 @@
-import React from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from 'recharts';
-import { mockRevenueData } from '../../services/mockApi';
-import { User } from '../../types';
 
-const StatCard: React.FC<{ title: string; value: string | number; change?: string; changeType?: 'up' | 'down' }> = ({ title, value, change, changeType }) => (
-    <div className="bg-zinc-800 p-6 rounded-lg shadow-lg">
-      <h3 className="text-sm font-medium text-gray-400">{title}</h3>
-      <p className="text-3xl font-bold mt-2">{value}</p>
-      {change && (
-        <p className={`text-sm mt-1 ${changeType === 'up' ? 'text-green-400' : 'text-red-400'}`}>
-          {change} vs last month
-        </p>
-      )}
+import React, { useState } from 'react';
+import { User, PayoutRequest } from '../../types';
+import { ChevronLeftIcon, CloseIcon, DollarSignIcon, UsersIcon, GiftIcon, BankIcon } from '../icons/Icons';
+
+const StatCard: React.FC<{ title: string; value: string | number; icon: React.ReactNode }> = ({ title, value, icon }) => (
+    <div className="bg-zinc-800 p-4 rounded-lg shadow-lg flex items-center gap-4">
+        <div className="bg-zinc-700 p-3 rounded-full">{icon}</div>
+        <div>
+            <h3 className="text-sm font-medium text-gray-400">{title}</h3>
+            <p className="text-xl font-bold">{value}</p>
+        </div>
     </div>
-  );
+);
+
+const PayoutStatusBadge: React.FC<{ status: PayoutRequest['status'] }> = ({ status }) => {
+    const baseClasses = "px-2 py-0.5 text-xs font-semibold rounded-full";
+    const statusMap = {
+        pending: `bg-yellow-500/20 text-yellow-400 ${baseClasses}`,
+        approved: `bg-green-500/20 text-green-400 ${baseClasses}`,
+        rejected: `bg-red-500/20 text-red-400 ${baseClasses}`,
+    };
+    return <span className={statusMap[status]}>{status.charAt(0).toUpperCase() + status.slice(1)}</span>;
+};
+
+const RequestPayoutModal: React.FC<{
+    user: User;
+    onClose: () => void;
+    onSubmit: (amount: number, method: 'paypal' | 'bank', payoutInfo: string) => void;
+}> = ({ user, onClose, onSubmit }) => {
+    const maxPayout = user.creatorStats?.totalEarnings ?? 0;
+    const [amount, setAmount] = useState('');
+    const [method, setMethod] = useState<'paypal' | 'bank'>('paypal');
+    const [payoutInfo, setPayoutInfo] = useState('');
+    const [error, setError] = useState('');
+
+    const handleSubmit = () => {
+        const numAmount = parseFloat(amount);
+        if (isNaN(numAmount) || numAmount <= 0) {
+            setError('Please enter a valid amount.');
+            return;
+        }
+        if (numAmount > maxPayout) {
+            setError('Payout amount cannot exceed your total earnings.');
+            return;
+        }
+        if (payoutInfo.trim() === '') {
+            setError('Please provide your payout information.');
+            return;
+        }
+        setError('');
+        onSubmit(numAmount, method, payoutInfo);
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black/70 flex justify-center items-center z-50 p-4">
+            <div className="bg-zinc-800 rounded-lg shadow-xl w-full max-w-sm text-white relative animate-fade-in-up">
+                <header className="flex items-center justify-between p-4 border-b border-zinc-700">
+                    <h2 className="text-xl font-bold">Request Payout</h2>
+                    <button onClick={onClose}><CloseIcon/></button>
+                </header>
+                <main className="p-6 space-y-4">
+                    <div className="bg-zinc-700 p-3 rounded-lg text-center">
+                        <p className="text-sm text-gray-400">Available for Payout</p>
+                        <p className="text-2xl font-bold text-green-400">${maxPayout.toFixed(2)}</p>
+                    </div>
+                    <div>
+                        <label htmlFor="amount" className="block text-sm font-medium text-gray-400 mb-1">Amount (USD)</label>
+                        <input type="number" id="amount" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0.00" className="w-full p-2 bg-zinc-700 rounded-md" />
+                    </div>
+                     <div>
+                        <label className="block text-sm font-medium text-gray-400 mb-2">Payout Method</label>
+                        <div className="grid grid-cols-2 gap-2 bg-zinc-700 p-1 rounded-lg">
+                            <button onClick={() => setMethod('paypal')} className={`py-2 text-sm rounded ${method === 'paypal' ? 'bg-pink-600' : ''}`}>PayPal</button>
+                            <button onClick={() => setMethod('bank')} className={`py-2 text-sm rounded ${method === 'bank' ? 'bg-pink-600' : ''}`}>Bank Transfer</button>
+                        </div>
+                    </div>
+                     <div>
+                        <label htmlFor="payoutInfo" className="block text-sm font-medium text-gray-400 mb-1">
+                            {method === 'paypal' ? 'PayPal Email' : 'Bank Account Details'}
+                        </label>
+                        <textarea id="payoutInfo" value={payoutInfo} onChange={e => setPayoutInfo(e.target.value)} rows={3} placeholder={method === 'paypal' ? 'your.email@example.com' : 'Bank Name, Account Number, Routing Number, SWIFT/BIC'} className="w-full p-2 bg-zinc-700 rounded-md text-sm"></textarea>
+                    </div>
+                    {error && <p className="text-red-500 text-sm text-center">{error}</p>}
+                </main>
+                <footer className="p-4 border-t border-zinc-700">
+                    <button onClick={handleSubmit} className="w-full py-3 font-semibold rounded-lg bg-pink-600 hover:bg-pink-700">Submit Request</button>
+                </footer>
+            </div>
+        </div>
+    );
+};
 
 interface CreatorDashboardViewProps {
   user: User;
+  payouts: PayoutRequest[];
+  onBack: () => void;
+  onOpenRequestPayout: () => void;
 }
 
-const CreatorDashboardView: React.FC<CreatorDashboardViewProps> = ({ user }) => {
+const CreatorDashboardView: React.FC<CreatorDashboardViewProps> = ({ user, payouts, onBack, onOpenRequestPayout }) => {
+
   return (
-    <div className="h-full w-full bg-zinc-900 text-white overflow-y-auto pb-16 p-4">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Creator Dashboard</h1>
-        <button 
-            onClick={() => alert('Payout request submitted!')}
-            className="px-4 py-2 font-semibold rounded-lg bg-gradient-to-r from-pink-500 to-red-500 text-white shadow-lg text-sm"
-        >
-            Request Payout
-        </button>
-      </div>
-      
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-        <StatCard title="Followers" value={user.followers?.toLocaleString() ?? '0'} change="+1.2k" changeType="up" />
-        <StatCard title="Gifts Received" value={user.creatorStats?.receivedGiftsCount.toLocaleString() ?? '0'} />
-        <StatCard title="Total Likes" value={"1.2M"} />
-        <StatCard title="Total Earnings" value={`$${(user.creatorStats?.totalEarnings ?? 0).toLocaleString()}`} change="+20%" changeType="up" />
-      </div>
+    <div className="h-full w-full bg-zinc-900 text-white flex flex-col">
+        <header className="sticky top-0 bg-zinc-900 bg-opacity-80 backdrop-blur-sm z-10 flex items-center p-4 border-b border-zinc-800">
+            <button onClick={onBack} className="mr-4"><ChevronLeftIcon /></button>
+            <h1 className="text-lg font-bold">Creator Dashboard</h1>
+        </header>
 
-      <div className="bg-zinc-800 p-4 rounded-lg shadow-lg mb-8">
-        <h2 className="text-xl font-semibold mb-4">Monthly Earnings</h2>
-        <ResponsiveContainer width="100%" height={300}>
-          <LineChart data={mockRevenueData}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#444" />
-            <XAxis dataKey="name" stroke="#999" />
-            <YAxis stroke="#999" />
-            <Tooltip contentStyle={{ backgroundColor: '#222', border: 'none' }} />
-            <Legend />
-            <Line type="monotone" dataKey="value" stroke="#ec4899" strokeWidth={2} activeDot={{ r: 8 }} name="Earnings ($)" />
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
-
-      <div className="bg-zinc-800 p-4 rounded-lg shadow-lg">
-        <h2 className="text-xl font-semibold mb-4">Your Top Videos</h2>
-        <p className="text-gray-400">Video performance analytics will be shown here.</p>
-      </div>
+        <main className="flex-1 overflow-y-auto p-4 space-y-6">
+            <div className="grid grid-cols-2 gap-4">
+                <StatCard title="Total Earnings" value={`$${(user.creatorStats?.totalEarnings ?? 0).toFixed(2)}`} icon={<DollarSignIcon className="text-green-400" />} />
+                <StatCard title="Followers" value={user.followers?.toLocaleString() ?? '0'} icon={<UsersIcon className="text-blue-400" />} />
+                <StatCard title="Gifts Received" value={user.creatorStats?.receivedGiftsCount.toLocaleString() ?? '0'} icon={<GiftIcon className="text-pink-400" />} />
+                <StatCard title="Next Payout" value="$0.00" icon={<BankIcon className="text-gray-400" />} />
+            </div>
+            
+            <div>
+                <button onClick={onOpenRequestPayout} className="w-full py-3 font-semibold rounded-lg bg-gradient-to-r from-pink-500 to-red-500">
+                    Request Payout
+                </button>
+            </div>
+            
+            <div>
+                <h2 className="text-xl font-bold mb-3">Payout History</h2>
+                <div className="bg-zinc-800 rounded-lg">
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-sm text-left">
+                            <thead className="text-xs text-gray-400 uppercase">
+                                <tr>
+                                    <th className="p-3">Date</th>
+                                    <th className="p-3">Amount</th>
+                                    <th className="p-3">Method</th>
+                                    <th className="p-3 text-right">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {payouts.map(payout => (
+                                    <tr key={payout.id} className="border-t border-zinc-700">
+                                        <td className="p-3 whitespace-nowrap">{payout.requestDate}</td>
+                                        <td className="p-3 font-semibold">${payout.amount.toFixed(2)}</td>
+                                        <td className="p-3 capitalize">{payout.method}</td>
+                                        <td className="p-3 text-right"><PayoutStatusBadge status={payout.status} /></td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                        {payouts.length === 0 && <p className="text-center py-8 text-gray-500">No payout history.</p>}
+                    </div>
+                </div>
+            </div>
+        </main>
     </div>
   );
 };

@@ -1,3 +1,4 @@
+
 import React from 'react';
 
 // Common props for icons, especially for fillable ones
@@ -319,4 +320,10 @@ export const AdminPanelIcon: React.FC<IconProps> = (props) => (
 );
 export const MenuIcon: React.FC<IconProps> = (props) => (
     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" {...props}><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
+);
+export const CreatorDashboardIcon: React.FC<IconProps> = (props) => (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" {...props}><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
+);
+export const BankIcon: React.FC<IconProps> = (props) => (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" {...props}><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V10M5 21V10M3 21h18M5 10l7-4 7 4M12 21v-4" /></svg>
 );

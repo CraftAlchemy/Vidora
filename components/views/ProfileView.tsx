@@ -1,7 +1,8 @@
+
 import React, { useState } from 'react';
 import { User, Video } from '../../types';
 import { View } from '../../App';
-import { SettingsIcon, GridIcon, CoinIcon, FlameIcon, StarIcon, BadgeIcon, AdminPanelIcon, ChevronLeftIcon } from '../icons/Icons';
+import { SettingsIcon, GridIcon, CoinIcon, FlameIcon, StarIcon, BadgeIcon, AdminPanelIcon, ChevronLeftIcon, CreatorDashboardIcon } from '../icons/Icons';
 
 interface ProfileViewProps {
   user: User;
@@ -113,8 +114,20 @@ const ProfileView: React.FC<ProfileViewProps> = ({ user, currentUser, isOwnProfi
           )}
         </div>
 
-        {isOwnProfile && user.role === 'admin' && (
+        {isOwnProfile && (user.role === 'creator' || user.role === 'admin') && (
           <div className="px-4 mt-4">
+            <button 
+              onClick={() => onNavigate('creatorDashboard')}
+              className="w-full py-2 bg-purple-600 rounded-md font-semibold text-sm flex items-center justify-center gap-2"
+            >
+              <CreatorDashboardIcon />
+              Creator Dashboard
+            </button>
+          </div>
+        )}
+
+        {isOwnProfile && user.role === 'admin' && (
+          <div className="px-4 mt-2">
             <button 
               onClick={() => onNavigate('admin')}
               className="w-full py-2 bg-pink-600 rounded-md font-semibold text-sm flex items-center justify-center gap-2"

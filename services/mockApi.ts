@@ -1,4 +1,5 @@
-import { User, Video, LiveStream, Conversation, Notification, Gift, WalletTransaction, LeaderboardUser, Report } from '../types';
+
+import { User, Video, LiveStream, Conversation, Notification, Gift, WalletTransaction, LeaderboardUser, Report, PayoutRequest } from '../types';
 
 export const mockUsers: User[] = [
   {
@@ -23,7 +24,7 @@ export const mockUsers: User[] = [
         { id: 't3', type: 'reward', amount: 50, description: 'Daily Login Reward', timestamp: '2024-07-18' },
       ],
     },
-    creatorStats: { totalEarnings: 5430, receivedGiftsCount: 890 },
+    creatorStats: { totalEarnings: 5430.50, receivedGiftsCount: 890 },
     level: 25,
     xp: 150,
     streakCount: 12,
@@ -46,6 +47,8 @@ export const mockUsers: User[] = [
     followers: 250001,
     following: 150,
     followingIds: [],
+    wallet: { balance: 5000, transactions: [] },
+    creatorStats: { totalEarnings: 10250.75, receivedGiftsCount: 2100 },
     level: 30,
     xp: 180,
     streakCount: 5,
@@ -64,6 +67,8 @@ export const mockUsers: User[] = [
     followers: 1200000,
     following: 5,
     followingIds: [],
+    wallet: { balance: 10000, transactions: [] },
+    creatorStats: { totalEarnings: 25800.00, receivedGiftsCount: 5500 },
     level: 50,
     xp: 900,
   },
@@ -81,6 +86,7 @@ export const mockUsers: User[] = [
     followers: 5200,
     following: 800,
     followingIds: [],
+    wallet: { balance: 200, transactions: [] },
     level: 15,
   },
   {
@@ -97,6 +103,7 @@ export const mockUsers: User[] = [
     followers: 10,
     following: 50,
     followingIds: [],
+    wallet: { balance: 0, transactions: [] },
     level: 2,
   },
 ];
@@ -278,4 +285,45 @@ export const mockReports: Report[] = [
     { id: 'r1', contentType: 'video', contentId: 'v4', reportedBy: mockUsers[0], reason: 'Spam', timestamp: '2024-07-20', status: 'pending'},
     { id: 'r2', contentType: 'user', contentId: 'u5', reportedBy: mockUsers[1], reason: 'Hate speech', timestamp: '2024-07-19', status: 'resolved'},
     { id: 'r3', contentType: 'comment', contentId: 'c1', reportedBy: mockUsers[2], reason: 'Harassment', timestamp: '2024-07-18', status: 'dismissed'},
+];
+
+export const mockPayoutRequests: PayoutRequest[] = [
+  {
+    id: 'p1',
+    user: mockUsers[1], // creative_cat
+    amount: 1500,
+    status: 'pending',
+    method: 'paypal',
+    payoutInfo: 'creative_cat@example.com',
+    requestDate: '2024-07-20',
+  },
+  {
+    id: 'p2',
+    user: mockUsers[2], // gamer_god
+    amount: 5000,
+    status: 'approved',
+    method: 'bank',
+    payoutInfo: 'Bank of America, Acct: ...1234',
+    requestDate: '2024-07-18',
+    processedDate: '2024-07-19',
+  },
+  {
+    id: 'p3',
+    user: mockUsers[1],
+    amount: 800,
+    status: 'rejected',
+    method: 'paypal',
+    payoutInfo: 'creative_cat@example.com',
+    requestDate: '2024-07-15',
+    processedDate: '2024-07-16',
+  },
+  {
+    id: 'p4',
+    user: mockUsers[0], // admin
+    amount: 250,
+    status: 'pending',
+    method: 'bank',
+    payoutInfo: 'Chase, Acct: ...5678',
+    requestDate: '2024-07-21',
+  }
 ];

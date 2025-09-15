@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
-import { User, Video, LiveStream, WalletTransaction, Conversation, ChatMessage, Comment } from './types';
-import { mockUser, mockUsers, mockVideos, mockLiveStreams, mockConversations, systemUser } from './services/mockApi';
+import { User, Video, LiveStream, WalletTransaction, Conversation, ChatMessage, Comment, PayoutRequest } from './types';
+import { mockUser, mockUsers, mockVideos, mockLiveStreams, mockConversations, systemUser, mockPayoutRequests } from './services/mockApi';
 
 import AuthView from './components/views/AuthView';
 import FeedView from './components/views/FeedView';
@@ -19,8 +19,9 @@ import EditProfileModal from './components/EditProfileModal';
 import DailyRewardModal from './components/DailyRewardModal';
 import SuccessToast from './components/SuccessToast';
 import CommentsModal from './components/CommentsModal';
+import CreatorDashboardView from './components/views/CreatorDashboardView';
 
-export type View = 'feed' | 'live' | 'inbox' | 'profile' | 'wallet' | 'settings' | 'purchase' | 'admin';
+export type View = 'feed' | 'live' | 'inbox' | 'profile' | 'wallet' | 'settings' | 'purchase' | 'admin' | 'creatorDashboard';
 
 export interface CoinPack {
     amount: number;
@@ -34,8 +35,10 @@ const API_URL = 'https://vidora-3dvn.onrender.com/api/v1';
 const App: React.FC = () => {
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [currentUser, setCurrentUser] = useState<User | null>(null);
+    const [users, setUsers] = useState<User[]>(mockUsers);
     const [videos, setVideos] = useState<Video[]>([]);
     const [conversations, setConversations] = useState<Conversation[]>(mockConversations);
+    const [payoutRequests, setPayoutRequests] = useState<PayoutRequest[]>(mockPayoutRequests);
     
     const [activeView, setActiveView] = useState<View>('feed');
     const [previousView, setPreviousView] = useState<View>('feed');
@@ -49,6 +52,7 @@ const App: React.FC = () => {
     const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
     const [isDailyRewardOpen, setIsDailyRewardOpen] = useState(false);
     const [isCommentsModalOpen, setIsCommentsModalOpen] = useState(false);
+    const [isRequestPayoutModalOpen, setIsRequestPayoutModalOpen] = useState(false);
     const [activeVideoForComments, setActiveVideoForComments] = useState<Video | null>(null);
     const [viewedProfileUser, setViewedProfileUser] = useState<User | null>(null);
     
@@ -415,7 +419,7 @@ const App: React.FC = () => {
     };
 
     const sendSystemMessage = (targetUserId: string, text: string) => {
-        const targetUser = mockUsers.find(u => u.id === targetUserId);
+        const targetUser = users.find(u => u.id === targetUserId);
         if (!targetUser) return;
 
         const newMessage: ChatMessage = {
@@ -427,23 +431,27 @@ const App: React.FC = () => {
         };
         
         setConversations(prev => {
-            const existingConvoIndex = prev.findIndex(c => c.user.id === targetUserId);
-            
-            if (existingConvoIndex > -1) {
-                // Add to existing conversation
-                const newConvos = [...prev];
-                const updatedConvo = { ...newConvos[existingConvoIndex] };
-                updatedConvo.messages = [...updatedConvo.messages, newMessage];
-                updatedConvo.lastMessage = {
-                    text: newMessage.text,
-                    timestamp: newMessage.timestamp,
-                    isRead: false,
-                    senderId: newMessage.senderId,
-                };
-                newConvos[existingConvoIndex] = updatedConvo;
-                return newConvos;
+            let convoExists = false;
+            const updatedConvos = prev.map(c => {
+                if (c.user.id === targetUserId) {
+                    convoExists = true;
+                    return {
+                        ...c,
+                        messages: [...c.messages, newMessage],
+                        lastMessage: {
+                            text: newMessage.text,
+                            timestamp: newMessage.timestamp,
+                            isRead: false,
+                            senderId: newMessage.senderId,
+                        }
+                    };
+                }
+                return c;
+            });
+
+            if (convoExists) {
+                return updatedConvos;
             } else {
-                // Create new conversation
                 const newConvo: Conversation = {
                     id: `convo-system-${targetUserId}`,
                     user: targetUser,
@@ -458,6 +466,34 @@ const App: React.FC = () => {
                 return [newConvo, ...prev];
             }
         });
+    };
+
+    const handleRequestPayout = (amount: number, method: 'paypal' | 'bank', payoutInfo: string) => {
+        if (!currentUser) return;
+        const newRequest: PayoutRequest = {
+            id: `p${Date.now()}`,
+            user: currentUser,
+            amount,
+            method,
+            payoutInfo,
+            status: 'pending',
+            requestDate: new Date().toISOString().split('T')[0],
+        };
+        setPayoutRequests(prev => [newRequest, ...prev]);
+        
+        const updatedUser = {
+            ...currentUser,
+            creatorStats: {
+                ...(currentUser.creatorStats!),
+                totalEarnings: (currentUser.creatorStats?.totalEarnings ?? 0) - amount,
+            }
+        };
+        setCurrentUser(updatedUser);
+        // Also update the main users list for the admin panel
+        setUsers(prev => prev.map(u => u.id === currentUser.id ? updatedUser : u));
+
+        setIsRequestPayoutModalOpen(false);
+        showSuccessToast('Payout request submitted!');
     };
 
     const showSuccessToast = (message: string) => {
@@ -483,7 +519,6 @@ const App: React.FC = () => {
                     setIsNavVisible={setIsNavVisible} 
                     currentUser={currentUser}
                     onToggleFollow={handleToggleFollow}
-// FIX: The prop 'onShareStream' was being passed an undefined variable 'onShareStream'. Changed to pass the correct handler 'handleShareStream'.
                     onShareStream={handleShareStream}
                     onViewProfile={handleViewProfile}
                     showSuccessToast={showSuccessToast}
@@ -524,6 +559,13 @@ const App: React.FC = () => {
                 return <SettingsView onBack={() => handleNavigate('profile')} onLogout={handleLogout} />;
             case 'purchase':
                 return selectedCoinPack ? <PurchaseCoinsView pack={selectedCoinPack} onBack={() => handleNavigate('wallet')} onPurchaseComplete={handlePurchaseComplete} /> : null;
+            case 'creatorDashboard':
+                 return <CreatorDashboardView 
+                            user={currentUser} 
+                            payouts={payoutRequests.filter(p => p.user.id === currentUser.id)}
+                            onBack={() => handleNavigate('profile')} 
+                            onOpenRequestPayout={() => setIsRequestPayoutModalOpen(true)}
+                        />;
             default:
                 return <FeedView videos={videos} currentUser={currentUser} onOpenComments={handleOpenComments} setIsNavVisible={setIsNavVisible} onToggleFollow={handleToggleFollow} onShareVideo={handleShareVideo} onViewProfile={handleViewProfile} />;
         }
@@ -537,7 +579,7 @@ const App: React.FC = () => {
                 {renderView()}
             </main>
 
-            {['feed', 'live', 'inbox', 'profile', 'wallet'].includes(activeView) && (
+            {['feed', 'live', 'inbox', 'profile', 'wallet', 'creatorDashboard'].includes(activeView) && (
                 <BottomNav
                     activeView={activeView}
                     onNavigate={handleNavigate}

@@ -1,3 +1,4 @@
+
 export interface User {
   id: string;
   username: string;
@@ -148,4 +149,15 @@ export interface Poll {
   question: string;
   options: PollOption[];
   totalVotes: number;
+}
+
+export interface PayoutRequest {
+  id: string;
+  user: User;
+  amount: number;
+  status: 'pending' | 'approved' | 'rejected';
+  method: 'paypal' | 'bank';
+  payoutInfo: string; // email for paypal, account info for bank
+  requestDate: string;
+  processedDate?: string;
 }

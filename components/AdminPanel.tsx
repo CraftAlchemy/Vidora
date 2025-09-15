@@ -1,6 +1,7 @@
+
 import React, { useState } from 'react';
-import { User, Video, Report, Comment } from '../types';
-import { mockUsers, mockVideos, mockReports } from '../services/mockApi';
+import { User, Video, Report, Comment, PayoutRequest } from '../types';
+import { mockUsers, mockVideos, mockReports, mockPayoutRequests } from '../services/mockApi';
 import {
   DashboardIcon, UsersIcon, VideoIcon, DollarSignIcon, ShieldCheckIcon, GiftAdminIcon, SettingsIcon,
   SunIcon, MoonIcon, SearchIcon, ChevronLeftIcon, ArchiveBoxIcon, MenuIcon, CloseIcon,
@@ -96,6 +97,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ user, onExit, onSendSystemMessa
   const [users, setUsers] = useState<User[]>(mockUsers);
   const [videos, setVideos] = useState<Video[]>(mockVideos);
   const [reports, setReports] = useState<Report[]>(mockReports);
+  const [payouts, setPayouts] = useState<PayoutRequest[]>(mockPayoutRequests);
   const [userToVerify, setUserToVerify] = useState<User | null>(null);
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
   const [selectedVideoIds, setSelectedVideoIds] = useState<string[]>([]);
@@ -250,6 +252,25 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ user, onExit, onSendSystemMessa
     setReports(prev => prev.map(r => (ids.includes(r.id) ? { ...r, status: 'dismissed' } : r)));
     setSelectedReportIds([]);
   };
+  
+  const handleUpdatePayoutStatus = (payoutId: string, status: 'approved' | 'rejected') => {
+    const payout = payouts.find(p => p.id === payoutId);
+    if (!payout) return;
+
+    setPayouts(prev => prev.map(p => p.id === payoutId ? { ...p, status, processedDate: new Date().toISOString().split('T')[0] } : p));
+
+    if (status === 'rejected') {
+        setUsers(prevUsers => prevUsers.map(u => {
+            if (u.id === payout.user.id && u.creatorStats) {
+                return { ...u, creatorStats: { ...u.creatorStats, totalEarnings: u.creatorStats.totalEarnings + payout.amount }};
+            }
+            return u;
+        }));
+        onSendSystemMessage(payout.user.id, `Your payout request for $${payout.amount.toFixed(2)} has been rejected. The funds have been returned to your earnings balance.`);
+    } else {
+         onSendSystemMessage(payout.user.id, `Your payout request for $${payout.amount.toFixed(2)} has been approved and is being processed.`);
+    }
+  };
 
   const activeUsers = users.filter(u => u.status !== 'deleted');
   const deletedUsers = users.filter(u => u.status === 'deleted');
@@ -291,7 +312,11 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ user, onExit, onSendSystemMessa
           onBulkUpdateStatus={handleBulkUpdateVideoStatus}
           onBulkDelete={handleBulkDeleteVideo}
         />;
-      case 'financials': return <FinancialsView />;
+      case 'financials': return <FinancialsView 
+          payouts={payouts} 
+          onUpdatePayoutStatus={handleUpdatePayoutStatus} 
+          users={users}
+        />;
       case 'moderation': return <ModerationQueueView
         reports={reports}
         users={users}
