@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { User, PayoutMethod } from '../types';
 import { CloseIcon } from './icons/Icons';
-import { useCurrency } from '../../contexts/CurrencyContext';
+import { useCurrency } from '../contexts/CurrencyContext';
 
 const RequestPayoutModal: React.FC<{
     user: User;
