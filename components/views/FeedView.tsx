@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useCallback } from 'react';
+import React, { useRef, useEffect, useCallback, useState } from 'react';
 import { Video, User } from '../../types';
 import VideoPlayer from '../VideoPlayer';
 
@@ -13,9 +13,24 @@ interface FeedViewProps {
 }
 
 const FeedView: React.FC<FeedViewProps> = ({ videos, currentUser, onOpenComments, setIsNavVisible, onToggleFollow, onShareVideo, onViewProfile }) => {
-  const [activeVideoId, setActiveVideoId] = React.useState<string | null>(videos.length > 0 ? videos[0].id : null);
+  const [activeVideoId, setActiveVideoId] = useState<string | null>(videos.length > 0 ? videos[0].id : null);
+  const [fullScreenVideoId, setFullScreenVideoId] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const lastScrollY = useRef(0);
+
+  useEffect(() => {
+    const handleFullScreenChange = () => {
+        const fullScreenElement = document.fullscreenElement;
+        if (fullScreenElement && fullScreenElement.hasAttribute('data-video-id')) {
+            setFullScreenVideoId(fullScreenElement.getAttribute('data-video-id'));
+        } else {
+            setFullScreenVideoId(null);
+        }
+    };
+
+    document.addEventListener('fullscreenchange', handleFullScreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullScreenChange);
+  }, []);
 
   const observerCallback = useCallback((entries: IntersectionObserverEntry[]) => {
     entries.forEach(entry => {
@@ -70,7 +85,9 @@ const FeedView: React.FC<FeedViewProps> = ({ videos, currentUser, onOpenComments
           <VideoPlayer
             key={video.id}
             video={video}
-            isActive={video.id === activeVideoId}
+            isActive={
+                fullScreenVideoId ? video.id === fullScreenVideoId : video.id === activeVideoId
+            }
             onOpenComments={() => onOpenComments(video)}
             currentUser={currentUser}
             onToggleFollow={onToggleFollow}

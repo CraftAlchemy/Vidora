@@ -1,5 +1,3 @@
-
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Video, User } from '../types';
 import { HeartIcon, CommentIcon, ShareIcon, MusicIcon, PlayIcon, PauseIcon, FullScreenIcon } from './icons/Icons';
@@ -48,7 +46,9 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ video, isActive, onOpenCommen
   
   useEffect(() => {
     const handleFullScreenChange = () => {
-      setIsFullScreen(!!document.fullscreenElement);
+      // Check if THIS component's container is the fullscreen element
+      const isCurrentlyFullScreen = document.fullscreenElement === containerRef.current;
+      setIsFullScreen(isCurrentlyFullScreen);
     };
 
     document.addEventListener('fullscreenchange', handleFullScreenChange);
