@@ -364,3 +364,13 @@ export const PencilIcon: React.FC<IconProps> = ({ className = "w-5 h-5" }) => (
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.5L14.732 3.732z" />
     </svg>
 );
+
+export const FullScreenIcon: React.FC<IconProps & { isFullScreen: boolean }> = ({ isFullScreen, className = "w-8 h-8" }) => (
+    <svg className={className} fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+        {isFullScreen ? (
+            <path d="M4 14h6v6M20 10h-6V4M14 10l7-7M3 21l7-7" />
+        ) : (
+            <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />
+        )}
+    </svg>
+);

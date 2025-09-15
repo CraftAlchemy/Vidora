@@ -1,7 +1,8 @@
 
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Video, User } from '../types';
-import { HeartIcon, CommentIcon, ShareIcon, MusicIcon, PlayIcon, PauseIcon } from './icons/Icons';
+import { HeartIcon, CommentIcon, ShareIcon, MusicIcon, PlayIcon, PauseIcon, FullScreenIcon } from './icons/Icons';
 
 interface VideoPlayerProps {
   video: Video;
@@ -15,11 +16,18 @@ interface VideoPlayerProps {
 
 const VideoPlayer: React.FC<VideoPlayerProps> = ({ video, isActive, onOpenComments, currentUser, onToggleFollow, onShareVideo, onViewProfile }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
   const [showPlayPause, setShowPlayPause] = useState(false);
   const [isShared, setIsShared] = useState(false);
   const [isSharing, setIsSharing] = useState(false); // Add state to track sharing process
+  const [isFullScreen, setIsFullScreen] = useState(false);
+
+  // New state and refs for double-tap feature
+  const [likeAnimation, setLikeAnimation] = useState<{ key: number, x: number, y: number } | null>(null);
+  const tapTimeout = useRef<NodeJS.Timeout | null>(null);
+  const lastTap = useRef(0);
 
   const isFollowing = currentUser.followingIds?.includes(video.user.id);
   const isOwnProfile = currentUser.id === video.user.id;
@@ -38,6 +46,15 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ video, isActive, onOpenCommen
     }
   }, [isActive]);
   
+  useEffect(() => {
+    const handleFullScreenChange = () => {
+      setIsFullScreen(!!document.fullscreenElement);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullScreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullScreenChange);
+  }, []);
+
   const togglePlay = () => {
     if (videoRef.current) {
       if (isPlaying) {
@@ -50,7 +67,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ video, isActive, onOpenCommen
     }
   };
 
-  const handleTap = () => {
+  const togglePlayWithAnimation = () => {
     togglePlay();
     setShowPlayPause(true);
     setTimeout(() => setShowPlayPause(false), 800);
@@ -59,6 +76,38 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ video, isActive, onOpenCommen
   const handleLike = () => {
       setIsLiked(!isLiked);
   }
+  
+  const handleClickOnVideo = (e: React.MouseEvent<HTMLVideoElement>) => {
+    if (tapTimeout.current) {
+        clearTimeout(tapTimeout.current);
+        tapTimeout.current = null;
+    }
+
+    const currentTime = new Date().getTime();
+    const timeDifference = currentTime - lastTap.current;
+
+    if (timeDifference < 300 && timeDifference > 0) {
+        // Double tap
+        if (!isLiked) {
+            setIsLiked(true);
+        }
+
+        const rect = containerRef.current!.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        setLikeAnimation({ key: Date.now(), x, y });
+        
+        // Reset last tap to prevent triple tap from being a single tap
+        lastTap.current = 0;
+    } else {
+        // Single tap
+        lastTap.current = currentTime;
+        tapTimeout.current = setTimeout(() => {
+            togglePlayWithAnimation();
+            tapTimeout.current = null;
+        }, 300);
+    }
+  };
 
   const handleShare = async () => {
     if (isSharing) return; // Prevent multiple clicks while share dialog is open
@@ -96,16 +145,44 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ video, isActive, onOpenCommen
     }
   };
 
+  const toggleFullScreen = () => {
+    if (!containerRef.current) return;
+
+    if (!document.fullscreenElement) {
+        containerRef.current.requestFullscreen().catch(err => {
+            console.error(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+        });
+    } else {
+        if (document.exitFullscreen) {
+            document.exitFullscreen();
+        }
+    }
+  };
+
   return (
-    <div className="relative w-full h-full snap-start" data-video-id={video.id}>
+    <div ref={containerRef} className="relative w-full h-full snap-start" data-video-id={video.id}>
       <video
         ref={videoRef}
         src={video.videoUrl}
         loop
         playsInline
         className="w-full h-full object-cover"
-        onClick={handleTap}
+        onClick={handleClickOnVideo}
       />
+      
+      {likeAnimation && (
+        <div
+          key={likeAnimation.key}
+          className="absolute animate-like-heart pointer-events-none"
+          style={{
+            top: likeAnimation.y,
+            left: likeAnimation.x,
+            filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))'
+          }}
+        >
+          <HeartIcon isFilled={true} className="w-24 h-24" />
+        </div>
+      )}
       
       {showPlayPause && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -153,6 +230,10 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ video, isActive, onOpenCommen
         <button onClick={handleShare} disabled={isSharing} className="flex flex-col items-center disabled:opacity-50">
           <ShareIcon />
           <span className="text-xs font-semibold mt-1">{video.shares + (isShared ? 1 : 0)}</span>
+        </button>
+         <button onClick={toggleFullScreen} className="flex flex-col items-center">
+          <FullScreenIcon isFullScreen={isFullScreen} />
+          <span className="text-xs font-semibold mt-1">{isFullScreen ? 'Exit' : 'Full'}</span>
         </button>
       </div>
     </div>
