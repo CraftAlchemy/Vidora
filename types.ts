@@ -1,4 +1,3 @@
-
 export interface User {
   id: string;
   username: string;
@@ -103,7 +102,6 @@ export interface Gift {
   category: 'Trending' | 'Classic' | 'Premium' | 'Fun';
 }
 
-// FIX: Added the missing GiftEvent interface. This type is used for displaying gift animations in live streams.
 export interface GiftEvent {
   id: string;
   user: User;
@@ -139,38 +137,34 @@ export interface Report {
     status: 'pending' | 'resolved' | 'dismissed';
 }
 
-export interface PollOption {
-  id: string;
-  text: string;
-  votes: number;
-}
-
-export interface Poll {
-  question: string;
-  options: PollOption[];
-  totalVotes: number;
-}
-
-export interface PayoutMethod {
-  id: string;
-  name: string;
-  isEnabled: boolean;
-}
-
-export interface MonetizationSettings {
-  currencySymbol: string;
-  processingFeePercent: number;
-  minPayoutAmount: number;
-  payoutMethods: PayoutMethod[];
-}
-
 export interface PayoutRequest {
   id: string;
   user: User;
   amount: number;
   status: 'pending' | 'approved' | 'rejected';
   method: string;
-  payoutInfo: string; // email for paypal, account info for bank
+  payoutInfo: string;
   requestDate: string;
   processedDate?: string;
+}
+
+export interface PayoutMethod {
+    id: string;
+    name: string;
+    isEnabled: boolean;
+}
+
+export interface MonetizationSettings {
+    currencySymbol: string;
+    processingFeePercent: number;
+    minPayoutAmount: number;
+    payoutMethods: PayoutMethod[];
+}
+
+export type UploadSource = { type: 'file'; data: File } | { type: 'url'; data: string };
+
+export interface Poll {
+    question: string;
+    options: { id: string, text: string, votes: number }[];
+    totalVotes: number;
 }

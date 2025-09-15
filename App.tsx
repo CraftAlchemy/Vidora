@@ -1,7 +1,9 @@
 
 
+
 import React, { useState, useEffect } from 'react';
-import { User, Video, LiveStream, WalletTransaction, Conversation, ChatMessage, Comment, PayoutRequest, MonetizationSettings } from './types';
+// FIX: Added UploadSource to the import list from types.ts to support different upload methods.
+import { User, Video, LiveStream, WalletTransaction, Conversation, ChatMessage, Comment, PayoutRequest, MonetizationSettings, UploadSource } from './types';
 import { mockUser, mockUsers, mockVideos, mockLiveStreams, mockConversations, systemUser, mockPayoutRequests } from './services/mockApi';
 import { getCurrencyInfoForLocale, CurrencyInfo } from './utils/currency';
 import { CurrencyContext } from './contexts/CurrencyContext';
@@ -186,31 +188,53 @@ const App: React.FC = () => {
         setIsUploadViewOpen(false);
     };
 
-    const handleUpload = async (videoFile: File, description: string) => {
+    // FIX: Updated handleUpload to accept an `UploadSource` object to support both file uploads and URL embedding from the UploadView component.
+    const handleUpload = async (source: UploadSource, description: string) => {
         if (!currentUser) return;
 
-        const formData = new FormData();
-        formData.append('video', videoFile);
-        formData.append('description', description);
+        handleCloseUpload();
 
-        try {
-            const response = await fetch(`${API_URL}/videos/upload`, {
-                method: 'POST',
-                body: formData,
-            });
+        if (source.type === 'file') {
+            showSuccessToast('Uploading your video...');
+            const formData = new FormData();
+            formData.append('video', source.data);
+            formData.append('description', description);
 
-            if (!response.ok) {
-                throw new Error('Upload failed');
+            try {
+                const response = await fetch(`${API_URL}/videos/upload`, {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                if (!response.ok) {
+                    throw new Error('Upload failed');
+                }
+
+                const newVideo: Video = await response.json();
+                setVideos(prev => [newVideo, ...prev]);
+                showSuccessToast('Video uploaded successfully!');
+            } catch (error) {
+                console.error('Error uploading video:', error);
+                showSuccessToast('Error: Could not upload video.');
             }
-
-            const newVideo: Video = await response.json();
-            setVideos(prev => [newVideo, ...prev]);
-            handleCloseUpload();
-            showSuccessToast('Video uploaded successfully!');
-        } catch (error) {
-            console.error('Error uploading video:', error);
-            showSuccessToast('Error: Could not upload video.');
-            handleCloseUpload();
+        } else { // source.type === 'url'
+            showSuccessToast('Embedding your video...');
+            // In a real app, you would send the URL to the backend to process.
+            // Here, we'll simulate it.
+            setTimeout(() => {
+                const newVideo: Video = {
+                    id: `v-url-${Date.now()}`,
+                    videoUrl: source.data, // Use the user-provided URL
+                    thumbnailUrl: 'https://i.ytimg.com/vi/LXb3EKWsInQ/maxresdefault.jpg', // Placeholder
+                    description,
+                    user: currentUser,
+                    likes: 0, comments: 0, shares: 0, commentsData: [],
+                    status: 'approved',
+                    uploadDate: new Date().toISOString(),
+                };
+                setVideos(prev => [newVideo, ...prev]);
+                showSuccessToast('Video embedded successfully!');
+            }, 1500);
         }
     };
     

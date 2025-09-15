@@ -1,6 +1,7 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Video, User } from '../types';
 import { HeartIcon, CommentIcon, ShareIcon, MusicIcon, PlayIcon, PauseIcon, FullScreenIcon, VolumeUpIcon, VolumeOffIcon } from './icons/Icons';
+import { getYouTubeEmbedUrl } from '../utils/videoUtils';
 
 interface VideoPlayerProps {
   video: Video;
@@ -35,8 +36,16 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ video, isActive, onOpenCommen
 
   const isFollowing = currentUser.followingIds?.includes(video.user.id);
   const isOwnProfile = currentUser.id === video.user.id;
+  
+  const embedUrl = useMemo(() => getYouTubeEmbedUrl(video.videoUrl), [video.videoUrl]);
 
   useEffect(() => {
+    // This effect should only control playback for direct <video> elements
+    if (embedUrl) {
+        setIsPlaying(isActive); // For embeds, we assume it plays if active
+        return;
+    };
+
     if (isActive) {
       videoRef.current?.play().then(() => {
         setIsPlaying(true);
@@ -48,7 +57,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ video, isActive, onOpenCommen
       videoRef.current?.pause();
       setIsPlaying(false);
     }
-  }, [isActive]);
+  }, [isActive, embedUrl]);
 
   useEffect(() => {
     if (videoRef.current) {
@@ -190,14 +199,25 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ video, isActive, onOpenCommen
 
   return (
     <div ref={containerRef} className="relative w-full h-full snap-start" data-video-id={video.id}>
-      <video
-        ref={videoRef}
-        src={video.videoUrl}
-        loop
-        playsInline
-        className="w-full h-full object-cover"
-        onClick={handleClickOnVideo}
-      />
+      {embedUrl ? (
+        <iframe
+          src={isActive ? embedUrl : ''}
+          title={video.description}
+          className="w-full h-full object-cover"
+          frameBorder="0"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+        />
+      ) : (
+        <video
+          ref={videoRef}
+          src={video.videoUrl}
+          loop
+          playsInline
+          className="w-full h-full object-cover"
+          onClick={handleClickOnVideo}
+        />
+      )}
       
       {likeAnimation && (
         <div
@@ -249,7 +269,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ video, isActive, onOpenCommen
       
       <div className="absolute right-2 bottom-20 flex items-end space-x-2 text-white">
         {/* Volume Slider */}
-        {showVolumeSlider && (
+        {showVolumeSlider && !embedUrl && (
             <div className="bg-black/50 rounded-full h-24 w-8 flex items-center justify-center p-2 animate-fade-in-fast">
                 <input
                     type="range"
@@ -290,10 +310,12 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ video, isActive, onOpenCommen
             <FullScreenIcon isFullScreen={isFullScreen} />
             <span className="text-xs font-semibold mt-1">{isFullScreen ? 'Exit' : 'Full'}</span>
             </button>
-            <button onClick={toggleMute} className="flex flex-col items-center">
-                {isMuted || volume === 0 ? <VolumeOffIcon /> : <VolumeUpIcon />}
-                <span className="text-xs font-semibold mt-1">{isMuted ? 'Unmute' : 'Mute'}</span>
-            </button>
+            {!embedUrl && (
+              <button onClick={toggleMute} className="flex flex-col items-center">
+                  {isMuted || volume === 0 ? <VolumeOffIcon /> : <VolumeUpIcon />}
+                  <span className="text-xs font-semibold mt-1">{isMuted ? 'Unmute' : 'Mute'}</span>
+              </button>
+            )}
         </div>
       </div>
     </div>
