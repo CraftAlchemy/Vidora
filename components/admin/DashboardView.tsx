@@ -1,6 +1,8 @@
+
 import React from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from 'recharts';
 import { mockAdminStats, mockRevenueData, mockTopCreatorsData } from '../../services/mockApi';
+import { useCurrency } from '../../contexts/CurrencyContext';
 
 const StatCard: React.FC<{ title: string; value: string | number; change?: string; changeType?: 'up' | 'down' }> = ({ title, value, change, changeType }) => (
   <div className="bg-white dark:bg-zinc-900 p-6 rounded-lg shadow-md border border-gray-200 dark:border-zinc-800">
@@ -15,10 +17,11 @@ const StatCard: React.FC<{ title: string; value: string | number; change?: strin
 );
 
 const DashboardView: React.FC = () => {
+  const formatCurrency = useCurrency();
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard title="Revenue Today" value={`$${mockAdminStats.revenueToday.toLocaleString()}`} change="+5.4%" changeType="up" />
+        <StatCard title="Revenue Today" value={formatCurrency(mockAdminStats.revenueToday)} change="+5.4%" changeType="up" />
         <StatCard title="Daily Active Users (DAU)" value={mockAdminStats.dau.toLocaleString()} />
         <StatCard title="New Users Today" value={mockAdminStats.newUsersToday.toLocaleString()} change="+12%" changeType="up" />
         <StatCard title="Pending Reports" value={mockAdminStats.reportsPending.toLocaleString()} change="+2" changeType="down" />

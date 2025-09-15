@@ -2,7 +2,8 @@
 import React, { useState } from 'react';
 import { User, Video } from '../../types';
 import { View } from '../../App';
-import { SettingsIcon, GridIcon, CoinIcon, FlameIcon, StarIcon, BadgeIcon, AdminPanelIcon, ChevronLeftIcon, CreatorDashboardIcon } from '../icons/Icons';
+import { SettingsIcon, GridIcon, CoinIcon, FlameIcon, StarIcon, BadgeIcon, AdminPanelIcon, ChevronLeftIcon, CreatorDashboardIcon, LiveIcon } from '../icons/Icons';
+import { useCurrency } from '../../contexts/CurrencyContext';
 
 interface ProfileViewProps {
   user: User;
@@ -13,6 +14,7 @@ interface ProfileViewProps {
   onEditProfile: () => void;
   onBack?: () => void;
   onToggleFollow: (userId: string) => void;
+  onGoLive: () => void;
 }
 
 const StatItem: React.FC<{ value: string; label: string }> = ({ value, label }) => (
@@ -22,8 +24,9 @@ const StatItem: React.FC<{ value: string; label: string }> = ({ value, label }) 
   </div>
 );
 
-const ProfileView: React.FC<ProfileViewProps> = ({ user, currentUser, isOwnProfile, videos, onNavigate, onEditProfile, onBack, onToggleFollow }) => {
+const ProfileView: React.FC<ProfileViewProps> = ({ user, currentUser, isOwnProfile, videos, onNavigate, onEditProfile, onBack, onToggleFollow, onGoLive }) => {
   const [activeTab, setActiveTab] = useState<'videos' | 'badges'>('videos');
+  const formatCurrency = useCurrency();
   const userVideos = videos.filter(v => v.user.id === user.id);
   const xpForNextLevel = (user.level || 1) * 200;
   const xpProgress = user.xp ? (user.xp / xpForNextLevel) * 100 : 0;
@@ -115,13 +118,20 @@ const ProfileView: React.FC<ProfileViewProps> = ({ user, currentUser, isOwnProfi
         </div>
 
         {isOwnProfile && (user.role === 'creator' || user.role === 'admin') && (
-          <div className="px-4 mt-4">
+          <div className="px-4 mt-4 grid grid-cols-2 gap-2">
             <button 
               onClick={() => onNavigate('creatorDashboard')}
               className="w-full py-2 bg-purple-600 rounded-md font-semibold text-sm flex items-center justify-center gap-2"
             >
               <CreatorDashboardIcon />
               Creator Dashboard
+            </button>
+             <button 
+              onClick={onGoLive}
+              className="w-full py-2 bg-red-600 rounded-md font-semibold text-sm flex items-center justify-center gap-2"
+            >
+              <LiveIcon className="w-5 h-5"/>
+              Go Live
             </button>
           </div>
         )}

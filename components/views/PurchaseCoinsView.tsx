@@ -1,5 +1,7 @@
+
 import React, { useState } from 'react';
 import { ChevronLeftIcon, CoinIcon } from '../icons/Icons';
+import { useCurrency } from '../../contexts/CurrencyContext';
 
 type CoinPack = {
     amount: number;
@@ -24,6 +26,7 @@ const paymentMethods = [
 const PurchaseCoinsView: React.FC<PurchaseCoinsViewProps> = ({ pack, onBack, onPurchaseComplete }) => {
     const [selectedMethod, setSelectedMethod] = useState<string | null>('stripe');
     const [isProcessing, setIsProcessing] = useState(false);
+    const formatCurrency = useCurrency();
 
     const handlePurchase = () => {
         if (!selectedMethod) {
@@ -38,6 +41,8 @@ const PurchaseCoinsView: React.FC<PurchaseCoinsViewProps> = ({ pack, onBack, onP
             // The view will be changed by the parent component
         }, 1500);
     };
+
+    const formattedPrice = formatCurrency(pack.price);
 
     return (
         <div className="h-full w-full bg-zinc-900 text-white flex flex-col">
@@ -55,7 +60,7 @@ const PurchaseCoinsView: React.FC<PurchaseCoinsViewProps> = ({ pack, onBack, onP
                         <CoinIcon className="w-7 h-7 mr-2" />
                         {pack.amount.toLocaleString()} Coins
                     </p>
-                    <p className="text-xl font-semibold">Total: ${pack.price.toFixed(2)}</p>
+                    <p className="text-xl font-semibold">Total: {formattedPrice}</p>
                 </div>
 
                 <div>
@@ -86,7 +91,7 @@ const PurchaseCoinsView: React.FC<PurchaseCoinsViewProps> = ({ pack, onBack, onP
                     disabled={isProcessing || !selectedMethod}
                     className="w-full py-3 font-semibold rounded-lg bg-gradient-to-r from-pink-500 to-red-500 text-white shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 transition-transform"
                 >
-                    {isProcessing ? 'Processing...' : `Pay $${pack.price.toFixed(2)}`}
+                    {isProcessing ? 'Processing...' : `Pay ${formattedPrice}`}
                 </button>
             </footer>
         </div>

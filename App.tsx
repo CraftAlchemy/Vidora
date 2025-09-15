@@ -1,7 +1,10 @@
 
+
 import React, { useState, useEffect } from 'react';
-import { User, Video, LiveStream, WalletTransaction, Conversation, ChatMessage, Comment, PayoutRequest } from './types';
+import { User, Video, LiveStream, WalletTransaction, Conversation, ChatMessage, Comment, PayoutRequest, MonetizationSettings } from './types';
 import { mockUser, mockUsers, mockVideos, mockLiveStreams, mockConversations, systemUser, mockPayoutRequests } from './services/mockApi';
+import { getCurrencyInfoForLocale, CurrencyInfo } from './utils/currency';
+import { CurrencyContext } from './contexts/CurrencyContext';
 
 import AuthView from './components/views/AuthView';
 import FeedView from './components/views/FeedView';
@@ -34,6 +37,16 @@ export interface CoinPack {
 
 const API_URL = 'https://vidora-3dvn.onrender.com/api/v1';
 
+const defaultMonetizationSettings: MonetizationSettings = {
+    currencySymbol: '$',
+    processingFeePercent: 5,
+    minPayoutAmount: 50,
+    payoutMethods: [
+        { id: 'paypal', name: 'PayPal', isEnabled: true },
+        { id: 'bank-transfer', name: 'Bank Transfer', isEnabled: true },
+    ],
+};
+
 const App: React.FC = () => {
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -57,12 +70,27 @@ const App: React.FC = () => {
     const [isRequestPayoutModalOpen, setIsRequestPayoutModalOpen] = useState(false);
     const [activeVideoForComments, setActiveVideoForComments] = useState<Video | null>(null);
     const [viewedProfileUser, setViewedProfileUser] = useState<User | null>(null);
+    const [openGoLiveOnNavigate, setOpenGoLiveOnNavigate] = useState(false);
     
     // Purchase flow state
     const [selectedCoinPack, setSelectedCoinPack] = useState<CoinPack | null>(null);
 
     // Toast message state
     const [successMessage, setSuccessMessage] = useState('');
+
+    // Currency conversion state
+    const [currencyInfo, setCurrencyInfo] = useState<CurrencyInfo>({ locale: 'en-US', currency: 'USD', rate: 1 });
+
+    // Global App Settings (managed by admin) - now with persistence
+    const [monetizationSettings, setMonetizationSettings] = useState<MonetizationSettings>(() => {
+        try {
+            const savedSettings = localStorage.getItem('monetizationSettings');
+            return savedSettings ? JSON.parse(savedSettings) : defaultMonetizationSettings;
+        } catch (error) {
+            console.error("Could not parse monetization settings from localStorage", error);
+            return defaultMonetizationSettings;
+        }
+    });
 
     useEffect(() => {
         const loggedIn = sessionStorage.getItem('isLoggedIn') === 'true';
@@ -77,11 +105,25 @@ const App: React.FC = () => {
                 setTimeout(() => setIsDailyRewardOpen(true), 1000);
             }
         }
+        
+        // Detect user locale and set currency info
+        const info = getCurrencyInfoForLocale(navigator.language);
+        setCurrencyInfo(info);
+
     }, []);
 
     useEffect(() => {
         setIsNavVisible(true);
     }, [activeView]);
+    
+    useEffect(() => {
+        try {
+            localStorage.setItem('monetizationSettings', JSON.stringify(monetizationSettings));
+        } catch (error) {
+            console.error("Could not save monetization settings to localStorage", error);
+        }
+    }, [monetizationSettings]);
+
 
     const handleLogin = () => {
         sessionStorage.setItem('isLoggedIn', 'true');
@@ -119,6 +161,11 @@ const App: React.FC = () => {
         }
     };
     
+    const handleGoLive = () => {
+        setOpenGoLiveOnNavigate(true);
+        handleNavigate('live');
+    };
+
     const handleViewProfile = (userToView: User) => {
         if (!currentUser) return;
         if (userToView.id === currentUser.id) {
@@ -470,7 +517,7 @@ const App: React.FC = () => {
         });
     };
 
-    const handleRequestPayout = (amount: number, method: 'paypal' | 'bank', payoutInfo: string) => {
+    const handleRequestPayout = (amount: number, method: string, payoutInfo: string) => {
         if (!currentUser) return;
         const newRequest: PayoutRequest = {
             id: `p${Date.now()}`,
@@ -503,18 +550,46 @@ const App: React.FC = () => {
         setTimeout(() => setSuccessMessage(''), 3000);
     };
 
+    const formatWithConversion = (amount: number): string => {
+        // Assume base currency is USD since symbol is '$'
+        const baseCurrency = 'USD';
+        
+        const baseFormatted = new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency: baseCurrency,
+        }).format(amount);
+
+        if (currencyInfo.currency === baseCurrency) {
+            return baseFormatted;
+        }
+
+        const convertedAmount = amount * currencyInfo.rate;
+        const convertedFormatted = new Intl.NumberFormat(currencyInfo.locale, {
+            style: 'currency',
+            currency: currencyInfo.currency,
+        }).format(convertedAmount);
+        
+        return `${baseFormatted} (≈ ${convertedFormatted})`;
+    };
+
 
     if (!isLoggedIn || !currentUser) {
         return <AuthView onLoginSuccess={handleLogin} />;
     }
 
     if (activeView === 'admin') {
-        return <AdminPanel 
+        return (
+            <CurrencyContext.Provider value={formatWithConversion}>
+                <AdminPanel 
                     user={currentUser} 
                     onExit={() => handleNavigate('profile')} 
                     onSendSystemMessage={sendSystemMessage}
                     showSuccessToast={showSuccessToast} 
+                    monetizationSettings={monetizationSettings}
+                    setMonetizationSettings={setMonetizationSettings}
                 />
+            </CurrencyContext.Provider>
+        );
     }
 
     const renderView = () => {
@@ -525,10 +600,13 @@ const App: React.FC = () => {
                 return <LiveView 
                     setIsNavVisible={setIsNavVisible} 
                     currentUser={currentUser}
+                    // FIX: Corrected a typo in the onToggleFollow prop, changing it from `onToggleFollow` to the correctly named `handleToggleFollow` function to resolve a "Cannot find name" error.
                     onToggleFollow={handleToggleFollow}
                     onShareStream={handleShareStream}
                     onViewProfile={handleViewProfile}
                     showSuccessToast={showSuccessToast}
+                    openGoLiveModal={openGoLiveOnNavigate}
+                    onModalOpened={() => setOpenGoLiveOnNavigate(false)}
                 />;
             case 'inbox': {
                 if (selectedConversationId) {
@@ -559,6 +637,7 @@ const App: React.FC = () => {
                             onEditProfile={handleEditProfile}
                             onBack={viewedProfileUser ? handleBack : undefined}
                             onToggleFollow={handleToggleFollow}
+                            onGoLive={handleGoLive}
                         />;
             case 'wallet':
                 return <WalletView user={currentUser} onBack={() => handleNavigate('profile')} onNavigateToPurchase={handleNavigateToPurchase} />;
@@ -579,42 +658,45 @@ const App: React.FC = () => {
     };
 
     return (
-        <div className="h-[100dvh] w-full max-w-lg mx-auto bg-black font-sans shadow-2xl overflow-hidden relative">
-            {successMessage && <SuccessToast message={successMessage} />}
+        <CurrencyContext.Provider value={formatWithConversion}>
+            <div className="h-[100dvh] w-full max-w-lg mx-auto bg-black font-sans shadow-2xl overflow-hidden relative">
+                {successMessage && <SuccessToast message={successMessage} />}
 
-            <main className="h-full w-full">
-                {renderView()}
-            </main>
+                <main className="h-full w-full">
+                    {renderView()}
+                </main>
 
-            {['feed', 'live', 'inbox', 'profile', 'wallet', 'creatorDashboard'].includes(activeView) && (
-                <BottomNav
-                    activeView={activeView}
-                    onNavigate={handleNavigate}
-                    onNavigateToUpload={handleNavigateToUpload}
-                    isVisible={isNavVisible}
-                />
-            )}
+                {['feed', 'live', 'inbox', 'profile', 'wallet', 'creatorDashboard'].includes(activeView) && (
+                    <BottomNav
+                        activeView={activeView}
+                        onNavigate={handleNavigate}
+                        onNavigateToUpload={handleNavigateToUpload}
+                        isVisible={isNavVisible}
+                    />
+                )}
 
-            {isUploadViewOpen && <UploadView onUpload={handleUpload} onClose={handleCloseUpload} />}
-            {isEditProfileOpen && <EditProfileModal user={currentUser} onSave={handleSaveProfile} onClose={() => setIsEditProfileOpen(false)} />}
-            {isDailyRewardOpen && <DailyRewardModal streakCount={currentUser.streakCount || 0} onClaim={handleClaimReward} onClose={() => setIsDailyRewardOpen(false)} />}
-            {isCommentsModalOpen && activeVideoForComments && (
-                <CommentsModal 
-                    comments={activeVideoForComments.commentsData}
-                    currentUser={currentUser}
-                    onClose={handleCloseComments}
-                    onAddComment={handleAddComment}
-                    onViewProfile={handleViewProfile}
-                />
-            )}
-            {isRequestPayoutModalOpen && (
-                <RequestPayoutModal
-                    user={currentUser}
-                    onClose={() => setIsRequestPayoutModalOpen(false)}
-                    onSubmit={handleRequestPayout}
-                />
-            )}
-        </div>
+                {isUploadViewOpen && <UploadView onUpload={handleUpload} onClose={handleCloseUpload} />}
+                {isEditProfileOpen && <EditProfileModal user={currentUser} onSave={handleSaveProfile} onClose={() => setIsEditProfileOpen(false)} />}
+                {isDailyRewardOpen && <DailyRewardModal streakCount={currentUser.streakCount || 0} onClaim={handleClaimReward} onClose={() => setIsDailyRewardOpen(false)} />}
+                {isCommentsModalOpen && activeVideoForComments && (
+                    <CommentsModal 
+                        comments={activeVideoForComments.commentsData}
+                        currentUser={currentUser}
+                        onClose={handleCloseComments}
+                        onAddComment={handleAddComment}
+                        onViewProfile={handleViewProfile}
+                    />
+                )}
+                {isRequestPayoutModalOpen && (
+                    <RequestPayoutModal
+                        user={currentUser}
+                        onClose={() => setIsRequestPayoutModalOpen(false)}
+                        onSubmit={handleRequestPayout}
+                        availableMethods={monetizationSettings.payoutMethods.filter(m => m.isEnabled)}
+                    />
+                )}
+            </div>
+        </CurrencyContext.Provider>
     );
 };
 

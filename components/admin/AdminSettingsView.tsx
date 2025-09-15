@@ -1,5 +1,7 @@
+
 import React, { useState } from 'react';
-import { MonetizationSettings } from '../AdminPanel';
+import { MonetizationSettings, PayoutMethod } from '../../types';
+import { TrashIcon } from '../icons/Icons';
 
 interface NotificationTemplates {
     accountSuspended: string;
@@ -17,7 +19,7 @@ interface AdminSettingsViewProps {
     notificationTemplates: NotificationTemplates;
     onUpdateTemplate: (templateName: keyof NotificationTemplates, newText: string) => void;
     monetizationSettings: MonetizationSettings;
-    onSetMonetizationSettings: (settings: MonetizationSettings) => void;
+    onSetMonetizationSettings: React.Dispatch<React.SetStateAction<MonetizationSettings>>;
     showSuccessToast: (message: string) => void;
 }
 
@@ -96,9 +98,44 @@ const AdminSettingsView: React.FC<AdminSettingsViewProps> = ({
  }) => {
 
     const [localMonetizationSettings, setLocalMonetizationSettings] = useState(monetizationSettings);
+    const [newPayoutMethodName, setNewPayoutMethodName] = useState('');
 
-    const handleMonetizationChange = (field: keyof MonetizationSettings, value: string | number | boolean) => {
+    const handleMonetizationChange = (field: keyof Omit<MonetizationSettings, 'payoutMethods'>, value: string | number) => {
         setLocalMonetizationSettings(prev => ({ ...prev, [field]: value }));
+    };
+
+    const handleTogglePayoutMethod = (id: string) => {
+        setLocalMonetizationSettings(prev => ({
+            ...prev,
+            payoutMethods: prev.payoutMethods.map(method =>
+                method.id === id ? { ...method, isEnabled: !method.isEnabled } : method
+            ),
+        }));
+    };
+    
+    const handleAddPayoutMethod = () => {
+        if (!newPayoutMethodName.trim()) return;
+        const newMethod: PayoutMethod = {
+            id: newPayoutMethodName.trim().toLowerCase().replace(/\s+/g, '-'),
+            name: newPayoutMethodName.trim(),
+            isEnabled: true,
+        };
+        if (localMonetizationSettings.payoutMethods.some(m => m.id === newMethod.id || m.name.toLowerCase() === newMethod.name.toLowerCase())) {
+            alert('A payout method with this name already exists.');
+            return;
+        }
+        setLocalMonetizationSettings(prev => ({
+            ...prev,
+            payoutMethods: [...prev.payoutMethods, newMethod]
+        }));
+        setNewPayoutMethodName('');
+    };
+
+    const handleRemovePayoutMethod = (id: string) => {
+         setLocalMonetizationSettings(prev => ({
+            ...prev,
+            payoutMethods: prev.payoutMethods.filter(method => method.id !== id),
+        }));
     };
 
     const handleSaveMonetization = () => {
@@ -136,7 +173,7 @@ const AdminSettingsView: React.FC<AdminSettingsViewProps> = ({
                 title="Monetization Settings"
                 description="Configure currency, fees, and payout options for creators."
             >
-                <div className="space-y-4">
+                <div className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
                             <label htmlFor="currencySymbol" className="block text-sm font-medium mb-1">Currency Symbol</label>
@@ -170,22 +207,41 @@ const AdminSettingsView: React.FC<AdminSettingsViewProps> = ({
                         </div>
                     </div>
                     <div>
-                        <p className="font-medium mb-2">Enabled Payout Methods</p>
+                        <p className="font-medium mb-2">Payout Methods</p>
                         <div className="space-y-2">
-                            <div className="flex items-center justify-between">
-                                <label htmlFor="paypalToggle">PayPal</label>
-                                <ToggleSwitch
-                                    isEnabled={localMonetizationSettings.isPaypalEnabled}
-                                    onToggle={() => handleMonetizationChange('isPaypalEnabled', !localMonetizationSettings.isPaypalEnabled)}
-                                />
-                            </div>
-                            <div className="flex items-center justify-between">
-                                <label htmlFor="bankToggle">Bank Transfer</label>
-                                <ToggleSwitch
-                                    isEnabled={localMonetizationSettings.isBankTransferEnabled}
-                                    onToggle={() => handleMonetizationChange('isBankTransferEnabled', !localMonetizationSettings.isBankTransferEnabled)}
-                                />
-                            </div>
+                             {localMonetizationSettings.payoutMethods.map(method => (
+                                <div key={method.id} className="flex items-center justify-between p-2 bg-gray-200 dark:bg-zinc-700/50 rounded-md">
+                                    <label htmlFor={`${method.id}-toggle`} className="flex-1 font-medium">{method.name}</label>
+                                    <div className="flex items-center gap-4">
+                                        <ToggleSwitch
+                                            isEnabled={method.isEnabled}
+                                            onToggle={() => handleTogglePayoutMethod(method.id)}
+                                        />
+                                        <button onClick={() => handleRemovePayoutMethod(method.id)} className="text-red-500 hover:text-red-400" aria-label={`Remove ${method.name}`}>
+                                            <TrashIcon className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                     <div className="mt-4 pt-4 border-t border-gray-200 dark:border-zinc-700">
+                        <p className="font-medium mb-2">Add New Payout Method</p>
+                        <div className="flex items-center gap-2">
+                            <input
+                                type="text"
+                                placeholder="e.g., Payoneer"
+                                value={newPayoutMethodName}
+                                onChange={(e) => setNewPayoutMethodName(e.target.value)}
+                                className="flex-1 p-2 bg-gray-200 dark:bg-zinc-700 rounded-md"
+                            />
+                            <button
+                                onClick={handleAddPayoutMethod}
+                                disabled={!newPayoutMethodName.trim()}
+                                className="px-4 py-2 text-sm font-semibold bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors disabled:opacity-50"
+                            >
+                                Add
+                            </button>
                         </div>
                     </div>
                 </div>

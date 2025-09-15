@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { LiveStream, User } from '../../types';
 import LiveDiscoveryView from './LiveDiscoveryView';
@@ -12,11 +13,13 @@ interface LiveViewProps {
   onShareStream: (streamId: string) => void;
   onViewProfile: (user: User) => void;
   showSuccessToast: (message: string) => void;
+  openGoLiveModal: boolean;
+  onModalOpened: () => void;
 }
 
 export type BroadcastSource = 'camera' | 'video' | 'url';
 
-const LiveView: React.FC<LiveViewProps> = ({ setIsNavVisible, currentUser, onToggleFollow, onShareStream, onViewProfile, showSuccessToast }) => {
+const LiveView: React.FC<LiveViewProps> = ({ setIsNavVisible, currentUser, onToggleFollow, onShareStream, onViewProfile, showSuccessToast, openGoLiveModal, onModalOpened }) => {
   const [isBroadcasting, setIsBroadcasting] = useState(false);
   const [myStreamTitle, setMyStreamTitle] = useState('');
   const [myStreamSource, setMyStreamSource] = useState<BroadcastSource>('camera');
@@ -28,6 +31,13 @@ const LiveView: React.FC<LiveViewProps> = ({ setIsNavVisible, currentUser, onTog
     // Show it again when they return to the discovery view.
     setIsNavVisible(!isBroadcasting);
   }, [isBroadcasting, setIsNavVisible]);
+
+  useEffect(() => {
+    if (openGoLiveModal) {
+        setIsGoLiveModalOpen(true);
+        onModalOpened();
+    }
+  }, [openGoLiveModal, onModalOpened]);
 
   // In a real app, this data would be fetched from an API.
   const liveStreams: LiveStream[] = mockLiveStreams;

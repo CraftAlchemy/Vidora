@@ -2,6 +2,7 @@
 import React from 'react';
 import { User, PayoutRequest } from '../../types';
 import { ChevronLeftIcon, DollarSignIcon, UsersIcon, GiftIcon, BankIcon } from '../icons/Icons';
+import { useCurrency } from '../../contexts/CurrencyContext';
 
 const StatCard: React.FC<{ title: string; value: string | number; icon: React.ReactNode }> = ({ title, value, icon }) => (
     <div className="bg-zinc-800 p-4 rounded-lg shadow-lg flex items-center gap-4">
@@ -33,6 +34,7 @@ interface CreatorDashboardViewProps {
 const CreatorDashboardView: React.FC<CreatorDashboardViewProps> = ({ 
     user, payouts, onBack, onOpenRequestPayout
 }) => {
+  const formatCurrency = useCurrency();
 
   return (
     <div className="h-full w-full bg-zinc-900 text-white flex flex-col">
@@ -43,10 +45,10 @@ const CreatorDashboardView: React.FC<CreatorDashboardViewProps> = ({
 
         <main className="flex-1 overflow-y-auto p-4 space-y-6">
             <div className="grid grid-cols-2 gap-4">
-                <StatCard title="Total Earnings" value={`$${(user.creatorStats?.totalEarnings ?? 0).toFixed(2)}`} icon={<DollarSignIcon className="text-green-400" />} />
+                <StatCard title="Total Earnings" value={formatCurrency(user.creatorStats?.totalEarnings ?? 0)} icon={<DollarSignIcon className="text-green-400" />} />
                 <StatCard title="Followers" value={user.followers?.toLocaleString() ?? '0'} icon={<UsersIcon className="text-blue-400" />} />
                 <StatCard title="Gifts Received" value={user.creatorStats?.receivedGiftsCount.toLocaleString() ?? '0'} icon={<GiftIcon className="text-pink-400" />} />
-                <StatCard title="Next Payout" value="$0.00" icon={<BankIcon className="text-gray-400" />} />
+                <StatCard title="Next Payout" value={formatCurrency(0)} icon={<BankIcon className="text-gray-400" />} />
             </div>
             
             <div>
@@ -72,7 +74,7 @@ const CreatorDashboardView: React.FC<CreatorDashboardViewProps> = ({
                                 {payouts.map(payout => (
                                     <tr key={payout.id} className="border-t border-zinc-700">
                                         <td className="p-3 whitespace-nowrap">{payout.requestDate}</td>
-                                        <td className="p-3 font-semibold">${payout.amount.toFixed(2)}</td>
+                                        <td className="p-3 font-semibold">{formatCurrency(payout.amount)}</td>
                                         <td className="p-3 capitalize">{payout.method}</td>
                                         <td className="p-3 text-right"><PayoutStatusBadge status={payout.status} /></td>
                                     </tr>

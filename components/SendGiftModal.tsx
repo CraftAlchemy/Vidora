@@ -1,6 +1,8 @@
+
 import React, { useState } from 'react';
 import { Gift } from '../types';
 import { CloseIcon, ChevronLeftIcon, CoinIcon } from './icons/Icons';
+import { useCurrency } from '../../contexts/CurrencyContext';
 
 interface SendGiftModalProps {
   gifts: Gift[];
@@ -14,6 +16,7 @@ const giftCategories: Gift['category'][] = ['Trending', 'Premium', 'Classic', 'F
 const SendGiftModal: React.FC<SendGiftModalProps> = ({ gifts, balance, onSend, onClose }) => {
   const [selectedGift, setSelectedGift] = useState<Gift | null>(null);
   const [activeCategory, setActiveCategory] = useState<Gift['category']>('Trending');
+  const formatCurrency = useCurrency();
 
   const handleConfirmSend = () => {
     if (selectedGift) {

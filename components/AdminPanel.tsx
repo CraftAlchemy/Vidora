@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect } from 'react';
-import { User, Video, Report, PayoutRequest, Gift } from '../types';
+import { User, Video, Report, PayoutRequest, Gift, MonetizationSettings } from '../types';
 import { mockUsers, mockVideos, mockReports, mockPayoutRequests, mockGifts } from '../services/mockApi';
 import { DashboardIcon, UsersIcon, VideoIcon, ShieldCheckIcon, DollarSignIcon, GiftIcon, RestoreIcon, SettingsIcon, LogOutIcon, SunIcon, MoonIcon } from './icons/Icons';
 import DashboardView from './admin/DashboardView';
@@ -17,19 +18,13 @@ interface AdminPanelProps {
   onExit: () => void;
   onSendSystemMessage: (userId: string, message: string) => void;
   showSuccessToast: (message: string) => void;
+  monetizationSettings: MonetizationSettings;
+  setMonetizationSettings: React.Dispatch<React.SetStateAction<MonetizationSettings>>;
 }
 
 type AdminView = 'dashboard' | 'users' | 'content' | 'moderation' | 'financials' | 'gifts' | 'verification' | 'corbeil' | 'settings';
 
-export interface MonetizationSettings {
-  currencySymbol: string;
-  processingFeePercent: number;
-  minPayoutAmount: number;
-  isPaypalEnabled: boolean;
-  isBankTransferEnabled: boolean;
-}
-
-const AdminPanel: React.FC<AdminPanelProps> = ({ user, onExit, onSendSystemMessage, showSuccessToast }) => {
+const AdminPanel: React.FC<AdminPanelProps> = ({ user, onExit, onSendSystemMessage, showSuccessToast, monetizationSettings, setMonetizationSettings }) => {
   const [activeView, setActiveView] = useState<AdminView>('dashboard');
 
   // Theme State
@@ -67,14 +62,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ user, onExit, onSendSystemMessa
     accountVerified: "Congratulations {username}! Your account has been successfully verified.",
     accountRestored: "Welcome back, {username}! Your account has been restored and is now active.",
     payoutRejected: "Your recent payout request for ${amount} has been rejected. Please contact support for more details."
-  });
-
-  const [monetizationSettings, setMonetizationSettings] = useState<MonetizationSettings>({
-    currencySymbol: '$',
-    processingFeePercent: 5,
-    minPayoutAmount: 50,
-    isPaypalEnabled: true,
-    isBankTransferEnabled: true,
   });
 
   useEffect(() => {

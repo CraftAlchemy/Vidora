@@ -2,6 +2,7 @@
 import React, { useState, useMemo } from 'react';
 import { PayoutRequest, User } from '../../types';
 import { DollarSignIcon, SortUpIcon, SortDownIcon } from '../icons/Icons';
+import { useCurrency } from '../../contexts/CurrencyContext';
 
 type PayoutStatus = 'pending' | 'approved' | 'rejected';
 
@@ -41,6 +42,7 @@ const FinancialsView: React.FC<FinancialsViewProps> = ({ payouts, users, onUpdat
     const [activeTab, setActiveTab] = useState<PayoutStatus>('pending');
     const [payoutToConfirm, setPayoutToConfirm] = useState<{ id: string; action: 'approved' | 'rejected' } | null>(null);
     const [sortConfig, setSortConfig] = useState<{ key: string | null; direction: 'asc' | 'desc' }>({ key: 'requestDate', direction: 'desc' });
+    const formatCurrency = useCurrency();
 
     const filteredPayouts = useMemo(() =>
         payouts.filter(p => p.status === activeTab),
@@ -104,9 +106,9 @@ const FinancialsView: React.FC<FinancialsViewProps> = ({ payouts, users, onUpdat
         <>
         <div className="space-y-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                <StatCard title="Total Platform Revenue" value={`$${financialStats.totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} icon={<DollarSignIcon className="text-pink-500" />} />
-                <StatCard title="Pending Payouts" value={`$${financialStats.pendingPayouts.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} icon={<DollarSignIcon className="text-yellow-500" />} />
-                <StatCard title="Total Paid Out" value={`$${financialStats.totalPaid.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} icon={<DollarSignIcon className="text-green-500" />} />
+                <StatCard title="Total Platform Revenue" value={formatCurrency(financialStats.totalRevenue)} icon={<DollarSignIcon className="text-pink-500" />} />
+                <StatCard title="Pending Payouts" value={formatCurrency(financialStats.pendingPayouts)} icon={<DollarSignIcon className="text-yellow-500" />} />
+                <StatCard title="Total Paid Out" value={formatCurrency(financialStats.totalPaid)} icon={<DollarSignIcon className="text-green-500" />} />
             </div>
 
             <div className="bg-white dark:bg-zinc-900 rounded-lg shadow-md border border-gray-200 dark:border-zinc-800">
@@ -146,7 +148,7 @@ const FinancialsView: React.FC<FinancialsViewProps> = ({ payouts, users, onUpdat
                                         <img src={payout.user.avatarUrl} alt={payout.user.username} className="w-8 h-8 rounded-full mr-3" />
                                         <span className="font-semibold text-gray-800 dark:text-white">@{payout.user.username}</span>
                                     </td>
-                                    <td className="p-4 font-semibold text-gray-800 dark:text-white">${payout.amount.toFixed(2)}</td>
+                                    <td className="p-4 font-semibold text-gray-800 dark:text-white">{formatCurrency(payout.amount)}</td>
                                     <td className="p-4 capitalize">{payout.method}</td>
                                     <td className="p-4 text-xs">{payout.payoutInfo}</td>
                                     <td className="p-4 whitespace-nowrap">{payout.requestDate}</td>

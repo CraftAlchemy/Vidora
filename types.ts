@@ -151,12 +151,25 @@ export interface Poll {
   totalVotes: number;
 }
 
+export interface PayoutMethod {
+  id: string;
+  name: string;
+  isEnabled: boolean;
+}
+
+export interface MonetizationSettings {
+  currencySymbol: string;
+  processingFeePercent: number;
+  minPayoutAmount: number;
+  payoutMethods: PayoutMethod[];
+}
+
 export interface PayoutRequest {
   id: string;
   user: User;
   amount: number;
   status: 'pending' | 'approved' | 'rejected';
-  method: 'paypal' | 'bank';
+  method: string;
   payoutInfo: string; // email for paypal, account info for bank
   requestDate: string;
   processedDate?: string;

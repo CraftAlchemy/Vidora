@@ -1,7 +1,9 @@
+
 import React from 'react';
 import { User, WalletTransaction } from '../../types';
 import { ChevronLeftIcon, CoinIcon, PlusCircleIcon, GiftIcon, StarIcon } from '../icons/Icons';
 import { CoinPack } from '../../App';
+import { useCurrency } from '../../contexts/CurrencyContext';
 
 interface WalletViewProps {
   user: User;
@@ -56,6 +58,7 @@ const TransactionItem: React.FC<{ transaction: WalletTransaction }> = ({ transac
 
 const WalletView: React.FC<WalletViewProps> = ({ user, onBack, onNavigateToPurchase }) => {
   const wallet = user.wallet;
+  const formatCurrency = useCurrency();
 
   if (!wallet) {
     return (
@@ -110,7 +113,7 @@ const WalletView: React.FC<WalletViewProps> = ({ user, onBack, onNavigateToPurch
                             {pack.amount.toLocaleString()}
                         </p>
                         <p className="text-sm text-gray-300 mt-1">{pack.description}</p>
-                        <p className="text-sm text-white font-semibold mt-2">${pack.price.toFixed(2)}</p>
+                        <p className="text-sm text-white font-semibold mt-2">{formatCurrency(pack.price)}</p>
                     </button>
                 ))}
             </div>
