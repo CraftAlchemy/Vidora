@@ -30,9 +30,9 @@ const ContentManagementView: React.FC = () => {
     const totalPages = Math.ceil(filteredVideos.length / videosPerPage);
     
     return (
-         <div className="bg-white dark:bg-zinc-900 p-6 rounded-lg shadow-md border border-gray-200 dark:border-zinc-800">
+         <div className="bg-white dark:bg-zinc-900 p-4 sm:p-6 rounded-lg shadow-md border border-gray-200 dark:border-zinc-800">
             <div className="flex justify-between items-center mb-4">
-                <div className="relative">
+                <div className="relative w-full sm:w-auto">
                     <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                     <input
                         type="text"
@@ -62,16 +62,16 @@ const ContentManagementView: React.FC = () => {
                         {currentVideos.map(video => (
                             <tr key={video.id} className="border-b dark:border-zinc-800 hover:bg-gray-50 dark:hover:bg-zinc-800/50">
                                 <td className="p-4 flex items-center">
-                                    <img src={video.thumbnailUrl} alt="thumbnail" className="w-16 h-16 object-cover rounded-md mr-4" />
+                                    <img src={video.thumbnailUrl} alt="thumbnail" className="w-16 h-16 object-cover rounded-md mr-4 shrink-0" />
                                     <p className="font-semibold text-gray-800 dark:text-white max-w-xs truncate">{video.description}</p>
                                 </td>
                                 <td className="p-4">@{video.user.username}</td>
-                                <td className="p-4">
+                                <td className="p-4 whitespace-nowrap">
                                     <div>❤️ {video.likes.toLocaleString()}</div>
                                     <div>💬 {video.comments.toLocaleString()}</div>
                                 </td>
                                 <td className="p-4"><StatusBadge status={video.status} /></td>
-                                <td className="p-4">{video.uploadDate}</td>
+                                <td className="p-4 whitespace-nowrap">{video.uploadDate}</td>
                                 <td className="p-4">
                                     <button onClick={() => alert(`Actions for ${video.id}`)} className="p-1 rounded-full hover:bg-gray-200 dark:hover:bg-zinc-700">
                                         <MoreVerticalIcon />
@@ -82,7 +82,7 @@ const ContentManagementView: React.FC = () => {
                     </tbody>
                 </table>
             </div>
-             <div className="flex justify-between items-center mt-4 text-sm">
+             <div className="flex flex-col sm:flex-row justify-between items-center mt-4 text-sm gap-4">
                 <span className="text-gray-500 dark:text-gray-400">
                      Showing {indexOfFirstVideo + 1}-{Math.min(indexOfLastVideo, filteredVideos.length)} of {filteredVideos.length}
                 </span>

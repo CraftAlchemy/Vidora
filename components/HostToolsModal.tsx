@@ -1,7 +1,47 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState } from 'react';
 import { CloseIcon, PinIcon, MoreVerticalIcon, MuteUserIcon, BanUserIcon, PollIcon, MicrophoneIcon, MicrophoneOffIcon, VideoIcon, VideoCameraOffIcon } from './icons/Icons';
 import { User } from '../types';
 import { BroadcastSource } from './views/LiveView';
+
+interface ViewerActionModalProps {
+    viewer: User;
+    isMuted: boolean;
+    onClose: () => void;
+    onMuteToggle: () => void;
+    onBan: () => void;
+}
+
+const ViewerActionModal: React.FC<ViewerActionModalProps> = ({ viewer, isMuted, onClose, onMuteToggle, onBan }) => {
+    return (
+        <div 
+            className="fixed inset-0 bg-black/70 flex justify-center items-center z-[60] p-4" 
+            onClick={onClose}
+        >
+            <div 
+                className="bg-zinc-800 rounded-lg shadow-xl w-full max-w-xs text-white animate-fade-in-up" 
+                onClick={e => e.stopPropagation()}
+            >
+                <div className="p-4 border-b border-zinc-700 text-center">
+                    <h3 className="font-bold">Actions for @{viewer.username}</h3>
+                </div>
+                <div className="flex flex-col">
+                    <button onClick={onMuteToggle} className="flex items-center gap-3 p-4 text-left hover:bg-zinc-700 w-full transition-colors">
+                        <MuteUserIcon className="w-5 h-5 text-yellow-400"/>
+                        <span>{isMuted ? 'Unmute User' : 'Mute User'}</span>
+                    </button>
+                    <button onClick={onBan} className="flex items-center gap-3 p-4 text-left text-red-400 hover:bg-zinc-700 w-full transition-colors">
+                        <BanUserIcon className="w-5 h-5"/>
+                        <span>Ban User</span>
+                    </button>
+                     <button onClick={onClose} className="p-3 text-center border-t border-zinc-700 text-gray-300 font-semibold hover:bg-zinc-700 w-full transition-colors rounded-b-lg">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 
 interface HostToolsModalProps {
   onClose: () => void;
@@ -28,8 +68,7 @@ const HostToolsModal: React.FC<HostToolsModalProps> = ({
     sourceType, isMuted, onToggleMute, isVideoOff, onToggleVideo
 }) => {
     const [message, setMessage] = useState(pinnedMessage);
-    const [actionMenuForUser, setActionMenuForUser] = useState<string | null>(null);
-    const actionMenuRef = useRef<HTMLDivElement>(null);
+    const [selectedViewerForAction, setSelectedViewerForAction] = useState<User | null>(null);
 
     const handlePin = () => {
         onSetPinnedMessage(message);
@@ -39,22 +78,9 @@ const HostToolsModal: React.FC<HostToolsModalProps> = ({
         setMessage('');
         onSetPinnedMessage('');
     };
-    
-    const toggleActionMenu = (userId: string) => {
-        setActionMenuForUser(prev => (prev === userId ? null : userId));
-    };
-
-    useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (actionMenuRef.current && !actionMenuRef.current.contains(event.target as Node)) {
-                setActionMenuForUser(null);
-            }
-        };
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, []);
 
     return (
+        <>
         <div className="fixed inset-0 bg-black bg-opacity-70 flex justify-center items-end z-50">
             <div className="bg-zinc-900/80 backdrop-blur-xl rounded-t-2xl shadow-xl w-full max-w-lg text-white relative animate-slide-in-up flex flex-col h-[70vh]">
                 <header className="flex-shrink-0 flex justify-center items-center p-4 border-b border-zinc-800 relative">
@@ -164,30 +190,9 @@ const HostToolsModal: React.FC<HostToolsModalProps> = ({
                                             <p className="text-xs text-gray-400">Level {viewer.level}</p>
                                         </div>
                                     </button>
-                                    <div className="relative" ref={actionMenuForUser === viewer.id ? actionMenuRef : null}>
-                                        <button onClick={() => toggleActionMenu(viewer.id)} className="p-1 text-gray-400 hover:text-white">
-                                            <MoreVerticalIcon />
-                                        </button>
-                                        {actionMenuForUser === viewer.id && (
-                                            <div className="absolute right-0 bottom-full mb-1 w-36 bg-zinc-700 rounded-md shadow-lg z-10 animate-fade-in-up">
-                                                <button 
-                                                    onClick={() => {
-                                                        isMuted ? onUnmuteUser(viewer.id) : onMuteUser(viewer.id);
-                                                        setActionMenuForUser(null);
-                                                    }}
-                                                    className="flex items-center gap-2 w-full text-left px-3 py-2 text-sm hover:bg-zinc-600 rounded-t-md"
-                                                >
-                                                    <MuteUserIcon className="w-4 h-4" /> {isMuted ? 'Unmute' : 'Mute'}
-                                                </button>
-                                                <button 
-                                                    onClick={() => { onBanUser(viewer.id); setActionMenuForUser(null); }}
-                                                    className="flex items-center gap-2 w-full text-left px-3 py-2 text-sm text-red-400 hover:bg-zinc-600 rounded-b-md"
-                                                >
-                                                    <BanUserIcon className="w-4 h-4"/> Ban
-                                                </button>
-                                            </div>
-                                        )}
-                                    </div>
+                                    <button onClick={() => setSelectedViewerForAction(viewer)} className="p-1 text-gray-400 hover:text-white">
+                                        <MoreVerticalIcon />
+                                    </button>
                                 </div>
                             )})}
                         </div>
@@ -195,6 +200,27 @@ const HostToolsModal: React.FC<HostToolsModalProps> = ({
                 </main>
             </div>
         </div>
+        
+        {selectedViewerForAction && (
+            <ViewerActionModal
+                viewer={selectedViewerForAction}
+                isMuted={mutedUserIds.includes(selectedViewerForAction.id)}
+                onClose={() => setSelectedViewerForAction(null)}
+                onMuteToggle={() => {
+                    if (mutedUserIds.includes(selectedViewerForAction.id)) {
+                        onUnmuteUser(selectedViewerForAction.id);
+                    } else {
+                        onMuteUser(selectedViewerForAction.id);
+                    }
+                    setSelectedViewerForAction(null);
+                }}
+                onBan={() => {
+                    onBanUser(selectedViewerForAction.id);
+                    setSelectedViewerForAction(null);
+                }}
+            />
+        )}
+        </>
     );
 };
 

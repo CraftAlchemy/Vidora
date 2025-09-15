@@ -4,7 +4,7 @@ export interface User {
   email: string;
   avatarUrl: string;
   role: 'user' | 'creator' | 'moderator' | 'admin';
-  status: 'active' | 'suspended' | 'banned';
+  status: 'active' | 'suspended' | 'banned' | 'deleted';
   isVerified: boolean;
   joinDate: string;
   lastLogin: string;
@@ -21,6 +21,7 @@ export interface User {
   xp?: number;
   streakCount?: number;
   badges?: Badge[];
+  deletionDate?: string;
 }
 
 export interface Badge {

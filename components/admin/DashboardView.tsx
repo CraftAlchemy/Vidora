@@ -17,7 +17,7 @@ const StatCard: React.FC<{ title: string; value: string | number; change?: strin
 const DashboardView: React.FC = () => {
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard title="Revenue Today" value={`$${mockAdminStats.revenueToday.toLocaleString()}`} change="+5.4%" changeType="up" />
         <StatCard title="Daily Active Users (DAU)" value={mockAdminStats.dau.toLocaleString()} />
         <StatCard title="New Users Today" value={mockAdminStats.newUsersToday.toLocaleString()} change="+12%" changeType="up" />

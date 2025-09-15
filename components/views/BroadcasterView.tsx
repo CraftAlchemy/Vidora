@@ -26,8 +26,8 @@ interface ModerationActionModalProps {
 }
 const ModerationActionModal: React.FC<ModerationActionModalProps> = ({ user, onClose, onMute, onBan }) => {
     return (
-        <div className="fixed inset-0 bg-black/70 flex justify-center items-center z-50 p-4" onClick={onClose}>
-            <div className="bg-zinc-800 rounded-lg shadow-xl w-full max-w-xs text-white animate-fade-in-up" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/70 flex justify-center items-end sm:items-center z-50 p-4" onClick={onClose}>
+            <div className="bg-zinc-800 rounded-t-lg sm:rounded-lg shadow-xl w-full max-w-xs text-white animate-slide-in-up sm:animate-fade-in-up" onClick={e => e.stopPropagation()}>
                 <div className="p-4 border-b border-zinc-700 text-center">
                     <h3 className="font-bold">@{user.username}</h3>
                 </div>
