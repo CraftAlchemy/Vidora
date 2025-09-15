@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Video, User } from '../types';
-import { HeartIcon, CommentIcon, ShareIcon, MusicIcon, PlayIcon, PauseIcon, FullScreenIcon } from './icons/Icons';
+import { HeartIcon, CommentIcon, ShareIcon, MusicIcon, PlayIcon, PauseIcon, FullScreenIcon, VolumeUpIcon, VolumeOffIcon } from './icons/Icons';
 
 interface VideoPlayerProps {
   video: Video;
@@ -21,6 +21,12 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ video, isActive, onOpenCommen
   const [isShared, setIsShared] = useState(false);
   const [isSharing, setIsSharing] = useState(false); // Add state to track sharing process
   const [isFullScreen, setIsFullScreen] = useState(false);
+  
+  // Volume state
+  const [isMuted, setIsMuted] = useState(true); // Start muted for autoplay
+  const [volume, setVolume] = useState(1);
+  const [showVolumeSlider, setShowVolumeSlider] = useState(false);
+  const volumeSliderTimeout = useRef<NodeJS.Timeout | null>(null);
 
   // New state and refs for double-tap feature
   const [likeAnimation, setLikeAnimation] = useState<{ key: number, x: number, y: number } | null>(null);
@@ -43,6 +49,13 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ video, isActive, onOpenCommen
       setIsPlaying(false);
     }
   }, [isActive]);
+
+  useEffect(() => {
+    if (videoRef.current) {
+        videoRef.current.volume = volume;
+        videoRef.current.muted = isMuted;
+    }
+  }, [volume, isMuted]);
   
   useEffect(() => {
     const handleFullScreenChange = () => {
@@ -159,6 +172,22 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ video, isActive, onOpenCommen
     }
   };
 
+  const toggleMute = () => {
+    setIsMuted(prev => !prev);
+    setShowVolumeSlider(true);
+    if (volumeSliderTimeout.current) clearTimeout(volumeSliderTimeout.current);
+    volumeSliderTimeout.current = setTimeout(() => setShowVolumeSlider(false), 3000);
+  };
+
+  const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newVolume = parseFloat(e.target.value);
+    setVolume(newVolume);
+    setIsMuted(newVolume === 0);
+    
+    if (volumeSliderTimeout.current) clearTimeout(volumeSliderTimeout.current);
+    volumeSliderTimeout.current = setTimeout(() => setShowVolumeSlider(false), 3000);
+  };
+
   return (
     <div ref={containerRef} className="relative w-full h-full snap-start" data-video-id={video.id}>
       <video
@@ -218,23 +247,54 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ video, isActive, onOpenCommen
         </div>
       </div>
       
-      <div className="absolute right-2 bottom-20 flex flex-col items-center space-y-5 text-white">
-        <button onClick={handleLike} className="flex flex-col items-center">
-          <HeartIcon isFilled={isLiked} />
-          <span className="text-xs font-semibold mt-1">{video.likes + (isLiked ? 1 : 0)}</span>
-        </button>
-        <button onClick={onOpenComments} className="flex flex-col items-center">
-          <CommentIcon />
-          <span className="text-xs font-semibold mt-1">{video.comments}</span>
-        </button>
-        <button onClick={handleShare} disabled={isSharing} className="flex flex-col items-center disabled:opacity-50">
-          <ShareIcon />
-          <span className="text-xs font-semibold mt-1">{video.shares + (isShared ? 1 : 0)}</span>
-        </button>
-         <button onClick={toggleFullScreen} className="flex flex-col items-center">
-          <FullScreenIcon isFullScreen={isFullScreen} />
-          <span className="text-xs font-semibold mt-1">{isFullScreen ? 'Exit' : 'Full'}</span>
-        </button>
+      <div className="absolute right-2 bottom-20 flex items-end space-x-2 text-white">
+        {/* Volume Slider */}
+        {showVolumeSlider && (
+            <div className="bg-black/50 rounded-full h-24 w-8 flex items-center justify-center p-2 animate-fade-in-fast">
+                <input
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.05"
+                    value={isMuted ? 0 : volume}
+                    onChange={handleVolumeChange}
+                    className="w-2 h-full appearance-none bg-transparent 
+                                [&::-webkit-slider-runnable-track]:bg-white/30 
+                                [&::-webkit-slider-runnable-track]:rounded-full
+                                [&::-webkit-slider-thumb]:appearance-none 
+                                [&::-webkit-slider-thumb]:h-4 
+                                [&::-webkit-slider-thumb]:w-4 
+                                [&::-webkit-slider-thumb]:rounded-full 
+                                [&::-webkit-slider-thumb]:bg-white
+                                cursor-pointer"
+                    style={{ writingMode: 'vertical-lr' }}
+                />
+            </div>
+        )}
+
+        {/* Action Buttons Column */}
+        <div className="flex flex-col items-center space-y-5">
+            <button onClick={handleLike} className="flex flex-col items-center">
+            <HeartIcon isFilled={isLiked} />
+            <span className="text-xs font-semibold mt-1">{video.likes + (isLiked ? 1 : 0)}</span>
+            </button>
+            <button onClick={onOpenComments} className="flex flex-col items-center">
+            <CommentIcon />
+            <span className="text-xs font-semibold mt-1">{video.comments}</span>
+            </button>
+            <button onClick={handleShare} disabled={isSharing} className="flex flex-col items-center disabled:opacity-50">
+            <ShareIcon />
+            <span className="text-xs font-semibold mt-1">{video.shares + (isShared ? 1 : 0)}</span>
+            </button>
+            <button onClick={toggleFullScreen} className="flex flex-col items-center">
+            <FullScreenIcon isFullScreen={isFullScreen} />
+            <span className="text-xs font-semibold mt-1">{isFullScreen ? 'Exit' : 'Full'}</span>
+            </button>
+            <button onClick={toggleMute} className="flex flex-col items-center">
+                {isMuted || volume === 0 ? <VolumeOffIcon /> : <VolumeUpIcon />}
+                <span className="text-xs font-semibold mt-1">{isMuted ? 'Unmute' : 'Mute'}</span>
+            </button>
+        </div>
       </div>
     </div>
   );
