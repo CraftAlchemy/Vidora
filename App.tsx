@@ -1,6 +1,7 @@
+
 import React, { useState, useEffect } from 'react';
 import { User, Video, LiveStream, WalletTransaction, Conversation, ChatMessage, Comment } from './types';
-import { mockUser, mockVideos, mockLiveStreams, mockConversations } from './services/mockApi';
+import { mockUser, mockUsers, mockVideos, mockLiveStreams, mockConversations, systemUser } from './services/mockApi';
 
 import AuthView from './components/views/AuthView';
 import FeedView from './components/views/FeedView';
@@ -413,6 +414,52 @@ const App: React.FC = () => {
         }, 2500);
     };
 
+    const sendSystemMessage = (targetUserId: string, text: string) => {
+        const targetUser = mockUsers.find(u => u.id === targetUserId);
+        if (!targetUser) return;
+
+        const newMessage: ChatMessage = {
+            id: `msg-system-${Date.now()}`,
+            senderId: systemUser.id,
+            text,
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            isRead: false,
+        };
+        
+        setConversations(prev => {
+            const existingConvoIndex = prev.findIndex(c => c.user.id === targetUserId);
+            
+            if (existingConvoIndex > -1) {
+                // Add to existing conversation
+                const newConvos = [...prev];
+                const updatedConvo = { ...newConvos[existingConvoIndex] };
+                updatedConvo.messages = [...updatedConvo.messages, newMessage];
+                updatedConvo.lastMessage = {
+                    text: newMessage.text,
+                    timestamp: newMessage.timestamp,
+                    isRead: false,
+                    senderId: newMessage.senderId,
+                };
+                newConvos[existingConvoIndex] = updatedConvo;
+                return newConvos;
+            } else {
+                // Create new conversation
+                const newConvo: Conversation = {
+                    id: `convo-system-${targetUserId}`,
+                    user: targetUser,
+                    messages: [newMessage],
+                    lastMessage: {
+                        text: newMessage.text,
+                        timestamp: newMessage.timestamp,
+                        isRead: false,
+                        senderId: newMessage.senderId,
+                    }
+                };
+                return [newConvo, ...prev];
+            }
+        });
+    };
+
     const showSuccessToast = (message: string) => {
         setSuccessMessage(message);
         setTimeout(() => setSuccessMessage(''), 3000);
@@ -424,7 +471,7 @@ const App: React.FC = () => {
     }
 
     if (activeView === 'admin') {
-        return <AdminPanel user={currentUser} onExit={() => handleNavigate('profile')} />
+        return <AdminPanel user={currentUser} onExit={() => handleNavigate('profile')} onSendSystemMessage={sendSystemMessage} />
     }
 
     const renderView = () => {
@@ -436,6 +483,7 @@ const App: React.FC = () => {
                     setIsNavVisible={setIsNavVisible} 
                     currentUser={currentUser}
                     onToggleFollow={handleToggleFollow}
+// FIX: The prop 'onShareStream' was being passed an undefined variable 'onShareStream'. Changed to pass the correct handler 'handleShareStream'.
                     onShareStream={handleShareStream}
                     onViewProfile={handleViewProfile}
                     showSuccessToast={showSuccessToast}

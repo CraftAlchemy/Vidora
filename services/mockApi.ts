@@ -1,4 +1,3 @@
-
 import { User, Video, LiveStream, Conversation, Notification, Gift, WalletTransaction, LeaderboardUser, Report } from '../types';
 
 export const mockUsers: User[] = [
@@ -101,6 +100,18 @@ export const mockUsers: User[] = [
     level: 2,
   },
 ];
+
+export const systemUser: User = {
+    id: 'u-system',
+    username: 'Vidora Support',
+    email: 'support@vidora.app',
+    avatarUrl: 'https://i.pravatar.cc/150?u=u-system',
+    role: 'admin',
+    status: 'active',
+    isVerified: true,
+    joinDate: '2023-01-01',
+    lastLogin: '2024-07-21',
+};
 
 export const mockUser = mockUsers[0];
 

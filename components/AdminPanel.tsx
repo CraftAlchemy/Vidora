@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { User } from '../types';
-import { mockUsers } from '../services/mockApi';
+import { User, Video, Report, Comment } from '../types';
+import { mockUsers, mockVideos, mockReports } from '../services/mockApi';
 import {
   DashboardIcon, UsersIcon, VideoIcon, DollarSignIcon, ShieldCheckIcon, GiftAdminIcon, SettingsIcon,
   SunIcon, MoonIcon, SearchIcon, ChevronLeftIcon, ArchiveBoxIcon, MenuIcon, CloseIcon,
@@ -22,6 +22,7 @@ type AdminView = 'dashboard' | 'users' | 'content' | 'financials' | 'moderation'
 interface AdminPanelProps {
   user: User;
   onExit: () => void;
+  onSendSystemMessage: (userId: string, message: string) => void;
 }
 
 const Sidebar: React.FC<{ 
@@ -89,28 +90,52 @@ const Sidebar: React.FC<{
   );
 };
 
-const AdminPanel: React.FC<AdminPanelProps> = ({ user, onExit }) => {
+const AdminPanel: React.FC<AdminPanelProps> = ({ user, onExit, onSendSystemMessage }) => {
   const [currentView, setCurrentView] = useState<AdminView>('dashboard');
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [users, setUsers] = useState<User[]>(mockUsers);
+  const [videos, setVideos] = useState<Video[]>(mockVideos);
+  const [reports, setReports] = useState<Report[]>(mockReports);
   const [userToVerify, setUserToVerify] = useState<User | null>(null);
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
+  const [selectedVideoIds, setSelectedVideoIds] = useState<string[]>([]);
+  const [selectedReportIds, setSelectedReportIds] = useState<string[]>([]);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
+  const getMessageForStatus = (status: User['status']): string | null => {
+      switch(status) {
+          case 'suspended': return "Your account has been temporarily suspended due to a violation of our community guidelines. Please review our policies. You may appeal this decision by replying to this message.";
+          case 'banned': return "Your account has been permanently banned due to repeated or severe violations of our community guidelines. This decision is final.";
+          case 'active': return "Welcome back! Your account has been restored and is now active. Please ensure you adhere to our community guidelines.";
+          default: return null;
+      }
+  }
+
   const handleUpdateUser = (updatedUser: User) => {
+    const oldUser = users.find(u => u.id === updatedUser.id);
     setUsers(prev => prev.map(u => u.id === updatedUser.id ? { ...u, ...updatedUser } : u));
+
+    if (oldUser && oldUser.status !== updatedUser.status) {
+        const message = getMessageForStatus(updatedUser.status);
+        if (message) {
+            onSendSystemMessage(updatedUser.id, message);
+        }
+    }
   };
   
   const handleAddUser = (newUser: User) => {
     setUsers(prev => [newUser, ...prev]);
+    onSendSystemMessage(newUser.id, `Welcome to Vidora! Your account has been created with the role: ${newUser.role}.`);
   };
   
   const handleSoftDeleteUser = (userId: string) => {
     setUsers(prev => prev.map(u => u.id === userId ? { ...u, status: 'deleted', deletionDate: new Date().toISOString() } : u));
+    onSendSystemMessage(userId, "Your account has been scheduled for deletion and will be permanently removed in 30 days. If you believe this is an error, please contact support by replying to this message.");
   };
   
   const handleRestoreUser = (userId: string) => {
     setUsers(prev => prev.map(u => u.id === userId ? { ...u, status: 'active', deletionDate: undefined } : u));
+    onSendSystemMessage(userId, "Your account has been successfully restored from the corbeil. Welcome back!");
   };
 
   const handlePermanentlyDeleteUser = (userId: string) => {
@@ -124,27 +149,106 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ user, onExit }) => {
 
   const handleUpdateUserVerification = (userId: string, isVerified: boolean) => {
     setUsers(prev => prev.map(u => (u.id === userId ? { ...u, isVerified } : u)));
+    const message = isVerified
+      ? "Congratulations! Your account has been successfully verified. You now have a verification badge on your profile."
+      : "Your account verification has been removed. If you believe this is an error, please contact support by replying to this message.";
+    onSendSystemMessage(userId, message);
   };
 
   const handleBulkUpdateStatus = (ids: string[], status: User['status']) => {
     setUsers(prev => prev.map(u => (ids.includes(u.id) ? { ...u, status } : u)));
     setSelectedUserIds([]);
+    const message = getMessageForStatus(status);
+    if (message) {
+        ids.forEach(id => onSendSystemMessage(id, message));
+    }
   };
 
   const handleBulkSoftDelete = (ids: string[]) => {
     const deletionDate = new Date().toISOString();
     setUsers(prev => prev.map(u => (ids.includes(u.id) ? { ...u, status: 'deleted', deletionDate } : u)));
     setSelectedUserIds([]);
+    const message = "Your account has been scheduled for deletion and will be permanently removed in 30 days. If you believe this is an error, please contact support by replying to this message.";
+    ids.forEach(id => onSendSystemMessage(id, message));
   };
 
   const handleBulkRestore = (ids: string[]) => {
     setUsers(prev => prev.map(u => (ids.includes(u.id) ? { ...u, status: 'active', deletionDate: undefined } : u)));
     setSelectedUserIds([]);
+    const message = "Your account has been successfully restored from the corbeil. Welcome back!";
+    ids.forEach(id => onSendSystemMessage(id, message));
   };
 
   const handleBulkPermanentDelete = (ids: string[]) => {
     setUsers(prev => prev.filter(u => !ids.includes(u.id)));
     setSelectedUserIds([]);
+  };
+
+  const handleUpdateVideoStatus = (videoId: string, status: Video['status']) => {
+    setVideos(prev => prev.map(v => v.id === videoId ? { ...v, status } : v));
+  };
+  
+  const handleDeleteVideo = (videoId: string) => {
+    setVideos(prev => prev.filter(v => v.id !== videoId));
+  };
+
+  const handleBulkUpdateVideoStatus = (ids: string[], status: Video['status']) => {
+    setVideos(prev => prev.map(v => (ids.includes(v.id) ? { ...v, status } : v)));
+    setSelectedVideoIds([]);
+  };
+
+  const handleBulkDeleteVideo = (ids: string[]) => {
+    setVideos(prev => prev.filter(v => !ids.includes(v.id)));
+    setSelectedVideoIds([]);
+  };
+
+  const handleResolveReport = (reportId: string) => {
+    const report = reports.find(r => r.id === reportId);
+    if (!report) return;
+
+    if (report.contentType === 'video') {
+      handleUpdateVideoStatus(report.contentId, 'removed');
+      const video = videos.find(v => v.id === report.contentId);
+      if (video) onSendSystemMessage(video.user.id, `Your video ("${video.description.substring(0, 20)}...") was removed for violating community guidelines based on a user report.`);
+    } else if (report.contentType === 'user') {
+      const userToUpdate = users.find(u => u.id === report.contentId);
+      if (userToUpdate) {
+          handleUpdateUser({ ...userToUpdate, status: 'suspended' }); // Sends message automatically
+      }
+    } else if (report.contentType === 'comment') {
+      let commentOwnerId: string | undefined;
+      setVideos(prevVideos => prevVideos.map(v => {
+        const commentToRemove = v.commentsData.find(c => c.id === report.contentId);
+        if (commentToRemove) {
+          commentOwnerId = commentToRemove.user.id;
+          return {
+            ...v,
+            comments: v.comments - 1,
+            commentsData: v.commentsData.filter(c => c.id !== report.contentId)
+          };
+        }
+        return v;
+      }));
+      if (commentOwnerId) {
+        onSendSystemMessage(commentOwnerId, "One of your comments was removed for violating community guidelines based on a user report.");
+      }
+    }
+
+    setReports(prev => prev.map(r => (r.id === reportId ? { ...r, status: 'resolved' } : r)));
+  };
+
+  const handleDismissReport = (reportId: string) => {
+    setReports(prev => prev.map(r => (r.id === reportId ? { ...r, status: 'dismissed' } : r)));
+  };
+
+  const handleBulkResolveReports = (ids: string[]) => {
+    ids.forEach(id => handleResolveReport(id));
+    setSelectedReportIds([]);
+  };
+
+  const handleBulkDismissReports = (ids: string[]) => {
+    setReports(prev => prev.map(r => (ids.includes(r.id) ? { ...r, status: 'dismissed' } : r)));
+    setSelectedReportIds([]);
   };
 
   const activeUsers = users.filter(u => u.status !== 'deleted');
@@ -178,9 +282,27 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ user, onExit }) => {
             onBulkPermanentDelete={handleBulkPermanentDelete}
         />
       );
-      case 'content': return <ContentManagementView />;
+      case 'content': return <ContentManagementView 
+          videos={videos} 
+          onUpdateVideoStatus={handleUpdateVideoStatus} 
+          onDeleteVideo={handleDeleteVideo}
+          selectedVideoIds={selectedVideoIds}
+          onSetSelectedVideoIds={setSelectedVideoIds}
+          onBulkUpdateStatus={handleBulkUpdateVideoStatus}
+          onBulkDelete={handleBulkDeleteVideo}
+        />;
       case 'financials': return <FinancialsView />;
-      case 'moderation': return <ModerationQueueView />;
+      case 'moderation': return <ModerationQueueView
+        reports={reports}
+        users={users}
+        videos={videos}
+        onResolveReport={handleResolveReport}
+        onDismissReport={handleDismissReport}
+        selectedReportIds={selectedReportIds}
+        onSetSelectedReportIds={setSelectedReportIds}
+        onBulkResolve={handleBulkResolveReports}
+        onBulkDismiss={handleBulkDismissReports}
+      />;
       case 'gifts': return <GiftManagementView />;
       case 'settings': return <AdminSettingsView />;
       case 'verification': 
