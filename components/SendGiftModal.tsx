@@ -1,8 +1,7 @@
-
 import React, { useState } from 'react';
 import { Gift } from '../types';
 import { CloseIcon, ChevronLeftIcon, CoinIcon } from './icons/Icons';
-import { useCurrency } from '../../contexts/CurrencyContext';
+import { useCurrency } from '../contexts/CurrencyContext';
 
 interface SendGiftModalProps {
   gifts: Gift[];
