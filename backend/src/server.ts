@@ -1,13 +1,12 @@
 
-// fix: Imported Request and Response types from express to correctly type route handlers.
-import express, { Request, Response } from 'express';
+import express from 'express';
 import cors from 'cors';
 import authRoutes from './routes/auth.routes';
 import userRoutes from './routes/user.routes';
 import videoRoutes from './routes/video.routes';
 import livestreamRoutes from './routes/livestream.routes';
 
-const app = express();
+const app: express.Express = express();
 const PORT = process.env.PORT || 5000;
 
 // Use a more explicit CORS configuration to prevent "Failed to fetch" errors from the browser.
@@ -25,8 +24,8 @@ app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/videos', videoRoutes);
 app.use('/api/v1/livestreams', livestreamRoutes);
 
-// fix: Use the imported Request and Response types for the route handler to ensure correct types.
-app.get('/', (req: Request, res: Response) => {
+// FIX: Use namespaced express types to prevent conflicts with global types.
+app.get('/', (req: express.Request, res: express.Response) => {
     res.send('BuzzCast API is running');
 });
 

@@ -37,6 +37,20 @@
       85% { transform: translateX(0); opacity: 1; }
       100% { transform: translateX(-100%); opacity: 0; }
     }
+    @keyframes fade-out {
+        from { opacity: 1; }
+        to { opacity: 0; }
+    }
+    @keyframes fade-in {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+    .animate-fade-out-fast {
+        animation: fade-out 0.15s ease-out forwards;
+    }
+    .animate-fade-in-fast {
+        animation: fade-in 0.15s ease-in forwards;
+    }
     .animate-gift-banner {
       animation: gift-banner-animation 5s ease-in-out forwards;
     }

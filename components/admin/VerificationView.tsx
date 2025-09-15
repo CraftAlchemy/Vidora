@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { User } from '../../types';
 import { ChevronLeftIcon } from '../icons/Icons';
@@ -56,24 +57,25 @@ const VerificationView: React.FC<VerificationViewProps> = ({ user, onUpdateUser,
             <div>
               <p className="font-semibold mb-2">Government-Issued ID</p>
               <div className="bg-gray-100 dark:bg-zinc-800 rounded-lg p-4 flex items-center justify-center h-48 border-2 border-dashed dark:border-zinc-700">
-                <img src="https://via.placeholder.com/200x120.png?text=ID+Front" alt="ID Placeholder" className="max-h-full" />
+                <img src="https://via.placeholder.com/300x150.png?text=ID+Document" alt="ID Document" className="max-h-full max-w-full" />
               </div>
             </div>
-            {/* Placeholder for Selfie */}
+            {/* Placeholder for social links */}
             <div>
-              <p className="font-semibold mb-2">Selfie with ID</p>
-              <div className="bg-gray-100 dark:bg-zinc-800 rounded-lg p-4 flex items-center justify-center h-48 border-2 border-dashed dark:border-zinc-700">
-                <img src="https://via.placeholder.com/150x200.png?text=Selfie" alt="Selfie Placeholder" className="max-h-full" />
-              </div>
+                <p className="font-semibold mb-2">Social Media Links</p>
+                <div className="bg-gray-100 dark:bg-zinc-800 rounded-lg p-4 space-y-2 text-sm">
+                    <p><span className="font-medium text-gray-500 dark:text-gray-400">Twitter:</span> <a href="#" className="text-blue-500 hover:underline">https://twitter.com/{user.username}</a></p>
+                    <p><span className="font-medium text-gray-500 dark:text-gray-400">Instagram:</span> <a href="#" className="text-pink-500 hover:underline">https://instagram.com/{user.username}</a></p>
+                </div>
             </div>
           </div>
         </div>
       </div>
       <footer className="flex justify-end gap-3 p-4 border-t dark:border-zinc-800">
-        <button onClick={handleReject} className="px-4 py-2 rounded-md bg-red-600 hover:bg-red-700 transition-colors font-semibold text-white text-sm">
+        <button onClick={handleReject} className="px-6 py-2 rounded-md bg-gray-200 dark:bg-zinc-700 hover:bg-gray-300 dark:hover:bg-zinc-600 transition-colors font-semibold text-sm">
           Reject
         </button>
-        <button onClick={handleApprove} className="px-4 py-2 rounded-md bg-green-600 hover:bg-green-700 transition-colors font-semibold text-white text-sm">
+        <button onClick={handleApprove} className="px-6 py-2 rounded-md bg-green-600 hover:bg-green-700 transition-colors font-semibold text-white text-sm">
           Approve Verification
         </button>
       </footer>

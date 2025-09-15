@@ -1,16 +1,18 @@
+
 export interface User {
   id: string;
   username: string;
   email: string;
   avatarUrl: string;
   role: 'user' | 'creator' | 'moderator' | 'admin';
-  status: 'active' | 'suspended' | 'banned';
+  status: 'active' | 'suspended' | 'banned' | 'deleted';
   isVerified: boolean;
   joinDate: string;
   lastLogin: string;
   bio?: string;
   followers?: number;
   following?: number;
+  followingIds?: string[];
   wallet?: Wallet;
   creatorStats?: {
     totalEarnings: number;
@@ -20,6 +22,7 @@ export interface User {
   xp?: number;
   streakCount?: number;
   badges?: Badge[];
+  deletionDate?: string;
 }
 
 export interface Badge {

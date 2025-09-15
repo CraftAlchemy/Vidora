@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+
+import React, { useState, useMemo } from 'react';
 import { User } from '../../types';
-import { SearchIcon, ChevronLeftIcon, ChevronRightIcon, RestoreIcon, TrashIcon, CloseIcon } from '../icons/Icons';
+import { SearchIcon, ChevronLeftIcon, ChevronRightIcon, RestoreIcon, TrashIcon, CloseIcon, SortUpIcon, SortDownIcon } from '../icons/Icons';
 
 // Helper to calculate date difference
 const differenceInDays = (date1: Date, date2: Date): number => {
@@ -103,9 +104,48 @@ const CorbeilView: React.FC<CorbeilViewProps> = ({
     const [currentPage, setCurrentPage] = useState(1);
     const [userForReview, setUserForReview] = useState<User | null>(null);
     const [userForPermanentDelete, setUserForPermanentDelete] = useState<User | null>(null);
+    const [sortConfig, setSortConfig] = useState<{ key: string | null; direction: 'asc' | 'desc' }>({ key: 'deletionDate', direction: 'desc' });
     const usersPerPage = 7;
 
-    const filteredUsers = users.filter(user =>
+    const sortedUsers = useMemo(() => {
+        let sortableUsers = [...users];
+        if (sortConfig.key !== null) {
+            sortableUsers.sort((a, b) => {
+                if (sortConfig.key === 'daysLeft') {
+                    const daysLeftA = 30 - differenceInDays(new Date(), new Date(a.deletionDate || 0));
+                    const daysLeftB = 30 - differenceInDays(new Date(), new Date(b.deletionDate || 0));
+                    if (daysLeftA < daysLeftB) return sortConfig.direction === 'asc' ? -1 : 1;
+                    if (daysLeftA > daysLeftB) return sortConfig.direction === 'asc' ? 1 : -1;
+                    return 0;
+                }
+
+                const aValue = a[sortConfig.key as keyof User];
+                const bValue = b[sortConfig.key as keyof User];
+
+                if (aValue === undefined || aValue === null) return 1;
+                if (bValue === undefined || bValue === null) return -1;
+                
+                if (aValue < bValue) {
+                    return sortConfig.direction === 'asc' ? -1 : 1;
+                }
+                if (aValue > bValue) {
+                    return sortConfig.direction === 'asc' ? 1 : -1;
+                }
+                return 0;
+            });
+        }
+        return sortableUsers;
+    }, [users, sortConfig]);
+
+    const requestSort = (key: string) => {
+        let direction: 'asc' | 'desc' = 'asc';
+        if (sortConfig.key === key && sortConfig.direction === 'asc') {
+            direction = 'desc';
+        }
+        setSortConfig({ key, direction });
+    };
+
+    const filteredUsers = sortedUsers.filter(user =>
         user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
         user.email.toLowerCase().includes(searchTerm.toLowerCase())
     );
@@ -135,6 +175,19 @@ const CorbeilView: React.FC<CorbeilViewProps> = ({
 
     const numSelectedOnPage = currentUsers.filter(u => selectedUserIds.includes(u.id)).length;
     const isAllOnPageSelected = currentUsers.length > 0 && numSelectedOnPage === currentUsers.length;
+    
+    const SortableHeader: React.FC<{ children: React.ReactNode, sortKey: string }> = ({ children, sortKey }) => (
+        <button onClick={() => requestSort(sortKey)} className="flex items-center gap-1.5 group">
+            {children}
+            <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                {sortConfig.key === sortKey ? (
+                    sortConfig.direction === 'asc' ? <SortUpIcon /> : <SortDownIcon />
+                ) : (
+                    <SortDownIcon className="text-gray-400" />
+                )}
+            </div>
+        </button>
+    );
 
     return (
         <>
@@ -167,9 +220,9 @@ const CorbeilView: React.FC<CorbeilViewProps> = ({
                                 <th scope="col" className="p-4 w-4">
                                      <input type="checkbox" onChange={handleSelectAll} checked={isAllOnPageSelected} className="h-4 w-4 rounded border-gray-300 dark:border-zinc-600 text-pink-600 focus:ring-pink-500 bg-gray-100 dark:bg-zinc-900" />
                                 </th>
-                                <th scope="col" className="p-4">User</th>
-                                <th scope="col" className="p-4">Deletion Date</th>
-                                <th scope="col" className="p-4">Days Left</th>
+                                <th scope="col" className="p-4"><SortableHeader sortKey="username">User</SortableHeader></th>
+                                <th scope="col" className="p-4"><SortableHeader sortKey="deletionDate">Deletion Date</SortableHeader></th>
+                                <th scope="col" className="p-4"><SortableHeader sortKey="daysLeft">Days Left</SortableHeader></th>
                                 <th scope="col" className="p-4 text-center">Actions</th>
                             </tr>
                         </thead>
@@ -217,29 +270,20 @@ const CorbeilView: React.FC<CorbeilViewProps> = ({
                     </div>
                 </div>
             </div>
-
-            {userForReview && (
-                <ReviewDefenseModal 
-                    user={userForReview}
-                    onClose={() => setUserForReview(null)}
-                    onRestore={(id) => { onRestoreUser(id); setUserForReview(null); }}
-                    onPermanentlyDelete={(id) => { onPermanentlyDeleteUser(id); setUserForReview(null); }}
-                />
-            )}
-            
+            {userForReview && <ReviewDefenseModal user={userForReview} onClose={() => setUserForReview(null)} onRestore={onRestoreUser} onPermanentlyDelete={onPermanentlyDeleteUser} />}
             {userForPermanentDelete && (
-                 <div className="fixed inset-0 bg-black/70 flex justify-center items-center z-50 p-4">
-                    <div className="bg-white dark:bg-zinc-800 p-6 rounded-lg shadow-xl text-center animate-fade-in-up">
-                        <h3 className="font-bold text-lg mb-2">Are you sure?</h3>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                            Permanently deleting @{userForPermanentDelete.username} is irreversible.
+                <div className="fixed inset-0 bg-black/70 flex justify-center items-center z-50 p-4">
+                    <div className="bg-white dark:bg-zinc-800 p-6 rounded-lg shadow-xl text-center animate-fade-in-up w-full max-w-sm">
+                        <h3 className="font-bold text-lg text-red-500 mb-2">Confirm Permanent Deletion</h3>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
+                            Are you sure you want to permanently delete @{userForPermanentDelete.username}? This action is irreversible.
                         </p>
                         <div className="flex justify-center gap-3">
                             <button onClick={() => setUserForPermanentDelete(null)} className="px-4 py-2 rounded-md bg-gray-200 dark:bg-zinc-700 hover:bg-gray-300 dark:hover:bg-zinc-600 transition-colors font-semibold text-sm">
                                 Cancel
                             </button>
                             <button onClick={() => { onPermanentlyDeleteUser(userForPermanentDelete.id); setUserForPermanentDelete(null); }} className="px-4 py-2 rounded-md bg-red-600 hover:bg-red-700 transition-colors font-semibold text-white text-sm">
-                                Confirm Delete
+                                Yes, Delete Permanently
                             </button>
                         </div>
                     </div>

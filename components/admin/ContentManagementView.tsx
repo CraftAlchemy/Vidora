@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
+
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Video } from '../../types';
-import { SearchIcon, MoreVerticalIcon, ChevronLeftIcon, ChevronRightIcon, TrashIcon, CheckCircleIcon, PauseCircleIcon, CloseIcon } from '../icons/Icons';
+import { SearchIcon, MoreVerticalIcon, ChevronLeftIcon, ChevronRightIcon, TrashIcon, CheckCircleIcon, PauseCircleIcon, CloseIcon, SortUpIcon, SortDownIcon } from '../icons/Icons';
 
 const StatusBadge: React.FC<{ status: Video['status'] }> = ({ status }) => {
     const baseClasses = "px-2.5 py-0.5 text-xs font-semibold rounded-full";
@@ -62,6 +63,8 @@ interface ContentManagementViewProps {
     onBulkDelete: (ids: string[]) => void;
 }
 
+const resolvePath = (path: string, obj: any) => path.split('.').reduce((prev, curr) => prev?.[curr], obj);
+
 const ContentManagementView: React.FC<ContentManagementViewProps> = ({ 
     videos, onUpdateVideoStatus, onDeleteVideo,
     selectedVideoIds, onSetSelectedVideoIds, onBulkUpdateStatus, onBulkDelete 
@@ -72,7 +75,34 @@ const ContentManagementView: React.FC<ContentManagementViewProps> = ({
     const [videoToRemove, setVideoToRemove] = useState<Video | null>(null);
     const [videoToDelete, setVideoToDelete] = useState<Video | null>(null);
     const actionMenuRef = useRef<HTMLDivElement>(null);
+    const [sortConfig, setSortConfig] = useState<{ key: string | null; direction: 'asc' | 'desc' }>({ key: 'uploadDate', direction: 'desc' });
     const videosPerPage = 5;
+
+    const sortedVideos = useMemo(() => {
+        let sortableVideos = [...videos];
+        if (sortConfig.key !== null) {
+            sortableVideos.sort((a, b) => {
+                const aValue = resolvePath(sortConfig.key!, a);
+                const bValue = resolvePath(sortConfig.key!, b);
+    
+                if (aValue === undefined || aValue === null) return 1;
+                if (bValue === undefined || bValue === null) return -1;
+    
+                if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
+                if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
+                return 0;
+            });
+        }
+        return sortableVideos;
+    }, [videos, sortConfig]);
+
+    const requestSort = (key: string) => {
+        let direction: 'asc' | 'desc' = 'asc';
+        if (sortConfig.key === key && sortConfig.direction === 'asc') {
+            direction = 'desc';
+        }
+        setSortConfig({ key, direction });
+    };
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -105,7 +135,7 @@ const ContentManagementView: React.FC<ContentManagementViewProps> = ({
         }
     };
 
-    const filteredVideos = videos.filter(video =>
+    const filteredVideos = sortedVideos.filter(video =>
         video.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
         video.user.username.toLowerCase().includes(searchTerm.toLowerCase())
     );
@@ -135,6 +165,19 @@ const ContentManagementView: React.FC<ContentManagementViewProps> = ({
 
     const numSelectedOnPage = currentVideos.filter(v => selectedVideoIds.includes(v.id)).length;
     const isAllOnPageSelected = currentVideos.length > 0 && numSelectedOnPage === currentVideos.length;
+
+    const SortableHeader: React.FC<{ children: React.ReactNode, sortKey: string }> = ({ children, sortKey }) => (
+        <button onClick={() => requestSort(sortKey)} className="flex items-center gap-1.5 group">
+            {children}
+            <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                {sortConfig.key === sortKey ? (
+                    sortConfig.direction === 'asc' ? <SortUpIcon /> : <SortDownIcon />
+                ) : (
+                    <SortDownIcon className="text-gray-400" />
+                )}
+            </div>
+        </button>
+    );
 
     return (
         <>
@@ -176,11 +219,11 @@ const ContentManagementView: React.FC<ContentManagementViewProps> = ({
                                     aria-label="Select all videos on this page"
                                 />
                             </th>
-                            <th scope="col" className="p-4">Video</th>
-                            <th scope="col" className="p-4">Author</th>
-                            <th scope="col" className="p-4">Stats</th>
-                            <th scope="col" className="p-4">Status</th>
-                            <th scope="col" className="p-4">Upload Date</th>
+                            <th scope="col" className="p-4"><SortableHeader sortKey="description">Video</SortableHeader></th>
+                            <th scope="col" className="p-4"><SortableHeader sortKey="user.username">Author</SortableHeader></th>
+                            <th scope="col" className="p-4"><SortableHeader sortKey="likes">Stats</SortableHeader></th>
+                            <th scope="col" className="p-4"><SortableHeader sortKey="status">Status</SortableHeader></th>
+                            <th scope="col" className="p-4"><SortableHeader sortKey="uploadDate">Upload Date</SortableHeader></th>
                             <th scope="col" className="p-4">Actions</th>
                         </tr>
                     </thead>

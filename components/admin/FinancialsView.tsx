@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { PayoutRequest, User } from '../../types';
-import { DollarSignIcon } from '../icons/Icons';
+import { DollarSignIcon, SortUpIcon, SortDownIcon } from '../icons/Icons';
 
 type PayoutStatus = 'pending' | 'approved' | 'rejected';
 
@@ -35,15 +35,44 @@ interface FinancialsViewProps {
     onUpdatePayoutStatus: (payoutId: string, status: 'approved' | 'rejected') => void;
 }
 
+const resolvePath = (path: string, obj: any) => path.split('.').reduce((prev, curr) => prev?.[curr], obj);
+
 const FinancialsView: React.FC<FinancialsViewProps> = ({ payouts, users, onUpdatePayoutStatus }) => {
     const [activeTab, setActiveTab] = useState<PayoutStatus>('pending');
     const [payoutToConfirm, setPayoutToConfirm] = useState<{ id: string; action: 'approved' | 'rejected' } | null>(null);
+    const [sortConfig, setSortConfig] = useState<{ key: string | null; direction: 'asc' | 'desc' }>({ key: 'requestDate', direction: 'desc' });
 
     const filteredPayouts = useMemo(() =>
         payouts.filter(p => p.status === activeTab),
         [payouts, activeTab]
     );
     
+    const sortedPayouts = useMemo(() => {
+        let sortablePayouts = [...filteredPayouts];
+        if (sortConfig.key !== null) {
+            sortablePayouts.sort((a, b) => {
+                const aValue = resolvePath(sortConfig.key!, a);
+                const bValue = resolvePath(sortConfig.key!, b);
+
+                if (aValue === undefined || aValue === null) return 1;
+                if (bValue === undefined || bValue === null) return -1;
+
+                if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
+                if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
+                return 0;
+            });
+        }
+        return sortablePayouts;
+    }, [filteredPayouts, sortConfig]);
+
+    const requestSort = (key: string) => {
+        let direction: 'asc' | 'desc' = 'asc';
+        if (sortConfig.key === key && sortConfig.direction === 'asc') {
+            direction = 'desc';
+        }
+        setSortConfig({ key, direction });
+    };
+
     const financialStats = useMemo(() => {
         const totalRevenue = users.reduce((sum, user) => sum + (user.creatorStats?.totalEarnings ?? 0), 0);
         const pendingPayouts = payouts.filter(p => p.status === 'pending').reduce((sum, p) => sum + p.amount, 0);
@@ -57,6 +86,19 @@ const FinancialsView: React.FC<FinancialsViewProps> = ({ payouts, users, onUpdat
             setPayoutToConfirm(null);
         }
     };
+
+    const SortableHeader: React.FC<{ children: React.ReactNode, sortKey: string }> = ({ children, sortKey }) => (
+        <button onClick={() => requestSort(sortKey)} className="flex items-center gap-1.5 group">
+            {children}
+            <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                {sortConfig.key === sortKey ? (
+                    sortConfig.direction === 'asc' ? <SortUpIcon /> : <SortDownIcon />
+                ) : (
+                    <SortDownIcon className="text-gray-400" />
+                )}
+            </div>
+        </button>
+    );
     
     return (
         <>
@@ -88,17 +130,17 @@ const FinancialsView: React.FC<FinancialsViewProps> = ({ payouts, users, onUpdat
                     <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
                         <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-zinc-800 dark:text-gray-400">
                             <tr>
-                                <th scope="col" className="p-4">Creator</th>
-                                <th scope="col" className="p-4">Amount</th>
-                                <th scope="col" className="p-4">Method</th>
+                                <th scope="col" className="p-4"><SortableHeader sortKey="user.username">Creator</SortableHeader></th>
+                                <th scope="col" className="p-4"><SortableHeader sortKey="amount">Amount</SortableHeader></th>
+                                <th scope="col" className="p-4"><SortableHeader sortKey="method">Method</SortableHeader></th>
                                 <th scope="col" className="p-4">Payout Info</th>
-                                <th scope="col" className="p-4">Request Date</th>
-                                {activeTab !== 'pending' && <th scope="col" className="p-4">Processed Date</th>}
+                                <th scope="col" className="p-4"><SortableHeader sortKey="requestDate">Request Date</SortableHeader></th>
+                                {activeTab !== 'pending' && <th scope="col" className="p-4"><SortableHeader sortKey="processedDate">Processed Date</SortableHeader></th>}
                                 {activeTab === 'pending' && <th scope="col" className="p-4 text-center">Actions</th>}
                             </tr>
                         </thead>
                         <tbody>
-                            {filteredPayouts.map(payout => (
+                            {sortedPayouts.map(payout => (
                                 <tr key={payout.id} className="border-b dark:border-zinc-800 hover:bg-gray-50 dark:hover:bg-zinc-800/50">
                                     <td className="p-4 flex items-center">
                                         <img src={payout.user.avatarUrl} alt={payout.user.username} className="w-8 h-8 rounded-full mr-3" />
@@ -125,7 +167,7 @@ const FinancialsView: React.FC<FinancialsViewProps> = ({ payouts, users, onUpdat
                             ))}
                         </tbody>
                     </table>
-                     {filteredPayouts.length === 0 && (
+                     {sortedPayouts.length === 0 && (
                         <div className="text-center py-10 text-gray-500 dark:text-gray-400">
                             <p>No {activeTab} payouts found.</p>
                         </div>

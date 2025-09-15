@@ -1,406 +1,422 @@
-
-import React, { useState } from 'react';
-import { User, Video, Report, Comment, PayoutRequest } from '../types';
-import { mockUsers, mockVideos, mockReports, mockPayoutRequests } from '../services/mockApi';
-import {
-  DashboardIcon, UsersIcon, VideoIcon, DollarSignIcon, ShieldCheckIcon, GiftAdminIcon, SettingsIcon,
-  SunIcon, MoonIcon, SearchIcon, ChevronLeftIcon, ArchiveBoxIcon, MenuIcon, CloseIcon,
-} from './icons/Icons';
-
+import React, { useState, useEffect } from 'react';
+import { User, Video, Report, PayoutRequest, Gift } from '../types';
+import { mockUsers, mockVideos, mockReports, mockPayoutRequests, mockGifts } from '../services/mockApi';
+import { DashboardIcon, UsersIcon, VideoIcon, ShieldCheckIcon, DollarSignIcon, GiftIcon, RestoreIcon, SettingsIcon, LogOutIcon, SunIcon, MoonIcon } from './icons/Icons';
 import DashboardView from './admin/DashboardView';
 import UserManagementView from './admin/UserManagementView';
 import ContentManagementView from './admin/ContentManagementView';
-import FinancialsView from './admin/FinancialsView';
 import ModerationQueueView from './admin/ModerationQueueView';
+import FinancialsView from './admin/FinancialsView';
 import GiftManagementView from './admin/GiftManagementView';
-import AdminSettingsView from './admin/AdminSettingsView';
-import VerificationView from './admin/VerificationView';
 import CorbeilView from './admin/CorbeilView';
-
-
-type AdminView = 'dashboard' | 'users' | 'content' | 'financials' | 'moderation' | 'gifts' | 'settings' | 'verification' | 'corbeil';
+import VerificationView from './admin/VerificationView';
+import AdminSettingsView from './admin/AdminSettingsView';
 
 interface AdminPanelProps {
   user: User;
   onExit: () => void;
   onSendSystemMessage: (userId: string, message: string) => void;
+  showSuccessToast: (message: string) => void;
 }
 
-const Sidebar: React.FC<{ 
-    currentView: AdminView, 
-    setCurrentView: (view: AdminView) => void,
-    onExit: () => void,
-    isOpen: boolean;
-    setIsOpen: (isOpen: boolean) => void;
-}> = ({ currentView, setCurrentView, onExit, isOpen, setIsOpen }) => {
-  const navItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: DashboardIcon },
-    { id: 'users', label: 'Users', icon: UsersIcon },
-    { id: 'content', label: 'Content', icon: VideoIcon },
-    { id: 'moderation', label: 'Moderation', icon: ShieldCheckIcon },
-    { id: 'corbeil', label: 'Corbeil', icon: ArchiveBoxIcon },
-    { id: 'financials', label: 'Financials', icon: DollarSignIcon },
-    { id: 'gifts', label: 'Gifts', icon: GiftAdminIcon },
-    { id: 'settings', label: 'Settings', icon: SettingsIcon },
-  ];
+type AdminView = 'dashboard' | 'users' | 'content' | 'moderation' | 'financials' | 'gifts' | 'verification' | 'corbeil' | 'settings';
 
-  const handleNavigate = (view: AdminView) => {
-    setCurrentView(view);
-    if (window.innerWidth < 1024) { // Close sidebar on nav in mobile
-      setIsOpen(false);
-    }
-  };
+const AdminPanel: React.FC<AdminPanelProps> = ({ user, onExit, onSendSystemMessage, showSuccessToast }) => {
+  const [activeView, setActiveView] = useState<AdminView>('dashboard');
 
-  const NavLink: React.FC<{ item: typeof navItems[0] }> = ({ item }) => (
-    <button
-      onClick={() => handleNavigate(item.id as AdminView)}
-      className={`flex items-center w-full px-3 py-2.5 text-sm font-medium rounded-md transition-colors ${
-        currentView === item.id 
-          ? 'bg-pink-600 text-white' 
-          : 'text-gray-300 hover:bg-zinc-700 hover:text-white'
-      }`}
-    >
-      <item.icon className="w-5 h-5 mr-3" />
-      <span>{item.label}</span>
-    </button>
-  );
+  // Theme State
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    if (localStorage.theme === 'dark') return true;
+    if (localStorage.theme === 'light') return false;
+    return window.matchMedia('(prefers-color-scheme: dark)').matches;
+  });
 
-  return (
-    <aside className={`w-64 bg-zinc-900 border-r border-zinc-800 flex flex-col fixed h-full z-30 transition-transform duration-300 ease-in-out lg:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-      <div className="flex items-center justify-between h-16 px-4 border-b border-zinc-800">
-        <h1 className="text-xl font-bold bg-gradient-to-r from-pink-500 to-red-500 text-transparent bg-clip-text">
-          VIDORA Admin
-        </h1>
-        <button onClick={() => setIsOpen(false)} className="lg:hidden p-1 text-gray-400 hover:text-white">
-            <CloseIcon />
-        </button>
-      </div>
-      <nav className="flex-1 p-4 space-y-2">
-        {navItems.map(item => <NavLink key={item.id} item={item} />)}
-      </nav>
-      <div className="p-4 border-t border-zinc-800">
-          <button
-              onClick={onExit}
-              className="flex items-center w-full px-3 py-2.5 text-sm font-medium rounded-md text-gray-300 hover:bg-zinc-700 hover:text-white"
-          >
-              <ChevronLeftIcon className="w-5 h-5 mr-3"/>
-              <span>Exit Admin Panel</span>
-          </button>
-      </div>
-    </aside>
-  );
-};
+  // Sidebar Layout State
+  const [sidebarPosition, setSidebarPosition] = useState<'left' | 'right'>(() => {
+    return (localStorage.getItem('sidebarPosition') as 'left' | 'right') || 'left';
+  });
+  const [sidebarLayout, setSidebarLayout] = useState<'responsive' | 'swappable'>(() => {
+    return (localStorage.getItem('sidebarLayout') as 'responsive' | 'swappable') || 'responsive';
+  });
+  const [isAnimating, setIsAnimating] = useState(false);
 
-const AdminPanel: React.FC<AdminPanelProps> = ({ user, onExit, onSendSystemMessage }) => {
-  const [currentView, setCurrentView] = useState<AdminView>('dashboard');
-  const [isDarkMode, setIsDarkMode] = useState(true);
+  // This would be state from a global store/API in a real app
   const [users, setUsers] = useState<User[]>(mockUsers);
   const [videos, setVideos] = useState<Video[]>(mockVideos);
   const [reports, setReports] = useState<Report[]>(mockReports);
   const [payouts, setPayouts] = useState<PayoutRequest[]>(mockPayoutRequests);
-  const [userToVerify, setUserToVerify] = useState<User | null>(null);
+  const [gifts, setGifts] = useState<Gift[]>(mockGifts);
+  const [deletedUsers, setDeletedUsers] = useState<User[]>([]);
+
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
   const [selectedVideoIds, setSelectedVideoIds] = useState<string[]>([]);
   const [selectedReportIds, setSelectedReportIds] = useState<string[]>([]);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [userForVerification, setUserForVerification] = useState<User | null>(null);
 
-  const getMessageForStatus = (status: User['status']): string | null => {
-      switch(status) {
-          case 'suspended': return "Your account has been temporarily suspended due to a violation of our community guidelines. Please review our policies. You may appeal this decision by replying to this message.";
-          case 'banned': return "Your account has been permanently banned due to repeated or severe violations of our community guidelines. This decision is final.";
-          case 'active': return "Welcome back! Your account has been restored and is now active. Please ensure you adhere to our community guidelines.";
-          default: return null;
-      }
-  }
+  const [notificationTemplates, setNotificationTemplates] = useState({
+    accountSuspended: "Your account has been temporarily suspended due to community guideline violations. Please review our policies.",
+    accountBanned: "Your account has been permanently banned due to repeated or severe community guideline violations.",
+    accountVerified: "Congratulations {username}! Your account has been successfully verified.",
+    accountRestored: "Welcome back, {username}! Your account has been restored and is now active.",
+    payoutRejected: "Your recent payout request for ${amount} has been rejected. Please contact support for more details."
+  });
 
-  const handleUpdateUser = (updatedUser: User) => {
-    const oldUser = users.find(u => u.id === updatedUser.id);
-    setUsers(prev => prev.map(u => u.id === updatedUser.id ? { ...u, ...updatedUser } : u));
+  useEffect(() => {
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark');
+      localStorage.theme = 'dark';
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.theme = 'light';
+    }
+  }, [isDarkMode]);
+  
+  useEffect(() => {
+    localStorage.setItem('sidebarPosition', sidebarPosition);
+  }, [sidebarPosition]);
 
-    if (oldUser && oldUser.status !== updatedUser.status) {
-        const message = getMessageForStatus(updatedUser.status);
-        if (message) {
-            onSendSystemMessage(updatedUser.id, message);
-        }
+  useEffect(() => {
+    localStorage.setItem('sidebarLayout', sidebarLayout);
+  }, [sidebarLayout]);
+
+  const handleSetSidebarPosition = (position: 'left' | 'right') => {
+    if (sidebarLayout === 'swappable') {
+        setIsAnimating(true);
+        setTimeout(() => {
+            setSidebarPosition(position);
+            setIsAnimating(false);
+        }, 150); // Match fade-out duration
+    } else {
+        setSidebarPosition(position);
     }
   };
+
+  const handleUpdateTemplate = (templateName: keyof typeof notificationTemplates, newText: string) => {
+      setNotificationTemplates(prev => ({ ...prev, [templateName]: newText }));
+  };
+
+  const formatSystemMessage = (template: string, user: User, details: { [key: string]: any } = {}) => {
+    let message = template.replace('{username}', `@${user.username}`);
+    Object.keys(details).forEach(key => {
+        message = message.replace(`{${key}}`, details[key]);
+    });
+    return message;
+  };
   
+  // User Management Handlers
+  const handleUpdateUserStatus = (userId: string, status: User['status']) => {
+      const userToUpdate = users.find(u => u.id === userId);
+      if (!userToUpdate) return;
+      
+      setUsers(users.map(u => u.id === userId ? { ...u, status } : u));
+      
+      let message = '';
+      if (status === 'suspended') {
+          message = formatSystemMessage(notificationTemplates.accountSuspended, userToUpdate);
+      } else if (status === 'banned') {
+           message = formatSystemMessage(notificationTemplates.accountBanned, userToUpdate);
+      } else if (status === 'active') {
+          message = formatSystemMessage(notificationTemplates.accountRestored, userToUpdate);
+      }
+      
+      if (message) onSendSystemMessage(userId, message);
+      showSuccessToast(`User status updated to '${status}'.`);
+  };
+
+  const handleBulkUpdateUserStatus = (ids: string[], status: User['status']) => {
+      setUsers(users.map(u => ids.includes(u.id) ? { ...u, status } : u));
+      
+      ids.forEach(id => {
+          const userToUpdate = users.find(u => u.id === id);
+          if (!userToUpdate) return;
+          let message = '';
+          if (status === 'suspended') message = formatSystemMessage(notificationTemplates.accountSuspended, userToUpdate);
+          else if (status === 'banned') message = formatSystemMessage(notificationTemplates.accountBanned, userToUpdate);
+          else if (status === 'active') message = formatSystemMessage(notificationTemplates.accountRestored, userToUpdate);
+          if (message) onSendSystemMessage(id, message);
+      });
+
+      showSuccessToast(`${ids.length} users updated to '${status}'.`);
+      setSelectedUserIds([]);
+  };
+  
+  const handleUpdateUserVerification = (userId: string, isVerified: boolean) => {
+      const userToUpdate = users.find(u => u.id === userId);
+      if (!userToUpdate) return;
+
+      setUsers(users.map(u => u.id === userId ? { ...u, isVerified } : u));
+      const statusText = isVerified ? 'verified' : 'un-verified';
+      if (isVerified) {
+          onSendSystemMessage(userId, formatSystemMessage(notificationTemplates.accountVerified, userToUpdate));
+      }
+      showSuccessToast(`User status updated to ${statusText}.`);
+  };
+
+  const handleUpdatePayoutStatus = (payoutId: string, status: 'approved' | 'rejected') => {
+      const payoutToUpdate = payouts.find(p => p.id === payoutId);
+      if (!payoutToUpdate) return;
+      
+      setPayouts(payouts.map(p => p.id === payoutId ? { ...p, status, processedDate: new Date().toISOString().split('T')[0] } : p));
+      
+      if (status === 'rejected') {
+          const userToRefund = users.find(u => u.id === payoutToUpdate.user.id);
+          if (userToRefund) {
+              const updatedUser = {
+                  ...userToRefund,
+                  creatorStats: {
+                      ...(userToRefund.creatorStats!),
+                      totalEarnings: (userToRefund.creatorStats?.totalEarnings ?? 0) + payoutToUpdate.amount,
+                  }
+              };
+              setUsers(users.map(u => u.id === userToRefund.id ? updatedUser : u));
+              onSendSystemMessage(payoutToUpdate.user.id, formatSystemMessage(notificationTemplates.payoutRejected, payoutToUpdate.user, { amount: payoutToUpdate.amount.toFixed(2) }));
+          }
+      }
+      showSuccessToast(`Payout ${payoutId} has been ${status}.`);
+  };
+
   const handleAddUser = (newUser: User) => {
-    setUsers(prev => [newUser, ...prev]);
-    onSendSystemMessage(newUser.id, `Welcome to Vidora! Your account has been created with the role: ${newUser.role}.`);
+    setUsers([newUser, ...users]);
+    showSuccessToast(`User @${newUser.username} created.`);
+  };
+
+  const handleDeleteUser = (userId: string) => {
+      const userToDelete = users.find(u => u.id === userId);
+      if (userToDelete) {
+          const deletedUser = { ...userToDelete, status: 'deleted' as const, deletionDate: new Date().toISOString() };
+          setDeletedUsers(prev => [deletedUser, ...prev]);
+          setUsers(users.filter(u => u.id !== userId));
+          showSuccessToast(`User @${userToDelete.username} moved to corbeil.`);
+      }
   };
   
-  const handleSoftDeleteUser = (userId: string) => {
-    setUsers(prev => prev.map(u => u.id === userId ? { ...u, status: 'deleted', deletionDate: new Date().toISOString() } : u));
-    onSendSystemMessage(userId, "Your account has been scheduled for deletion and will be permanently removed in 30 days. If you believe this is an error, please contact support by replying to this message.");
+  const handleBulkDeleteUsers = (ids: string[]) => {
+      const usersToDelete = users.filter(u => ids.includes(u.id));
+      const deletedToAdd = usersToDelete.map(u => ({ ...u, status: 'deleted' as const, deletionDate: new Date().toISOString() }));
+      setDeletedUsers(prev => [...deletedToAdd, ...prev]);
+      setUsers(users.filter(u => !ids.includes(u.id)));
+      showSuccessToast(`${ids.length} users moved to corbeil.`);
+      setSelectedUserIds([]);
   };
-  
+
+   const handleBulkSendMessage = (userIds: string[], message: string) => {
+      userIds.forEach(id => onSendSystemMessage(id, message));
+      showSuccessToast(`Message sent to ${userIds.length} users.`);
+      setSelectedUserIds([]);
+  };
+
   const handleRestoreUser = (userId: string) => {
-    setUsers(prev => prev.map(u => u.id === userId ? { ...u, status: 'active', deletionDate: undefined } : u));
-    onSendSystemMessage(userId, "Your account has been successfully restored from the corbeil. Welcome back!");
+      const userToRestore = deletedUsers.find(u => u.id === userId);
+      if (userToRestore) {
+          const restoredUser = { ...userToRestore, status: 'active' as const, deletionDate: undefined };
+          setUsers(prev => [restoredUser, ...prev]);
+          setDeletedUsers(deletedUsers.filter(u => u.id !== userId));
+          showSuccessToast(`User @${userToRestore.username} restored.`);
+      }
   };
 
   const handlePermanentlyDeleteUser = (userId: string) => {
-    setUsers(prev => prev.filter(u => u.id !== userId));
+      setDeletedUsers(deletedUsers.filter(u => u.id !== userId));
+      showSuccessToast(`User permanently deleted.`);
   };
 
-  const handleStartVerification = (user: User) => {
-    setUserToVerify(user);
-    setCurrentView('verification');
-  };
-
-  const handleUpdateUserVerification = (userId: string, isVerified: boolean) => {
-    setUsers(prev => prev.map(u => (u.id === userId ? { ...u, isVerified } : u)));
-    const message = isVerified
-      ? "Congratulations! Your account has been successfully verified. You now have a verification badge on your profile."
-      : "Your account verification has been removed. If you believe this is an error, please contact support by replying to this message.";
-    onSendSystemMessage(userId, message);
-  };
-
-  const handleBulkUpdateStatus = (ids: string[], status: User['status']) => {
-    setUsers(prev => prev.map(u => (ids.includes(u.id) ? { ...u, status } : u)));
-    setSelectedUserIds([]);
-    const message = getMessageForStatus(status);
-    if (message) {
-        ids.forEach(id => onSendSystemMessage(id, message));
-    }
-  };
-
-  const handleBulkSoftDelete = (ids: string[]) => {
-    const deletionDate = new Date().toISOString();
-    setUsers(prev => prev.map(u => (ids.includes(u.id) ? { ...u, status: 'deleted', deletionDate } : u)));
-    setSelectedUserIds([]);
-    const message = "Your account has been scheduled for deletion and will be permanently removed in 30 days. If you believe this is an error, please contact support by replying to this message.";
-    ids.forEach(id => onSendSystemMessage(id, message));
-  };
-
-  const handleBulkRestore = (ids: string[]) => {
-    setUsers(prev => prev.map(u => (ids.includes(u.id) ? { ...u, status: 'active', deletionDate: undefined } : u)));
-    setSelectedUserIds([]);
-    const message = "Your account has been successfully restored from the corbeil. Welcome back!";
-    ids.forEach(id => onSendSystemMessage(id, message));
-  };
-
-  const handleBulkPermanentDelete = (ids: string[]) => {
-    setUsers(prev => prev.filter(u => !ids.includes(u.id)));
-    setSelectedUserIds([]);
-  };
-
+  // Video Management Handlers
   const handleUpdateVideoStatus = (videoId: string, status: Video['status']) => {
-    setVideos(prev => prev.map(v => v.id === videoId ? { ...v, status } : v));
+      setVideos(videos.map(v => v.id === videoId ? { ...v, status } : v));
+      showSuccessToast(`Video status updated to '${status}'.`);
   };
-  
   const handleDeleteVideo = (videoId: string) => {
-    setVideos(prev => prev.filter(v => v.id !== videoId));
+      setVideos(videos.filter(v => v.id !== videoId));
+      showSuccessToast(`Video permanently deleted.`);
+  };
+   const handleBulkUpdateVideoStatus = (ids: string[], status: Video['status']) => {
+      setVideos(videos.map(v => ids.includes(v.id) ? { ...v, status } : v));
+      showSuccessToast(`${ids.length} videos updated to '${status}'.`);
+      setSelectedVideoIds([]);
+  };
+  const handleBulkDeleteVideos = (ids: string[]) => {
+      setVideos(videos.filter(v => !ids.includes(v.id)));
+      showSuccessToast(`${ids.length} videos permanently deleted.`);
+      setSelectedVideoIds([]);
   };
 
-  const handleBulkUpdateVideoStatus = (ids: string[], status: Video['status']) => {
-    setVideos(prev => prev.map(v => (ids.includes(v.id) ? { ...v, status } : v)));
-    setSelectedVideoIds([]);
-  };
-
-  const handleBulkDeleteVideo = (ids: string[]) => {
-    setVideos(prev => prev.filter(v => !ids.includes(v.id)));
-    setSelectedVideoIds([]);
-  };
-
-  const handleResolveReport = (reportId: string) => {
-    const report = reports.find(r => r.id === reportId);
-    if (!report) return;
-
-    if (report.contentType === 'video') {
-      handleUpdateVideoStatus(report.contentId, 'removed');
-      const video = videos.find(v => v.id === report.contentId);
-      if (video) onSendSystemMessage(video.user.id, `Your video ("${video.description.substring(0, 20)}...") was removed for violating community guidelines based on a user report.`);
-    } else if (report.contentType === 'user') {
-      const userToUpdate = users.find(u => u.id === report.contentId);
-      if (userToUpdate) {
-          handleUpdateUser({ ...userToUpdate, status: 'suspended' }); // Sends message automatically
-      }
-    } else if (report.contentType === 'comment') {
-      let commentOwnerId: string | undefined;
-      setVideos(prevVideos => prevVideos.map(v => {
-        const commentToRemove = v.commentsData.find(c => c.id === report.contentId);
-        if (commentToRemove) {
-          commentOwnerId = commentToRemove.user.id;
-          return {
-            ...v,
-            comments: v.comments - 1,
-            commentsData: v.commentsData.filter(c => c.id !== report.contentId)
-          };
+  // Moderation Handlers
+    const handleResolveReport = (report: Report) => {
+        setReports(reports.map(r => r.id === report.id ? { ...r, status: 'resolved' } : r));
+        // Take action on the content
+        if (report.contentType === 'video') {
+            handleUpdateVideoStatus(report.contentId, 'removed');
+        } else if (report.contentType === 'user') {
+            handleUpdateUserStatus(report.contentId, 'suspended');
         }
-        return v;
-      }));
-      if (commentOwnerId) {
-        onSendSystemMessage(commentOwnerId, "One of your comments was removed for violating community guidelines based on a user report.");
-      }
-    }
-
-    setReports(prev => prev.map(r => (r.id === reportId ? { ...r, status: 'resolved' } : r)));
-  };
-
+        showSuccessToast(`Report ${report.id} resolved.`);
+    };
   const handleDismissReport = (reportId: string) => {
-    setReports(prev => prev.map(r => (r.id === reportId ? { ...r, status: 'dismissed' } : r)));
+      setReports(reports.map(r => r.id === reportId ? { ...r, status: 'dismissed' } : r));
+      showSuccessToast(`Report ${reportId} dismissed.`);
   };
-
   const handleBulkResolveReports = (ids: string[]) => {
-    ids.forEach(id => handleResolveReport(id));
-    setSelectedReportIds([]);
+        ids.forEach(id => {
+            const report = reports.find(r => r.id === id);
+            if(report) handleResolveReport(report);
+        });
+        showSuccessToast(`${ids.length} reports resolved.`);
+        setSelectedReportIds([]);
   };
-
   const handleBulkDismissReports = (ids: string[]) => {
-    setReports(prev => prev.map(r => (ids.includes(r.id) ? { ...r, status: 'dismissed' } : r)));
-    setSelectedReportIds([]);
-  };
-  
-  const handleUpdatePayoutStatus = (payoutId: string, status: 'approved' | 'rejected') => {
-    const payout = payouts.find(p => p.id === payoutId);
-    if (!payout) return;
-
-    setPayouts(prev => prev.map(p => p.id === payoutId ? { ...p, status, processedDate: new Date().toISOString().split('T')[0] } : p));
-
-    if (status === 'rejected') {
-        setUsers(prevUsers => prevUsers.map(u => {
-            if (u.id === payout.user.id && u.creatorStats) {
-                return { ...u, creatorStats: { ...u.creatorStats, totalEarnings: u.creatorStats.totalEarnings + payout.amount }};
-            }
-            return u;
-        }));
-        onSendSystemMessage(payout.user.id, `Your payout request for $${payout.amount.toFixed(2)} has been rejected. The funds have been returned to your earnings balance.`);
-    } else {
-         onSendSystemMessage(payout.user.id, `Your payout request for $${payout.amount.toFixed(2)} has been approved and is being processed.`);
-    }
+        setReports(reports.map(r => ids.includes(r.id) ? { ...r, status: 'dismissed' } : r));
+        showSuccessToast(`${ids.length} reports dismissed.`);
+        setSelectedReportIds([]);
   };
 
-  const activeUsers = users.filter(u => u.status !== 'deleted');
-  const deletedUsers = users.filter(u => u.status === 'deleted');
+  // Gift Handlers
+  const handleAddGift = (gift: Gift) => {
+    setGifts([gift, ...gifts]);
+    showSuccessToast(`Gift '${gift.name}' added.`);
+  };
+  const handleUpdateGift = (updatedGift: Gift) => {
+    setGifts(gifts.map(g => g.id === updatedGift.id ? updatedGift : g));
+    showSuccessToast(`Gift '${updatedGift.name}' updated.`);
+  };
+  const handleDeleteGift = (giftId: string) => {
+    setGifts(gifts.filter(g => g.id !== giftId));
+    showSuccessToast(`Gift deleted.`);
+  };
 
   const renderView = () => {
-    switch (currentView) {
+    if (userForVerification) {
+        return <VerificationView user={userForVerification} onUpdateUser={()=>{}} onBack={() => setUserForVerification(null)} />
+    }
+    switch (activeView) {
       case 'dashboard': return <DashboardView />;
-      case 'users': return (
-        <UserManagementView
-          users={activeUsers}
-          onUpdateUser={handleUpdateUser}
-          onAddUser={handleAddUser}
-          onStartVerification={handleStartVerification}
-          onUpdateUserVerification={handleUpdateUserVerification}
-          onDeleteUser={handleSoftDeleteUser}
-          selectedUserIds={selectedUserIds}
-          onSetSelectedUserIds={setSelectedUserIds}
-          onBulkUpdateStatus={handleBulkUpdateStatus}
-          onBulkDelete={handleBulkSoftDelete}
-        />
-      );
-      case 'corbeil': return (
-        <CorbeilView
-            users={deletedUsers}
-            onRestoreUser={handleRestoreUser}
-            onPermanentlyDeleteUser={handlePermanentlyDeleteUser}
-            selectedUserIds={selectedUserIds}
-            onSetSelectedUserIds={setSelectedUserIds}
-            onBulkRestore={handleBulkRestore}
-            onBulkPermanentDelete={handleBulkPermanentDelete}
-        />
-      );
+      case 'users': return <UserManagementView 
+                                users={users}
+                                onUpdateUser={()=>{}}
+                                onAddUser={handleAddUser}
+                                onStartVerification={setUserForVerification}
+                                onUpdateUserVerification={handleUpdateUserVerification}
+                                onDeleteUser={handleDeleteUser}
+                                selectedUserIds={selectedUserIds}
+                                onSetSelectedUserIds={setSelectedUserIds}
+                                onBulkUpdateStatus={handleBulkUpdateUserStatus}
+                                onBulkDelete={handleBulkDeleteUsers}
+                                onSendSystemMessage={onSendSystemMessage}
+                                onBulkSendMessage={handleBulkSendMessage}
+                             />;
       case 'content': return <ContentManagementView 
-          videos={videos} 
-          onUpdateVideoStatus={handleUpdateVideoStatus} 
-          onDeleteVideo={handleDeleteVideo}
-          selectedVideoIds={selectedVideoIds}
-          onSetSelectedVideoIds={setSelectedVideoIds}
-          onBulkUpdateStatus={handleBulkUpdateVideoStatus}
-          onBulkDelete={handleBulkDeleteVideo}
-        />;
-      case 'financials': return <FinancialsView 
-          payouts={payouts} 
-          onUpdatePayoutStatus={handleUpdatePayoutStatus} 
-          users={users}
-        />;
-      case 'moderation': return <ModerationQueueView
-        reports={reports}
-        users={users}
-        videos={videos}
-        onResolveReport={handleResolveReport}
-        onDismissReport={handleDismissReport}
-        selectedReportIds={selectedReportIds}
-        onSetSelectedReportIds={setSelectedReportIds}
-        onBulkResolve={handleBulkResolveReports}
-        onBulkDismiss={handleBulkDismissReports}
-      />;
-      case 'gifts': return <GiftManagementView />;
-      case 'settings': return <AdminSettingsView />;
-      case 'verification': 
-        if (!userToVerify) {
-            setCurrentView('users');
-            return null;
-        }
-        return <VerificationView 
-            user={userToVerify} 
-            onUpdateUser={handleUpdateUser}
-            onBack={() => {
-                setUserToVerify(null);
-                setCurrentView('users');
-            }}
-        />;
-      default: return <DashboardView />;
+                                videos={videos}
+                                onUpdateVideoStatus={handleUpdateVideoStatus}
+                                onDeleteVideo={handleDeleteVideo}
+                                selectedVideoIds={selectedVideoIds}
+                                onSetSelectedVideoIds={setSelectedVideoIds}
+                                onBulkUpdateStatus={handleBulkUpdateVideoStatus}
+                                onBulkDelete={handleBulkDeleteVideos}
+                             />;
+      case 'moderation': return <ModerationQueueView 
+                                    reports={reports}
+                                    users={users}
+                                    videos={videos}
+                                    onResolveReport={(id) => { const r = reports.find(r=>r.id===id); if(r) handleResolveReport(r); }}
+                                    onDismissReport={handleDismissReport}
+                                    selectedReportIds={selectedReportIds}
+                                    onSetSelectedReportIds={setSelectedReportIds}
+                                    onBulkResolve={handleBulkResolveReports}
+                                    onBulkDismiss={handleBulkDismissReports}
+                                />;
+      case 'financials': return <FinancialsView payouts={payouts} users={users} onUpdatePayoutStatus={handleUpdatePayoutStatus} />;
+      case 'gifts': return <GiftManagementView gifts={gifts} onAddGift={handleAddGift} onUpdateGift={handleUpdateGift} onDeleteGift={handleDeleteGift} />;
+      case 'corbeil': return <CorbeilView 
+                                users={deletedUsers}
+                                onRestoreUser={handleRestoreUser}
+                                onPermanentlyDeleteUser={handlePermanentlyDeleteUser}
+                                selectedUserIds={selectedUserIds}
+                                onSetSelectedUserIds={setSelectedUserIds}
+                                onBulkRestore={(ids) => { ids.forEach(handleRestoreUser); setSelectedUserIds([]); }}
+                                onBulkPermanentDelete={(ids) => { ids.forEach(handlePermanentlyDeleteUser); setSelectedUserIds([]); }}
+                            />;
+      case 'settings': return <AdminSettingsView 
+                                sidebarPosition={sidebarPosition}
+                                onSetSidebarPosition={handleSetSidebarPosition}
+                                sidebarLayout={sidebarLayout}
+                                onSetSidebarLayout={setSidebarLayout}
+                                notificationTemplates={notificationTemplates}
+                                onUpdateTemplate={handleUpdateTemplate}
+                                showSuccessToast={showSuccessToast}
+                              />;
+      default: return null;
     }
   };
-  
-  const viewTitles: Record<AdminView, string> = {
-    dashboard: 'Dashboard Overview',
-    users: 'User Management',
-    content: 'Content Management',
-    financials: 'Financials & Payouts',
-    moderation: 'Moderation Queue',
-    corbeil: 'User Corbeil (Trash)',
-    gifts: 'Gift Management',
-    settings: 'System Settings',
-    verification: `Verify User: @${userToVerify?.username || ''}`,
-  };
+
+  const NavItem: React.FC<{ view: AdminView; icon: React.ReactNode; label: string }> = ({ view, icon, label }) => (
+    <button
+      onClick={() => setActiveView(view)}
+      title={label}
+      className={`flex items-center justify-center lg:justify-start w-full p-3 my-1 rounded-lg transition-colors text-sm ${
+        activeView === view ? 'bg-pink-600 text-white' : 'text-gray-300 hover:bg-zinc-700'
+      }`}
+    >
+      {icon}
+      <span className={`ml-3 ${sidebarLayout === 'responsive' ? 'hidden lg:inline' : ''}`}>{label}</span>
+    </button>
+  );
+
+  const animationClass = isAnimating ? 'animate-fade-out-fast' : 'animate-fade-in-fast';
 
   return (
-    <div className={`flex h-screen w-screen font-sans overflow-hidden ${isDarkMode ? 'dark bg-zinc-800 text-gray-200' : 'bg-gray-100 text-gray-800'}`}>
-      <Sidebar currentView={currentView} setCurrentView={setCurrentView} onExit={onExit} isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
-      
-      {/* Overlay for mobile */}
-      {isSidebarOpen && (
-          <div 
-              onClick={() => setIsSidebarOpen(false)} 
-              className="fixed inset-0 bg-black/60 z-20 lg:hidden"
-              aria-hidden="true"
-          ></div>
-      )}
-      
-      <main className="flex-1 flex flex-col lg:ml-64">
-        <header className="flex items-center justify-between h-16 px-4 sm:px-6 border-b dark:border-zinc-800 bg-white dark:bg-zinc-900 sticky top-0 z-10 shrink-0">
-            <div className="flex items-center gap-2">
-                <button onClick={() => setIsSidebarOpen(true)} className="lg:hidden p-2 -ml-2 text-gray-600 dark:text-gray-300">
-                    <MenuIcon />
-                </button>
-                <h2 className="text-lg sm:text-xl font-semibold">{viewTitles[currentView]}</h2>
-            </div>
-            <div className="flex items-center gap-2 sm:gap-4">
-                <div className="relative hidden sm:block">
-                    <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                    <input type="text" placeholder="Search..." className="w-full pl-10 pr-4 py-2 rounded-lg bg-gray-200 dark:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-pink-500 text-sm" />
-                </div>
-                <button onClick={() => setIsDarkMode(!isDarkMode)} className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-zinc-700">
-                    {isDarkMode ? <SunIcon /> : <MoonIcon />}
-                </button>
-                <div className="flex items-center gap-2">
-                    <img src={user.avatarUrl} alt={user.username} className="w-9 h-9 rounded-full" />
-                    <div className="hidden md:block">
-                        <p className="text-sm font-semibold">{user.username}</p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 capitalize">{user.role}</p>
-                    </div>
-                </div>
-            </div>
-        </header>
-        <div className="flex-1 p-4 sm:p-6 overflow-y-auto">
-          {renderView()}
+    <div className={`flex h-screen bg-gray-100 dark:bg-zinc-900 text-gray-800 dark:text-white ${isDarkMode ? 'dark' : ''} ${sidebarPosition === 'right' ? 'flex-row-reverse' : ''}`}>
+      {/* Sidebar */}
+      <aside className={`bg-gray-800 dark:bg-black text-white flex flex-col transition-all duration-300 ${sidebarLayout === 'responsive' ? 'w-20 lg:w-64' : 'w-64'} shrink-0 ${animationClass}`}>
+        <div className="flex items-center justify-center h-16 border-b border-zinc-800 shrink-0">
+          <h1 className="text-2xl font-bold bg-gradient-to-r from-pink-500 to-red-500 text-transparent bg-clip-text">
+            <span className={`${sidebarLayout === 'responsive' ? 'hidden lg:inline' : ''}`}>ADMIN</span>
+            <span className={`${sidebarLayout === 'responsive' ? 'inline lg:hidden' : 'hidden'}`}>A</span>
+          </h1>
         </div>
-      </main>
+        <nav className="flex-1 p-2 lg:p-4 overflow-y-auto">
+          <NavItem view="dashboard" icon={<DashboardIcon />} label="Dashboard" />
+          <NavItem view="users" icon={<UsersIcon />} label="Users" />
+          <NavItem view="content" icon={<VideoIcon />} label="Content" />
+          <NavItem view="moderation" icon={<ShieldCheckIcon />} label="Moderation" />
+          <NavItem view="financials" icon={<DollarSignIcon />} label="Financials" />
+          <NavItem view="gifts" icon={<GiftIcon />} label="Gifts" />
+          <NavItem view="corbeil" icon={<RestoreIcon />} label="Corbeil" />
+        </nav>
+        <div className="p-2 lg:p-4 border-t border-zinc-800 shrink-0">
+          <NavItem view="settings" icon={<SettingsIcon />} label="Settings" />
+          <button
+            onClick={onExit}
+            title="Exit Admin Panel"
+            className="flex items-center justify-center lg:justify-start w-full p-3 my-1 rounded-lg transition-colors text-sm text-gray-300 hover:bg-zinc-700"
+          >
+            <LogOutIcon />
+            <span className={`ml-3 ${sidebarLayout === 'responsive' ? 'hidden lg:inline' : ''}`}>Exit</span>
+          </button>
+           <button 
+            onClick={() => setIsDarkMode(!isDarkMode)} 
+            title="Toggle Theme"
+            className="flex items-center justify-center lg:justify-start w-full p-3 my-1 rounded-lg transition-colors text-sm text-gray-300 hover:bg-zinc-700"
+           >
+                {isDarkMode ? <SunIcon /> : <MoonIcon />}
+                <span className={`ml-3 ${sidebarLayout === 'responsive' ? 'hidden lg:inline' : ''}`}>{isDarkMode ? 'Light Mode' : 'Dark Mode'}</span>
+            </button>
+        </div>
+      </aside>
+
+      {/* Main Content */}
+      <div className={`flex-1 flex flex-col overflow-hidden ${animationClass}`}>
+        <header className="flex justify-between items-center p-4 bg-white dark:bg-zinc-900 border-b dark:border-zinc-800 shrink-0">
+          <div/>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center">
+              <img src={user.avatarUrl} alt={user.username} className="w-8 h-8 rounded-full" />
+              <span className="ml-2 font-semibold text-sm hidden sm:block">@{user.username}</span>
+            </div>
+          </div>
+        </header>
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6">
+          {renderView()}
+        </main>
+      </div>
     </div>
   );
 };

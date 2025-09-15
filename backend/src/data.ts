@@ -1,3 +1,4 @@
+
 import { User, Video, Comment } from './types';
 
 // This data is a copy from the frontend's mockApi to simulate a backend database.
@@ -15,7 +16,8 @@ export const mockUsers: User[] = [
     lastLogin: '2024-07-20',
     bio: 'Building cool stuff with React & TypeScript. Follow for more! 🚀',
     followers: 12500,
-    following: 320,
+    following: 321,
+    followingIds: ['u2'],
     wallet: {
       balance: 1250,
       transactions: [
@@ -24,7 +26,7 @@ export const mockUsers: User[] = [
         { id: 't3', type: 'reward', amount: 50, description: 'Daily Login Reward', timestamp: '2024-07-18' },
       ],
     },
-    creatorStats: { totalEarnings: 5430, receivedGiftsCount: 890 },
+    creatorStats: { totalEarnings: 5430.50, receivedGiftsCount: 890 },
     level: 25,
     xp: 150,
     streakCount: 12,
@@ -44,8 +46,9 @@ export const mockUsers: User[] = [
     joinDate: '2023-03-22',
     lastLogin: '2024-07-21',
     bio: 'Just a cat who loves to create art and dance. 🎨',
-    followers: 250000,
+    followers: 250001,
     following: 150,
+    followingIds: [],
     level: 30,
     xp: 180,
     streakCount: 5,
@@ -63,6 +66,7 @@ export const mockUsers: User[] = [
     bio: 'Pro gamer. Streaming daily.',
     followers: 1200000,
     following: 5,
+    followingIds: [],
     level: 50,
     xp: 900,
   },
@@ -79,6 +83,7 @@ export const mockUsers: User[] = [
     bio: 'Exploring the best food spots!',
     followers: 5200,
     following: 800,
+    followingIds: [],
     level: 15,
   },
   {
@@ -94,6 +99,7 @@ export const mockUsers: User[] = [
     bio: 'Wanderlust.',
     followers: 10,
     following: 50,
+    followingIds: [],
     level: 2,
   },
 ];

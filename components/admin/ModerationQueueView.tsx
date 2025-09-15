@@ -1,6 +1,7 @@
+
 import React, { useState, useMemo } from 'react';
 import { Report, User, Video } from '../../types';
-import { UsersIcon, VideoIcon, CommentIcon, CloseIcon } from '../icons/Icons';
+import { UsersIcon, VideoIcon, CommentIcon, CloseIcon, SortUpIcon, SortDownIcon } from '../icons/Icons';
 
 type ReportStatus = 'pending' | 'resolved' | 'dismissed';
 
@@ -116,6 +117,8 @@ const BulkActionBar: React.FC<{
     );
 };
 
+const resolvePath = (path: string, obj: any) => path.split('.').reduce((prev, curr) => prev?.[curr], obj);
+
 const ModerationQueueView: React.FC<ModerationQueueViewProps> = ({ 
     reports, users, videos, onResolveReport, onDismissReport,
     selectedReportIds, onSetSelectedReportIds, onBulkResolve, onBulkDismiss
@@ -123,11 +126,38 @@ const ModerationQueueView: React.FC<ModerationQueueViewProps> = ({
     const [activeTab, setActiveTab] = useState<ReportStatus>('pending');
     const [reportToConfirm, setReportToConfirm] = useState<Report | null>(null);
     const [isConfirmingBulkResolve, setIsConfirmingBulkResolve] = useState(false);
+    const [sortConfig, setSortConfig] = useState<{ key: string | null; direction: 'asc' | 'desc' }>({ key: 'timestamp', direction: 'desc' });
 
     const filteredReports = useMemo(() =>
         reports.filter(r => r.status === activeTab),
         [reports, activeTab]
     );
+
+    const sortedReports = useMemo(() => {
+        let sortableReports = [...filteredReports];
+        if (sortConfig.key !== null) {
+            sortableReports.sort((a, b) => {
+                const aValue = resolvePath(sortConfig.key!, a);
+                const bValue = resolvePath(sortConfig.key!, b);
+
+                if (aValue === undefined || aValue === null) return 1;
+                if (bValue === undefined || bValue === null) return -1;
+
+                if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
+                if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
+                return 0;
+            });
+        }
+        return sortableReports;
+    }, [filteredReports, sortConfig]);
+
+    const requestSort = (key: string) => {
+        let direction: 'asc' | 'desc' = 'asc';
+        if (sortConfig.key === key && sortConfig.direction === 'asc') {
+            direction = 'desc';
+        }
+        setSortConfig({ key, direction });
+    };
 
     const handleConfirmResolution = () => {
         if (reportToConfirm) {
@@ -143,10 +173,10 @@ const ModerationQueueView: React.FC<ModerationQueueViewProps> = ({
 
     const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.checked) {
-            const pageReportIds = filteredReports.map(r => r.id);
+            const pageReportIds = sortedReports.map(r => r.id);
             onSetSelectedReportIds(Array.from(new Set([...selectedReportIds, ...pageReportIds])));
         } else {
-            const pageReportIds = filteredReports.map(r => r.id);
+            const pageReportIds = sortedReports.map(r => r.id);
             onSetSelectedReportIds(selectedReportIds.filter(id => !pageReportIds.includes(id)));
         }
     };
@@ -159,8 +189,21 @@ const ModerationQueueView: React.FC<ModerationQueueViewProps> = ({
         }
     };
 
-    const numSelectedOnPage = filteredReports.filter(r => selectedReportIds.includes(r.id)).length;
-    const isAllOnPageSelected = filteredReports.length > 0 && numSelectedOnPage === filteredReports.length;
+    const numSelectedOnPage = sortedReports.filter(r => selectedReportIds.includes(r.id)).length;
+    const isAllOnPageSelected = sortedReports.length > 0 && numSelectedOnPage === sortedReports.length;
+    
+    const SortableHeader: React.FC<{ children: React.ReactNode, sortKey: string }> = ({ children, sortKey }) => (
+        <button onClick={() => requestSort(sortKey)} className="flex items-center gap-1.5 group">
+            {children}
+            <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                {sortConfig.key === sortKey ? (
+                    sortConfig.direction === 'asc' ? <SortUpIcon /> : <SortDownIcon />
+                ) : (
+                    <SortDownIcon className="text-gray-400" />
+                )}
+            </div>
+        </button>
+    );
 
     return (
         <>
@@ -207,14 +250,14 @@ const ModerationQueueView: React.FC<ModerationQueueViewProps> = ({
                                     </th>
                                 )}
                                 <th scope="col" className="p-4">Reported Content</th>
-                                <th scope="col" className="p-4">Reason</th>
-                                <th scope="col" className="p-4">Reported By</th>
-                                <th scope="col" className="p-4">Date</th>
+                                <th scope="col" className="p-4"><SortableHeader sortKey="reason">Reason</SortableHeader></th>
+                                <th scope="col" className="p-4"><SortableHeader sortKey="reportedBy.username">Reported By</SortableHeader></th>
+                                <th scope="col" className="p-4"><SortableHeader sortKey="timestamp">Date</SortableHeader></th>
                                 {activeTab === 'pending' && <th scope="col" className="p-4 text-center">Actions</th>}
                             </tr>
                         </thead>
                         <tbody>
-                            {filteredReports.map(report => (
+                            {sortedReports.map(report => (
                                 <tr key={report.id} className={`border-b dark:border-zinc-800 transition-colors ${selectedReportIds.includes(report.id) ? 'bg-pink-500/10' : 'hover:bg-gray-50 dark:hover:bg-zinc-800/50'}`}>
                                     {activeTab === 'pending' && (
                                          <td className="p-4">
@@ -249,7 +292,7 @@ const ModerationQueueView: React.FC<ModerationQueueViewProps> = ({
                             ))}
                         </tbody>
                     </table>
-                     {filteredReports.length === 0 && (
+                     {sortedReports.length === 0 && (
                         <div className="text-center py-10 text-gray-500 dark:text-gray-400">
                             <p>No {activeTab} reports found.</p>
                         </div>

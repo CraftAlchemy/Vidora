@@ -12,6 +12,7 @@ import SettingsView from './components/views/SettingsView';
 import PurchaseCoinsView from './components/views/PurchaseCoinsView';
 import ChatInboxView from './components/views/ChatInboxView';
 import ChatWindowView from './components/views/ChatWindowView';
+// FIX: The file 'components/AdminPanel.tsx' was not a module. This is now fixed by providing a proper component implementation.
 import AdminPanel from './components/AdminPanel';
 import BottomNav from './components/BottomNav';
 import UploadView from './components/views/UploadView';
@@ -20,6 +21,7 @@ import DailyRewardModal from './components/DailyRewardModal';
 import SuccessToast from './components/SuccessToast';
 import CommentsModal from './components/CommentsModal';
 import CreatorDashboardView from './components/views/CreatorDashboardView';
+import RequestPayoutModal from './components/RequestPayoutModal';
 
 export type View = 'feed' | 'live' | 'inbox' | 'profile' | 'wallet' | 'settings' | 'purchase' | 'admin' | 'creatorDashboard';
 
@@ -507,7 +509,12 @@ const App: React.FC = () => {
     }
 
     if (activeView === 'admin') {
-        return <AdminPanel user={currentUser} onExit={() => handleNavigate('profile')} onSendSystemMessage={sendSystemMessage} />
+        return <AdminPanel 
+                    user={currentUser} 
+                    onExit={() => handleNavigate('profile')} 
+                    onSendSystemMessage={sendSystemMessage}
+                    showSuccessToast={showSuccessToast} 
+                />
     }
 
     const renderView = () => {
@@ -598,6 +605,13 @@ const App: React.FC = () => {
                     onClose={handleCloseComments}
                     onAddComment={handleAddComment}
                     onViewProfile={handleViewProfile}
+                />
+            )}
+            {isRequestPayoutModalOpen && (
+                <RequestPayoutModal
+                    user={currentUser}
+                    onClose={() => setIsRequestPayoutModalOpen(false)}
+                    onSubmit={handleRequestPayout}
                 />
             )}
         </div>

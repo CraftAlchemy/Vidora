@@ -1,7 +1,123 @@
-import React, { useState } from 'react';
+
+import React, { useState, useMemo } from 'react';
 import { User } from '../../types';
-import { SearchIcon, MoreVerticalIcon, ChevronLeftIcon, ChevronRightIcon, BanUserIcon, PauseCircleIcon, CheckCircleIcon, VerifyBadgeIcon, TrashIcon, CloseIcon } from '../icons/Icons';
+import { SearchIcon, MoreVerticalIcon, ChevronLeftIcon, ChevronRightIcon, BanUserIcon, PauseCircleIcon, CheckCircleIcon, VerifyBadgeIcon, TrashIcon, CloseIcon, MessageIcon, SortUpIcon, SortDownIcon } from '../icons/Icons';
 import AddUserModal from './AddUserModal';
+
+interface SendMessageModalProps {
+    user: User;
+    onClose: () => void;
+    onSend: (message: string) => void;
+}
+
+const SendMessageModal: React.FC<SendMessageModalProps> = ({ user, onClose, onSend }) => {
+    const [message, setMessage] = useState('');
+
+    const handleSend = () => {
+        if (message.trim()) {
+            onSend(message.trim());
+        }
+    };
+
+    return (
+        <div 
+            className="fixed inset-0 bg-black/70 flex justify-center items-center z-50 p-4" 
+            onClick={onClose}
+        >
+            <div 
+                className="bg-white dark:bg-zinc-900 rounded-lg shadow-xl w-full max-w-md text-gray-800 dark:text-white relative animate-fade-in-up border border-gray-200 dark:border-zinc-800"
+                onClick={e => e.stopPropagation()}
+            >
+                <header className="flex items-center justify-between p-4 border-b dark:border-zinc-800">
+                    <h2 className="text-xl font-bold">Send Message to @{user.username}</h2>
+                    <button onClick={onClose} className="p-1 rounded-full hover:bg-gray-200 dark:hover:bg-zinc-700">
+                        <CloseIcon />
+                    </button>
+                </header>
+                <main className="p-6">
+                    <textarea
+                        value={message}
+                        onChange={(e) => setMessage(e.target.value)}
+                        rows={5}
+                        placeholder="Type your message here..."
+                        className="w-full p-2 bg-gray-100 dark:bg-zinc-800 rounded-md border border-gray-200 dark:border-zinc-700 focus:outline-none focus:ring-2 focus:ring-pink-500"
+                    />
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                        This message will be sent from 'Vidora Support'.
+                    </p>
+                </main>
+                <footer className="flex justify-end gap-3 p-4 border-t dark:border-zinc-800">
+                    <button onClick={onClose} className="px-4 py-2 rounded-md bg-gray-200 dark:bg-zinc-700 hover:bg-gray-300 dark:hover:bg-zinc-600 transition-colors font-semibold text-sm">
+                        Cancel
+                    </button>
+                    <button 
+                        onClick={handleSend}
+                        disabled={!message.trim()}
+                        className="px-4 py-2 rounded-md bg-pink-600 hover:bg-pink-700 transition-colors font-semibold text-white text-sm disabled:opacity-50"
+                    >
+                        Send Message
+                    </button>
+                </footer>
+            </div>
+        </div>
+    );
+};
+
+interface BulkMessageModalProps {
+    selectedCount: number;
+    onClose: () => void;
+    onSend: (message: string) => void;
+}
+
+const BulkMessageModal: React.FC<BulkMessageModalProps> = ({ selectedCount, onClose, onSend }) => {
+    const [message, setMessage] = useState('');
+
+    const handleSend = () => {
+        if (message.trim()) {
+            onSend(message.trim());
+        }
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black/70 flex justify-center items-center z-50 p-4" onClick={onClose}>
+            <div 
+                className="bg-white dark:bg-zinc-900 rounded-lg shadow-xl w-full max-w-md text-gray-800 dark:text-white relative animate-fade-in-up border border-gray-200 dark:border-zinc-800"
+                onClick={e => e.stopPropagation()}
+            >
+                <header className="flex items-center justify-between p-4 border-b dark:border-zinc-800">
+                    <h2 className="text-xl font-bold">Send Bulk Message to {selectedCount} Users</h2>
+                    <button onClick={onClose} className="p-1 rounded-full hover:bg-gray-200 dark:hover:bg-zinc-700">
+                        <CloseIcon />
+                    </button>
+                </header>
+                <main className="p-6">
+                    <textarea
+                        value={message}
+                        onChange={(e) => setMessage(e.target.value)}
+                        rows={5}
+                        placeholder="Type your message for the selected users..."
+                        className="w-full p-2 bg-gray-100 dark:bg-zinc-800 rounded-md border border-gray-200 dark:border-zinc-700 focus:outline-none focus:ring-2 focus:ring-pink-500"
+                    />
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                        This message will be sent individually from 'Vidora Support' to each selected user.
+                    </p>
+                </main>
+                <footer className="flex justify-end gap-3 p-4 border-t dark:border-zinc-800">
+                    <button onClick={onClose} className="px-4 py-2 rounded-md bg-gray-200 dark:bg-zinc-700 hover:bg-gray-300 dark:hover:bg-zinc-600 transition-colors font-semibold text-sm">
+                        Cancel
+                    </button>
+                    <button 
+                        onClick={handleSend}
+                        disabled={!message.trim()}
+                        className="px-4 py-2 rounded-md bg-pink-600 hover:bg-pink-700 transition-colors font-semibold text-white text-sm disabled:opacity-50"
+                    >
+                        Send to All
+                    </button>
+                </footer>
+            </div>
+        </div>
+    );
+};
 
 interface UserActionModalProps {
     user: User;
@@ -10,9 +126,10 @@ interface UserActionModalProps {
     onStartVerification: (user: User) => void;
     onUpdateVerification: (userId: string, isVerified: boolean) => void;
     onDeleteUser: (userId: string) => void;
+    onSendMessage: (user: User) => void;
 }
 
-const UserActionModal: React.FC<UserActionModalProps> = ({ user, onClose, onUpdateStatus, onStartVerification, onUpdateVerification, onDeleteUser }) => {
+const UserActionModal: React.FC<UserActionModalProps> = ({ user, onClose, onUpdateStatus, onStartVerification, onUpdateVerification, onDeleteUser, onSendMessage }) => {
     const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
 
     const handleDelete = () => {
@@ -52,6 +169,9 @@ const UserActionModal: React.FC<UserActionModalProps> = ({ user, onClose, onUpda
                             <h3 className="font-bold">Actions for @{user.username}</h3>
                         </div>
                         <div className="flex flex-col">
+                             <button onClick={() => { onSendMessage(user); onClose(); }} className="flex items-center gap-3 p-4 text-left hover:bg-gray-100 dark:hover:bg-zinc-700 w-full transition-colors">
+                                <MessageIcon className="w-5 h-5 text-cyan-500" /> Send Direct Message
+                            </button>
                             {user.isVerified ? (
                                 <button onClick={() => onUpdateVerification(user.id, false)} className="flex items-center gap-3 p-4 text-left hover:bg-gray-100 dark:hover:bg-zinc-700 w-full transition-colors">
                                     <VerifyBadgeIcon className="w-5 h-5 text-gray-500" /> Un-verify User
@@ -117,7 +237,8 @@ const BulkActionBar: React.FC<{
     onClearSelection: () => void;
     onUpdateStatus: (status: User['status']) => void;
     onDelete: () => void;
-}> = ({ selectedCount, onClearSelection, onUpdateStatus, onDelete }) => {
+    onSendMessageClick: () => void;
+}> = ({ selectedCount, onClearSelection, onUpdateStatus, onDelete, onSendMessageClick }) => {
     const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
 
     const handleDelete = () => {
@@ -147,7 +268,8 @@ const BulkActionBar: React.FC<{
                 </button>
                 <span className="font-semibold text-sm">{selectedCount} selected</span>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap justify-end">
+                <button onClick={onSendMessageClick} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-900/50 rounded-md hover:bg-blue-200 dark:hover:bg-blue-900" title="Send Message to Selected"><MessageIcon className="w-4 h-4" />Message</button>
                 <button onClick={() => onUpdateStatus('active')} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-green-700 dark:text-green-300 bg-green-100 dark:bg-green-900/50 rounded-md hover:bg-green-200 dark:hover:bg-green-900" title="Activate Selected"><CheckCircleIcon className="w-4 h-4" />Activate</button>
                 <button onClick={() => onUpdateStatus('suspended')} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-yellow-700 dark:text-yellow-300 bg-yellow-100 dark:bg-yellow-900/50 rounded-md hover:bg-yellow-200 dark:hover:bg-yellow-900" title="Suspend Selected"><PauseCircleIcon className="w-4 h-4" />Suspend</button>
                 <button onClick={() => onUpdateStatus('banned')} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-red-700 dark:text-red-300 bg-red-100 dark:bg-red-900/50 rounded-md hover:bg-red-200 dark:hover:bg-red-900" title="Ban Selected"><BanUserIcon className="w-4 h-4" />Ban</button>
@@ -169,23 +291,60 @@ interface UserManagementViewProps {
     onSetSelectedUserIds: (ids: string[]) => void;
     onBulkUpdateStatus: (ids: string[], status: User['status']) => void;
     onBulkDelete: (ids: string[]) => void;
+    onSendSystemMessage: (userId: string, message: string) => void;
+    onBulkSendMessage: (userIds: string[], message: string) => void;
 }
 
 
 const UserManagementView: React.FC<UserManagementViewProps> = ({ 
     users, onUpdateUser, onAddUser, onStartVerification, onUpdateUserVerification, onDeleteUser,
-    selectedUserIds, onSetSelectedUserIds, onBulkUpdateStatus, onBulkDelete
+    selectedUserIds, onSetSelectedUserIds, onBulkUpdateStatus, onBulkDelete, onSendSystemMessage,
+    onBulkSendMessage
 }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [actionMenuForUser, setActionMenuForUser] = useState<string | null>(null);
     const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
+    const [userToMessage, setUserToMessage] = useState<User | null>(null);
+    const [isBulkMessageModalOpen, setIsBulkMessageModalOpen] = useState(false);
+    const [sortConfig, setSortConfig] = useState<{ key: string | null; direction: 'asc' | 'desc' }>({ key: 'joinDate', direction: 'desc' });
     const usersPerPage = 7;
+
+    const sortedUsers = useMemo(() => {
+        let sortableUsers = [...users];
+        if (sortConfig.key !== null) {
+            sortableUsers.sort((a, b) => {
+                const aValue = a[sortConfig.key as keyof User];
+                const bValue = b[sortConfig.key as keyof User];
+
+                if (aValue === undefined || aValue === null) return 1;
+                if (bValue === undefined || bValue === null) return -1;
+                
+                if (aValue < bValue) {
+                    return sortConfig.direction === 'asc' ? -1 : 1;
+                }
+                if (aValue > bValue) {
+                    return sortConfig.direction === 'asc' ? 1 : -1;
+                }
+                return 0;
+            });
+        }
+        return sortableUsers;
+    }, [users, sortConfig]);
+
+    const requestSort = (key: string) => {
+        let direction: 'asc' | 'desc' = 'asc';
+        if (sortConfig.key === key && sortConfig.direction === 'asc') {
+            direction = 'desc';
+        }
+        setSortConfig({ key, direction });
+    };
 
     const handleUpdateUserStatus = (userId: string, newStatus: User['status']) => {
         const user = users.find(u => u.id === userId);
         if (user) {
             onUpdateUser({ ...user, status: newStatus });
+            onSendSystemMessage(userId, `Your account status has been updated to: ${newStatus}.`);
         }
         setActionMenuForUser(null);
     };
@@ -210,7 +369,7 @@ const UserManagementView: React.FC<UserManagementViewProps> = ({
         setActionMenuForUser(null);
     };
 
-    const filteredUsers = users.filter(user =>
+    const filteredUsers = sortedUsers.filter(user =>
         user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
         user.email.toLowerCase().includes(searchTerm.toLowerCase())
     );
@@ -243,6 +402,19 @@ const UserManagementView: React.FC<UserManagementViewProps> = ({
     const numSelectedOnPage = currentUsers.filter(u => selectedUserIds.includes(u.id)).length;
     const isAllOnPageSelected = currentUsers.length > 0 && numSelectedOnPage === currentUsers.length;
 
+    const SortableHeader: React.FC<{ children: React.ReactNode, sortKey: string }> = ({ children, sortKey }) => (
+        <button onClick={() => requestSort(sortKey)} className="flex items-center gap-1.5 group">
+            {children}
+            <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                {sortConfig.key === sortKey ? (
+                    sortConfig.direction === 'asc' ? <SortUpIcon /> : <SortDownIcon />
+                ) : (
+                    <SortDownIcon className="text-gray-400" />
+                )}
+            </div>
+        </button>
+    );
+
     return (
         <>
             <div className="bg-white dark:bg-zinc-900 p-4 sm:p-6 rounded-lg shadow-md border border-gray-200 dark:border-zinc-800">
@@ -252,6 +424,7 @@ const UserManagementView: React.FC<UserManagementViewProps> = ({
                         onClearSelection={() => onSetSelectedUserIds([])}
                         onUpdateStatus={(status) => onBulkUpdateStatus(selectedUserIds, status)}
                         onDelete={() => onBulkDelete(selectedUserIds)}
+                        onSendMessageClick={() => setIsBulkMessageModalOpen(true)}
                     />
                 ) : (
                     <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-4">
@@ -283,12 +456,12 @@ const UserManagementView: React.FC<UserManagementViewProps> = ({
                                         aria-label="Select all users on this page"
                                     />
                                 </th>
-                                <th scope="col" className="p-4">User</th>
-                                <th scope="col" className="p-4">Email</th>
-                                <th scope="col" className="p-4">Role</th>
-                                <th scope="col" className="p-4">Status</th>
-                                <th scope="col" className="p-4">Verified</th>
-                                <th scope="col" className="p-4">Joined</th>
+                                <th scope="col" className="p-4"><SortableHeader sortKey="username">User</SortableHeader></th>
+                                <th scope="col" className="p-4"><SortableHeader sortKey="email">Email</SortableHeader></th>
+                                <th scope="col" className="p-4"><SortableHeader sortKey="role">Role</SortableHeader></th>
+                                <th scope="col" className="p-4"><SortableHeader sortKey="status">Status</SortableHeader></th>
+                                <th scope="col" className="p-4"><SortableHeader sortKey="isVerified">Verified</SortableHeader></th>
+                                <th scope="col" className="p-4"><SortableHeader sortKey="joinDate">Joined</SortableHeader></th>
                                 <th scope="col" className="p-4">Actions</th>
                             </tr>
                         </thead>
@@ -350,6 +523,7 @@ const UserManagementView: React.FC<UserManagementViewProps> = ({
                     onStartVerification={handleStartVerificationAndClose}
                     onUpdateVerification={handleUpdateVerificationAndClose}
                     onDeleteUser={handleDeleteUserAndClose}
+                    onSendMessage={setUserToMessage}
                 />
             )}
 
@@ -357,6 +531,28 @@ const UserManagementView: React.FC<UserManagementViewProps> = ({
                 <AddUserModal
                     onClose={() => setIsAddUserModalOpen(false)}
                     onAddUser={handleAddUserAndClose}
+                />
+            )}
+            
+            {userToMessage && (
+                <SendMessageModal
+                    user={userToMessage}
+                    onClose={() => setUserToMessage(null)}
+                    onSend={(message) => {
+                        onSendSystemMessage(userToMessage.id, message);
+                        setUserToMessage(null);
+                    }}
+                />
+            )}
+            {isBulkMessageModalOpen && (
+                <BulkMessageModal
+                    selectedCount={selectedUserIds.length}
+                    onClose={() => setIsBulkMessageModalOpen(false)}
+                    onSend={(message) => {
+                        onBulkSendMessage(selectedUserIds, message);
+                        setIsBulkMessageModalOpen(false);
+                        onSetSelectedUserIds([]); // Clear selection after sending
+                    }}
                 />
             )}
         </>
