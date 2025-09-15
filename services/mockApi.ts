@@ -1,4 +1,3 @@
-
 import { User, Video, LiveStream, Conversation, Notification, Gift, WalletTransaction, LeaderboardUser, Report, PayoutRequest } from '../types';
 
 export const mockUsers: User[] = [
@@ -181,10 +180,10 @@ export const mockVideos: Video[] = [
 ];
 
 export const mockLiveStreams: LiveStream[] = [
-  { id: 'ls1', title: 'Live Gaming Session', user: mockUsers[2], thumbnailUrl: 'https://images.pexels.com/photos/7915228/pexels-photo-7915228.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2', viewers: 15200 },
-  { id: 'ls2', title: 'Q&A with a Dev', user: mockUsers[0], thumbnailUrl: 'https://images.pexels.com/photos/546819/pexels-photo-546819.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2', viewers: 3400 },
-  { id: 'ls3', title: 'Art Creation Stream', user: mockUsers[1], thumbnailUrl: 'https://images.pexels.com/photos/1198507/pexels-photo-1198507.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2', viewers: 8900 },
-  { id: 'ls4', title: 'Cooking Live', user: mockUsers[3], thumbnailUrl: 'https://images.pexels.com/photos/5639414/pexels-photo-5639414.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2', viewers: 1200 },
+  { id: 'ls1', title: 'Live Gaming Session', user: mockUsers[2], thumbnailUrl: 'https://images.pexels.com/photos/7915228/pexels-photo-7915228.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2', viewers: 15200, videoUrl: 'https://www.youtube.com/watch?v=LXb3EKWsInQ' },
+  { id: 'ls2', title: 'Q&A with a Dev', user: mockUsers[0], thumbnailUrl: 'https://images.pexels.com/photos/546819/pexels-photo-546819.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2', viewers: 3400, videoUrl: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4' },
+  { id: 'ls3', title: 'Art Creation Stream', user: mockUsers[1], thumbnailUrl: 'https://images.pexels.com/photos/1198507/pexels-photo-1198507.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2', viewers: 8900, videoUrl: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4' },
+  { id: 'ls4', title: 'Cooking Live', user: mockUsers[3], thumbnailUrl: 'https://images.pexels.com/photos/5639414/pexels-photo-5639414.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2', viewers: 1200, videoUrl: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4' },
 ];
 
 export const mockConversations: Conversation[] = [

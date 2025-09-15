@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { LiveStream, ChatMessage, User, Gift } from '../../types';
 import { CloseIcon, HeartIcon, SendIcon, EmojiIcon, GiftIcon, ShareIcon, CoinIcon, ChevronLeftIcon, PinIcon, PaperclipIcon } from '../icons/Icons';
 import { mockUser, mockGifts, mockUsers } from '../../services/mockApi';
 import SendGiftModal from '../SendGiftModal';
 import EmojiPicker from '../EmojiPicker';
+import { getYouTubeEmbedUrl } from '../../utils/videoUtils';
 
 interface ViewerLiveViewProps {
   stream: LiveStream;
@@ -70,6 +71,8 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, current
 
   const isFollowing = currentUser.followingIds?.includes(stream.user.id);
   const isOwnStream = currentUser.id === stream.user.id;
+  
+  const embedUrl = useMemo(() => stream.videoUrl ? getYouTubeEmbedUrl(stream.videoUrl) : null, [stream.videoUrl]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -373,7 +376,29 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, current
         onMouseLeave={handleMouseLeave}
       >
         {/* Background */}
-        <img src={stream.thumbnailUrl} alt={stream.title} className="absolute inset-0 w-full h-full object-cover"/>
+        {stream.videoUrl ? (
+            embedUrl ? (
+                <iframe
+                    src={embedUrl}
+                    title={stream.title}
+                    className="absolute inset-0 w-full h-full object-cover"
+                    frameBorder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                />
+            ) : (
+                <video
+                    src={stream.videoUrl}
+                    autoPlay
+                    loop
+                    playsInline
+                    muted
+                    className="absolute inset-0 w-full h-full object-cover"
+                />
+            )
+        ) : (
+            <img src={stream.thumbnailUrl} alt={stream.title} className="absolute inset-0 w-full h-full object-cover"/>
+        )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/30 pointer-events-none"></div>
 
         {/* Floating Hearts Area */}

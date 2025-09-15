@@ -58,6 +58,7 @@ export interface LiveStream {
   user: User;
   thumbnailUrl: string;
   viewers: number;
+  videoUrl?: string;
 }
 
 export interface ChatMessage {

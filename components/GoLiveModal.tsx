@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { CloseIcon } from './icons/Icons';
 import { BroadcastSource } from './views/LiveView';
+import { getYouTubeEmbedUrl } from '../utils/videoUtils';
 
 interface GoLiveModalProps {
   onClose: () => void;
@@ -40,12 +41,20 @@ const GoLiveModal: React.FC<GoLiveModalProps> = ({ onClose, onStartStream }) => 
   };
 
   const isValidUrl = (url: string) => {
-    try {
-        new URL(url);
+    if (getYouTubeEmbedUrl(url)) {
         return true;
-    } catch (_) {
-        return false;
     }
+    const lowerUrl = url.toLowerCase();
+    const videoExtensions = ['.mp4', '.webm', '.ogg', '.mov'];
+    if (videoExtensions.some(ext => lowerUrl.endsWith(ext))) {
+        try {
+            new URL(url);
+            return true;
+        } catch {
+            return false;
+        }
+    }
+    return false;
   };
 
   const handleStart = () => {
@@ -59,7 +68,7 @@ const GoLiveModal: React.FC<GoLiveModalProps> = ({ onClose, onStartStream }) => 
         onStartStream(title, 'video', videoFile);
     } else if (source === 'url') {
         if (!isValidUrl(videoUrl)) {
-            alert('Please enter a valid video URL.');
+            alert('Please enter a valid YouTube or direct video URL.');
             return;
         }
         onStartStream(title, 'url', videoUrl);
@@ -151,7 +160,7 @@ const GoLiveModal: React.FC<GoLiveModalProps> = ({ onClose, onStartStream }) => 
                 type="url"
                 value={videoUrl}
                 onChange={(e) => setVideoUrl(e.target.value)}
-                placeholder="Enter YouTube, Drive, or video URL"
+                placeholder="Enter YouTube or direct video URL (.mp4)"
                 className="w-full p-2 bg-zinc-700 rounded-md border border-zinc-600 focus:outline-none focus:ring-2 focus:ring-pink-500"
               />
             </div>
