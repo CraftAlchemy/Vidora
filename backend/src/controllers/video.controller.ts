@@ -1,11 +1,12 @@
 
-import express from 'express';
+import { Request, Response } from 'express';
 import { mockVideos, mockUsers } from '../data';
 import { Video, Comment } from '../types';
 
 // Placeholder: Get video feed
 // FIX: Use namespaced express types to prevent conflicts with global types.
-export const getFeed = async (req: express.Request, res: express.Response) => {
+// FIX: Use imported Request and Response types to avoid global type conflicts.
+export const getFeed = async (req: Request, res: Response) => {
     console.log('Fetching video feed');
     // We return the current state of our in-memory data store
     res.status(200).json({ videos: mockVideos });
@@ -13,7 +14,8 @@ export const getFeed = async (req: express.Request, res: express.Response) => {
 
 // Functional mock: Upload a video
 // FIX: Use namespaced express types to prevent conflicts with global types.
-export const uploadVideo = async (req: express.Request, res: express.Response) => {
+// FIX: Use imported Request and Response types to avoid global type conflicts.
+export const uploadVideo = async (req: Request, res: Response) => {
     const { description } = req.body;
     // const videoFile = req.file; // In a real app, from multer middleware
     // const userId = req.user.id; // From auth middleware
@@ -53,7 +55,8 @@ export const uploadVideo = async (req: express.Request, res: express.Response) =
 
 // Functional mock: Add a comment to a video
 // FIX: Use namespaced express types to prevent conflicts with global types.
-export const addComment = async (req: express.Request, res: express.Response) => {
+// FIX: Use imported Request and Response types to avoid global type conflicts.
+export const addComment = async (req: Request, res: Response) => {
     const { videoId } = req.params;
     const { text, userId } = req.body; // Use userId from request body
 

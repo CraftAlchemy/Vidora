@@ -1,5 +1,5 @@
 
-import express from 'express';
+import express, { Request, Response } from 'express';
 import cors from 'cors';
 import authRoutes from './routes/auth.routes';
 import userRoutes from './routes/user.routes';
@@ -25,7 +25,8 @@ app.use('/api/v1/videos', videoRoutes);
 app.use('/api/v1/livestreams', livestreamRoutes);
 
 // FIX: Use namespaced express types to prevent conflicts with global types.
-app.get('/', (req: express.Request, res: express.Response) => {
+// FIX: Use imported Request and Response types to avoid global type conflicts and fix method errors.
+app.get('/', (req: Request, res: Response) => {
     res.send('BuzzCast API is running');
 });
 

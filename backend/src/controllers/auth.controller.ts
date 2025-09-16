@@ -1,5 +1,5 @@
 
-import express from 'express';
+import { Request, Response } from 'express';
 // In a real app, you'd use bcrypt, jwt, and your Prisma client
 // import bcrypt from 'bcryptjs';
 // import jwt from 'jsonwebtoken';
@@ -8,7 +8,8 @@ import express from 'express';
 
 // Placeholder register function
 // FIX: Use namespaced express types to prevent conflicts with global types.
-export const register = async (req: express.Request, res: express.Response) => {
+// FIX: Use imported Request and Response types to avoid global type conflicts.
+export const register = async (req: Request, res: Response) => {
   const { email, username, password } = req.body;
 
   // Basic validation
@@ -33,7 +34,8 @@ export const register = async (req: express.Request, res: express.Response) => {
 
 // Placeholder login function
 // FIX: Use namespaced express types to prevent conflicts with global types.
-export const login = async (req: express.Request, res: express.Response) => {
+// FIX: Use imported Request and Response types to avoid global type conflicts.
+export const login = async (req: Request, res: Response) => {
   const { email, password } = req.body;
 
   // Basic validation

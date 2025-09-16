@@ -1,9 +1,10 @@
 
-import express from 'express';
+import { Request, Response } from 'express';
 
 // Placeholder: Get current user's profile
 // FIX: Use namespaced express types to prevent conflicts with global types.
-export const getMe = async (req: express.Request, res: express.Response) => {
+// FIX: Use imported Request and Response types to avoid global type conflicts.
+export const getMe = async (req: Request, res: Response) => {
   // In a real app, the user ID would come from the decoded JWT token
   // const userId = req.user.id;
   // const user = await prisma.user.findUnique({ where: { id: userId } });
@@ -19,7 +20,8 @@ export const getMe = async (req: express.Request, res: express.Response) => {
 
 // Placeholder: Update current user's profile
 // FIX: Use namespaced express types to prevent conflicts with global types.
-export const updateMe = async (req: express.Request, res: express.Response) => {
+// FIX: Use imported Request and Response types to avoid global type conflicts.
+export const updateMe = async (req: Request, res: Response) => {
   const { username, bio } = req.body;
   // const userId = req.user.id;
   console.log('Updating profile for current user with:', { username, bio });
@@ -35,7 +37,8 @@ export const updateMe = async (req: express.Request, res: express.Response) => {
 
 // Placeholder: Get user profile by username
 // FIX: Use namespaced express types to prevent conflicts with global types.
-export const getUserProfile = async (req: express.Request, res: express.Response) => {
+// FIX: Use imported Request and Response types to avoid global type conflicts.
+export const getUserProfile = async (req: Request, res: Response) => {
   const { username } = req.params;
   console.log(`Fetching profile for username: ${username}`);
   // const user = await prisma.user.findUnique({ where: { username } });
