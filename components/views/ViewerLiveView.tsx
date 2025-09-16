@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { LiveStream, ChatMessage, User, Gift } from '../../types';
-import { CloseIcon, HeartIcon, SendIcon, EmojiIcon, GiftIcon, ShareIcon, CoinIcon, ChevronLeftIcon, PinIcon, PaperclipIcon, VolumeUpIcon, VolumeOffIcon } from '../icons/Icons';
+import { CloseIcon, HeartIcon, SendIcon, EmojiIcon, GiftIcon, ShareIcon, CoinIcon, ChevronLeftIcon, PinIcon, PaperclipIcon, VolumeUpIcon, VolumeOffIcon, FullScreenIcon } from '../icons/Icons';
 import { mockUser, mockGifts, mockUsers } from '../../services/mockApi';
 import SendGiftModal from '../SendGiftModal';
 import EmojiPicker from '../EmojiPicker';
@@ -69,6 +69,14 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, current
   const heartCounter = useRef(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  const containerRef = useRef<HTMLDivElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const volumeSliderTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const [isFullScreen, setIsFullScreen] = useState(false);
+  const [volume, setVolume] = useState(1);
+  const [showVolumeSlider, setShowVolumeSlider] = useState(false);
 
   const isFollowing = currentUser.followingIds?.includes(stream.user.id);
   const isOwnStream = currentUser.id === stream.user.id;
@@ -136,6 +144,56 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, current
         el.style.height = `${Math.min(el.scrollHeight, maxHeight)}px`;
     }
   }, [newMessage]);
+  
+  useEffect(() => {
+    const handleFullScreenChange = () => {
+      const isCurrentlyFullScreen = document.fullscreenElement === containerRef.current;
+      setIsFullScreen(isCurrentlyFullScreen);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullScreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullScreenChange);
+  }, []);
+
+  useEffect(() => {
+    if (videoRef.current) {
+        videoRef.current.volume = volume;
+        videoRef.current.muted = isMuted;
+    }
+  }, [volume, isMuted]);
+
+  const toggleFullScreen = () => {
+    if (!containerRef.current) return;
+
+    if (!document.fullscreenElement) {
+        containerRef.current.requestFullscreen().catch(err => {
+            console.error(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+        });
+    } else {
+        if (document.exitFullscreen) {
+            document.exitFullscreen();
+        }
+    }
+  };
+
+  const toggleMute = () => {
+    setIsMuted(prev => !prev);
+    // For direct video, also show slider
+    if (!embedUrl) {
+      setShowVolumeSlider(true);
+      if (volumeSliderTimeout.current) clearTimeout(volumeSliderTimeout.current);
+      volumeSliderTimeout.current = setTimeout(() => setShowVolumeSlider(false), 3000);
+    }
+  };
+
+  const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newVolume = parseFloat(e.target.value);
+    setVolume(newVolume);
+    setIsMuted(newVolume === 0);
+    
+    if (volumeSliderTimeout.current) clearTimeout(volumeSliderTimeout.current);
+    volumeSliderTimeout.current = setTimeout(() => setShowVolumeSlider(false), 3000);
+  };
 
   const handleGiftFromOtherUser = (user: User, gift: Gift) => {
     const giftMessage: ChatMessage = {
@@ -367,6 +425,7 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, current
   return (
     <>
       <div 
+        ref={containerRef}
         className="absolute inset-0 w-full h-full bg-black text-white overflow-hidden select-none"
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
@@ -390,11 +449,11 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, current
                 />
             ) : (
                 <video
+                    ref={videoRef}
                     src={stream.videoUrl}
                     autoPlay
                     loop
                     playsInline
-                    muted
                     className="absolute inset-0 w-full h-full object-cover"
                 />
             )
@@ -487,17 +546,46 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, current
                     )}
                 </div>
 
+                {/* Volume slider for direct video */}
+                {showVolumeSlider && !embedUrl && (
+                    <div className="bg-black/40 rounded-full h-24 w-8 flex items-center justify-center p-2 animate-fade-in-fast pointer-events-auto">
+                        <input
+                            type="range"
+                            min="0"
+                            max="1"
+                            step="0.05"
+                            value={isMuted ? 0 : volume}
+                            onChange={handleVolumeChange}
+                            className="w-2 h-full appearance-none bg-transparent 
+                                        [&::-webkit-slider-runnable-track]:bg-white/30 
+                                        [&::-webkit-slider-runnable-track]:rounded-full
+                                        [&::-webkit-slider-thumb]:appearance-none 
+                                        [&::-webkit-slider-thumb]:h-4 
+                                        [&::-webkit-slider-thumb]:w-4 
+                                        [&::-webkit-slider-thumb]:rounded-full 
+                                        [&::-webkit-slider-thumb]:bg-white
+                                        cursor-pointer"
+                            style={{ writingMode: 'vertical-lr' }}
+                        />
+                    </div>
+                )}
+                
                 {/* Vertically stacked Action Buttons */}
                 <div className="flex flex-col space-y-2">
-                    {embedUrl && (
-                        <button 
-                            onClick={() => setIsMuted(prev => !prev)}
-                            className="w-10 h-10 bg-black/40 rounded-full flex items-center justify-center shrink-0"
-                            aria-label={isMuted ? "Unmute video" : "Mute video"}
-                        >
-                            {isMuted ? <VolumeOffIcon className="w-6 h-6" /> : <VolumeUpIcon className="w-6 h-6" />}
-                        </button>
-                    )}
+                    <button 
+                        onClick={toggleFullScreen}
+                        className="w-10 h-10 bg-black/40 rounded-full flex items-center justify-center shrink-0"
+                        aria-label={isFullScreen ? "Exit fullscreen" : "Enter fullscreen"}
+                    >
+                        <FullScreenIcon isFullScreen={isFullScreen} className="w-6 h-6"/>
+                    </button>
+                    <button 
+                        onClick={toggleMute}
+                        className="w-10 h-10 bg-black/40 rounded-full flex items-center justify-center shrink-0"
+                        aria-label={isMuted ? "Unmute video" : "Mute video"}
+                    >
+                        {isMuted || (!embedUrl && volume === 0) ? <VolumeOffIcon className="w-6 h-6" /> : <VolumeUpIcon className="w-6 h-6" />}
+                    </button>
                     <button 
                         onClick={handleShare}
                         disabled={isSharing}
