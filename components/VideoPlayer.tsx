@@ -39,7 +39,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ video, isActive, onOpenCommen
   const isFollowing = currentUser.followingIds?.includes(video.user.id);
   const isOwnProfile = currentUser.id === video.user.id;
   
-  const embedUrl = useMemo(() => getYouTubeEmbedUrl(video.videoUrl), [video.videoUrl]);
+  const embedUrl = useMemo(() => getYouTubeEmbedUrl(video.videoUrl, isMuted), [video.videoUrl, isMuted]);
 
   useEffect(() => {
     // This effect should only control playback for direct <video> elements
@@ -184,10 +184,18 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ video, isActive, onOpenCommen
   };
 
   const toggleMute = () => {
+    // For direct videos, if unmuting and volume is 0, restore volume.
+    if (!embedUrl && isMuted && volume === 0) {
+        setVolume(1);
+    }
     setIsMuted(prev => !prev);
-    setShowVolumeSlider(true);
-    if (volumeSliderTimeout.current) clearTimeout(volumeSliderTimeout.current);
-    volumeSliderTimeout.current = setTimeout(() => setShowVolumeSlider(false), 3000);
+
+    // Only show volume slider for direct video sources
+    if (!embedUrl) {
+      setShowVolumeSlider(true);
+      if (volumeSliderTimeout.current) clearTimeout(volumeSliderTimeout.current);
+      volumeSliderTimeout.current = setTimeout(() => setShowVolumeSlider(false), 3000);
+    }
   };
 
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -312,12 +320,10 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ video, isActive, onOpenCommen
             <FullScreenIcon isFullScreen={isFullScreen} />
             <span className="text-xs font-semibold mt-1">{isFullScreen ? 'Exit' : 'Full'}</span>
             </button>
-            {!embedUrl && (
-              <button onClick={toggleMute} className="flex flex-col items-center">
-                  {isMuted || volume === 0 ? <VolumeOffIcon /> : <VolumeUpIcon />}
-                  <span className="text-xs font-semibold mt-1">{isMuted ? 'Unmute' : 'Mute'}</span>
-              </button>
-            )}
+            <button onClick={toggleMute} className="flex flex-col items-center">
+                {isMuted ? <VolumeOffIcon /> : <VolumeUpIcon />}
+                <span className="text-xs font-semibold mt-1">{isMuted ? 'Unmute' : 'Mute'}</span>
+            </button>
         </div>
       </div>
     </div>
