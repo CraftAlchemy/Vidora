@@ -1,3 +1,4 @@
+
 export interface User {
   id: string;
   username: string;
@@ -22,6 +23,8 @@ export interface User {
   streakCount?: number;
   badges?: Badge[];
   deletionDate?: string;
+  commentPrivacySetting?: 'everyone' | 'following' | 'nobody';
+  savedPaymentMethods?: SavedPaymentMethod[];
 }
 
 export interface Badge {
@@ -46,6 +49,7 @@ export interface Video {
   likes: number;
   comments: number;
   shares: number;
+  views: number;
   commentsData: Comment[];
   thumbnailUrl?: string;
   status: 'approved' | 'pending' | 'removed';
@@ -149,7 +153,7 @@ export interface PayoutRequest {
   processedDate?: string;
 }
 
-export interface PayoutMethod {
+export interface PaymentProvider {
     id: string;
     name: string;
     isEnabled: boolean;
@@ -159,7 +163,12 @@ export interface MonetizationSettings {
     currencySymbol: string;
     processingFeePercent: number;
     minPayoutAmount: number;
-    payoutMethods: PayoutMethod[];
+    paymentProviders: PaymentProvider[];
+    creatorCriteria: {
+        minFollowers: number;
+        minViews: number;
+        minVideos: number;
+    };
 }
 
 export type UploadSource = { type: 'file'; data: File } | { type: 'url'; data: string };
@@ -169,3 +178,31 @@ export interface Poll {
     options: { id: string, text: string, votes: number }[];
     totalVotes: number;
 }
+
+export interface CreatorApplication {
+    id: string;
+    user: User;
+    status: 'pending' | 'approved' | 'rejected';
+    applicationDate: string;
+    message: string;
+    statsSnapshot: {
+        followers: number;
+        views: number;
+        videos: number;
+    }
+}
+
+export interface SavedPaymentMethod {
+  id: string;
+  type: string;
+  details: string; // e.g., 'Visa ending in 4242' or 'user@example.com'
+  isDefault: boolean;
+}
+
+export interface CoinPack {
+    amount: number;
+    price: number;
+    description: string;
+    isPopular?: boolean;
+}
+      

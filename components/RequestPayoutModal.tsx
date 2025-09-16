@@ -1,6 +1,5 @@
-
 import React, { useState } from 'react';
-import { User, PayoutMethod } from '../types';
+import { User, PaymentProvider } from '../types';
 import { CloseIcon } from './icons/Icons';
 import { useCurrency } from '../contexts/CurrencyContext';
 
@@ -8,7 +7,7 @@ const RequestPayoutModal: React.FC<{
     user: User;
     onClose: () => void;
     onSubmit: (amount: number, method: string, payoutInfo: string) => void;
-    availableMethods: PayoutMethod[];
+    availableMethods: PaymentProvider[];
 }> = ({ user, onClose, onSubmit, availableMethods }) => {
     const maxPayout = user.creatorStats?.totalEarnings ?? 0;
     const [amount, setAmount] = useState('');

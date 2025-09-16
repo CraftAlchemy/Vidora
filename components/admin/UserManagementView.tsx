@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { User } from '../../types';
 import { SearchIcon, MoreVerticalIcon, ChevronLeftIcon, ChevronRightIcon, BanUserIcon, PauseCircleIcon, CheckCircleIcon, VerifyBadgeIcon, TrashIcon, CloseIcon, MessageIcon, SortUpIcon, SortDownIcon } from '../icons/Icons';
@@ -123,13 +122,14 @@ interface UserActionModalProps {
     user: User;
     onClose: () => void;
     onUpdateStatus: (userId: string, newStatus: User['status']) => void;
+    onUpdateRole: (userId: string, newRole: User['role']) => void;
     onStartVerification: (user: User) => void;
     onUpdateVerification: (userId: string, isVerified: boolean) => void;
     onDeleteUser: (userId: string) => void;
     onSendMessage: (user: User) => void;
 }
 
-const UserActionModal: React.FC<UserActionModalProps> = ({ user, onClose, onUpdateStatus, onStartVerification, onUpdateVerification, onDeleteUser, onSendMessage }) => {
+const UserActionModal: React.FC<UserActionModalProps> = ({ user, onClose, onUpdateStatus, onUpdateRole, onStartVerification, onUpdateVerification, onDeleteUser, onSendMessage }) => {
     const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
 
     const handleDelete = () => {
@@ -173,40 +173,56 @@ const UserActionModal: React.FC<UserActionModalProps> = ({ user, onClose, onUpda
                                 <MessageIcon className="w-5 h-5 text-cyan-500" /> Send Direct Message
                             </button>
                             {user.isVerified ? (
-                                <button onClick={() => onUpdateVerification(user.id, false)} className="flex items-center gap-3 p-4 text-left hover:bg-gray-100 dark:hover:bg-zinc-700 w-full transition-colors">
+                                <button onClick={() => { onUpdateVerification(user.id, false); onClose(); }} className="flex items-center gap-3 p-4 text-left hover:bg-gray-100 dark:hover:bg-zinc-700 w-full transition-colors">
                                     <VerifyBadgeIcon className="w-5 h-5 text-gray-500" /> Un-verify User
                                 </button>
                             ) : (
-                                <button onClick={() => onStartVerification(user)} className="flex items-center gap-3 p-4 text-left hover:bg-gray-100 dark:hover:bg-zinc-700 w-full transition-colors">
+                                <button onClick={() => { onStartVerification(user); onClose(); }} className="flex items-center gap-3 p-4 text-left hover:bg-gray-100 dark:hover:bg-zinc-700 w-full transition-colors">
                                     <VerifyBadgeIcon className="w-5 h-5 text-blue-500" /> Verify User
                                 </button>
                             )}
                             {user.status === 'active' && (
                                 <>
-                                    <button onClick={() => onUpdateStatus(user.id, 'suspended')} className="flex items-center gap-3 p-4 text-left hover:bg-gray-100 dark:hover:bg-zinc-700 w-full transition-colors">
+                                    <button onClick={() => { onUpdateStatus(user.id, 'suspended'); onClose(); }} className="flex items-center gap-3 p-4 text-left hover:bg-gray-100 dark:hover:bg-zinc-700 w-full transition-colors">
                                         <PauseCircleIcon className="w-5 h-5 text-yellow-500" /> Suspend User
                                     </button>
-                                    <button onClick={() => onUpdateStatus(user.id, 'banned')} className="flex items-center gap-3 p-4 text-left text-red-500 hover:bg-gray-100 dark:hover:bg-zinc-700 w-full transition-colors">
+                                    <button onClick={() => { onUpdateStatus(user.id, 'banned'); onClose(); }} className="flex items-center gap-3 p-4 text-left text-red-500 hover:bg-gray-100 dark:hover:bg-zinc-700 w-full transition-colors">
                                         <BanUserIcon className="w-5 h-5" /> Ban User
                                     </button>
                                 </>
                             )}
                             {user.status === 'suspended' && (
                                 <>
-                                    <button onClick={() => onUpdateStatus(user.id, 'active')} className="flex items-center gap-3 p-4 text-left hover:bg-gray-100 dark:hover:bg-zinc-700 w-full transition-colors">
+                                    <button onClick={() => { onUpdateStatus(user.id, 'active'); onClose(); }} className="flex items-center gap-3 p-4 text-left hover:bg-gray-100 dark:hover:bg-zinc-700 w-full transition-colors">
                                         <CheckCircleIcon className="w-5 h-5 text-green-500"/> Activate User
                                     </button>
-                                    <button onClick={() => onUpdateStatus(user.id, 'banned')} className="flex items-center gap-3 p-4 text-left text-red-500 hover:bg-gray-100 dark:hover:bg-zinc-700 w-full transition-colors">
+                                    <button onClick={() => { onUpdateStatus(user.id, 'banned'); onClose(); }} className="flex items-center gap-3 p-4 text-left text-red-500 hover:bg-gray-100 dark:hover:bg-zinc-700 w-full transition-colors">
                                         <BanUserIcon className="w-5 h-5" /> Ban User
                                     </button>
                                 </>
                             )}
                             {user.status === 'banned' && (
-                                <button onClick={() => onUpdateStatus(user.id, 'active')} className="flex items-center gap-3 p-4 text-left hover:bg-gray-100 dark:hover:bg-zinc-700 w-full transition-colors">
+                                <button onClick={() => { onUpdateStatus(user.id, 'active'); onClose(); }} className="flex items-center gap-3 p-4 text-left hover:bg-gray-100 dark:hover:bg-zinc-700 w-full transition-colors">
                                     <CheckCircleIcon className="w-5 h-5 text-green-500"/> Un-ban User
                                 </button>
                             )}
-                            <div className="border-t border-gray-200 dark:border-zinc-700 my-1"></div>
+                            <div className="p-4 border-y border-gray-200 dark:border-zinc-700">
+                                <label htmlFor="role-select" className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Change Role</label>
+                                <select
+                                    id="role-select"
+                                    value={user.role}
+                                    onChange={(e) => {
+                                        onUpdateRole(user.id, e.target.value as User['role']);
+                                        onClose();
+                                    }}
+                                    className="w-full p-2 bg-gray-100 dark:bg-zinc-700 rounded-md border border-gray-200 dark:border-zinc-600 focus:outline-none focus:ring-2 focus:ring-pink-500"
+                                >
+                                    <option value="user">User</option>
+                                    <option value="creator">Creator</option>
+                                    <option value="moderator">Moderator</option>
+                                    <option value="admin">Admin</option>
+                                </select>
+                            </div>
                             <button onClick={() => setIsConfirmingDelete(true)} className="flex items-center gap-3 p-4 text-left text-red-500 hover:bg-gray-100 dark:hover:bg-zinc-700 w-full transition-colors">
                                 <TrashIcon className="w-5 h-5" /> Delete User
                             </button>
@@ -282,10 +298,11 @@ const BulkActionBar: React.FC<{
 
 interface UserManagementViewProps {
     users: User[];
-    onUpdateUser: (user: User) => void;
     onAddUser: (newUser: User) => void;
     onStartVerification: (user: User) => void;
     onUpdateUserVerification: (userId: string, isVerified: boolean) => void;
+    onUpdateUserStatus: (userId: string, status: User['status']) => void;
+    onUpdateUserRole: (userId: string, role: User['role']) => void;
     onDeleteUser: (userId: string) => void;
     selectedUserIds: string[];
     onSetSelectedUserIds: (ids: string[]) => void;
@@ -297,7 +314,7 @@ interface UserManagementViewProps {
 
 
 const UserManagementView: React.FC<UserManagementViewProps> = ({ 
-    users, onUpdateUser, onAddUser, onStartVerification, onUpdateUserVerification, onDeleteUser,
+    users, onAddUser, onStartVerification, onUpdateUserVerification, onDeleteUser, onUpdateUserStatus, onUpdateUserRole,
     selectedUserIds, onSetSelectedUserIds, onBulkUpdateStatus, onBulkDelete, onSendSystemMessage,
     onBulkSendMessage
 }) => {
@@ -340,33 +357,9 @@ const UserManagementView: React.FC<UserManagementViewProps> = ({
         setSortConfig({ key, direction });
     };
 
-    const handleUpdateUserStatus = (userId: string, newStatus: User['status']) => {
-        const user = users.find(u => u.id === userId);
-        if (user) {
-            onUpdateUser({ ...user, status: newStatus });
-            onSendSystemMessage(userId, `Your account status has been updated to: ${newStatus}.`);
-        }
-        setActionMenuForUser(null);
-    };
-
     const handleAddUserAndClose = (newUser: User) => {
         onAddUser(newUser);
         setIsAddUserModalOpen(false);
-    };
-
-    const handleStartVerificationAndClose = (user: User) => {
-        onStartVerification(user);
-        setActionMenuForUser(null);
-    };
-
-    const handleUpdateVerificationAndClose = (userId: string, isVerified: boolean) => {
-        onUpdateUserVerification(userId, isVerified);
-        setActionMenuForUser(null);
-    };
-
-    const handleDeleteUserAndClose = (userId: string) => {
-        onDeleteUser(userId);
-        setActionMenuForUser(null);
     };
 
     const filteredUsers = sortedUsers.filter(user =>
@@ -519,10 +512,11 @@ const UserManagementView: React.FC<UserManagementViewProps> = ({
                 <UserActionModal
                     user={userForModal}
                     onClose={() => setActionMenuForUser(null)}
-                    onUpdateStatus={handleUpdateUserStatus}
-                    onStartVerification={handleStartVerificationAndClose}
-                    onUpdateVerification={handleUpdateVerificationAndClose}
-                    onDeleteUser={handleDeleteUserAndClose}
+                    onUpdateStatus={onUpdateUserStatus}
+                    onUpdateRole={onUpdateUserRole}
+                    onStartVerification={onStartVerification}
+                    onUpdateVerification={onUpdateUserVerification}
+                    onDeleteUser={onDeleteUser}
                     onSendMessage={setUserToMessage}
                 />
             )}

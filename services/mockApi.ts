@@ -1,4 +1,4 @@
-import { User, Video, LiveStream, Conversation, Notification, Gift, WalletTransaction, LeaderboardUser, Report, PayoutRequest } from '../types';
+import { User, Video, LiveStream, Conversation, Notification, Gift, WalletTransaction, LeaderboardUser, Report, PayoutRequest, CreatorApplication } from '../types';
 
 export const mockUsers: User[] = [
   {
@@ -31,6 +31,11 @@ export const mockUsers: User[] = [
       { id: 'b1', name: 'Early Bird', icon: '🐦', description: 'Joined in the first year.' },
       { id: 'b2', name: 'Top Gifter', icon: '🎁', description: 'Sent over 100 gifts.' },
     ],
+    commentPrivacySetting: 'everyone',
+    savedPaymentMethods: [
+        { id: 'pm1', type: 'Card', details: 'Visa ending in 4242', isDefault: true },
+        { id: 'pm2', type: 'PayPal', details: 'dev@example.com', isDefault: false },
+    ],
   },
   {
     id: 'u2',
@@ -51,6 +56,7 @@ export const mockUsers: User[] = [
     level: 30,
     xp: 180,
     streakCount: 5,
+    commentPrivacySetting: 'everyone',
   },
   {
     id: 'u3',
@@ -70,6 +76,7 @@ export const mockUsers: User[] = [
     creatorStats: { totalEarnings: 25800.00, receivedGiftsCount: 5500 },
     level: 50,
     xp: 900,
+    commentPrivacySetting: 'everyone',
   },
     {
     id: 'u4',
@@ -82,11 +89,13 @@ export const mockUsers: User[] = [
     joinDate: '2024-01-05',
     lastLogin: '2024-07-21',
     bio: 'Exploring the best food spots!',
-    followers: 5200,
+    followers: 950,
     following: 800,
     followingIds: [],
     wallet: { balance: 200, transactions: [] },
     level: 15,
+    streakCount: 25,
+    commentPrivacySetting: 'everyone',
   },
   {
     id: 'u5',
@@ -104,6 +113,7 @@ export const mockUsers: User[] = [
     followingIds: [],
     wallet: { balance: 0, transactions: [] },
     level: 2,
+    commentPrivacySetting: 'everyone',
   },
 ];
 
@@ -117,6 +127,7 @@ export const systemUser: User = {
     isVerified: true,
     joinDate: '2023-01-01',
     lastLogin: '2024-07-21',
+    commentPrivacySetting: 'everyone',
 };
 
 export const mockUser = mockUsers[0];
@@ -130,6 +141,7 @@ export const mockVideos: Video[] = [
     likes: 12000,
     comments: 345,
     shares: 123,
+    views: 250000,
     commentsData: [
       { id: 'c1', user: mockUsers[2], text: 'Great video!', timestamp: '2h ago' },
       { id: 'c2', user: mockUsers[3], text: 'So cute!', timestamp: '1h ago' },
@@ -146,6 +158,7 @@ export const mockVideos: Video[] = [
     likes: 55000,
     comments: 1200,
     shares: 800,
+    views: 1200000,
     commentsData: [],
     thumbnailUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e8/Elephants_Dream_s5_proog.jpg/1200px-Elephants_Dream_s5_proog.jpg',
     status: 'approved',
@@ -159,6 +172,7 @@ export const mockVideos: Video[] = [
     likes: 8900,
     comments: 500,
     shares: 300,
+    views: 50000,
     commentsData: [],
     thumbnailUrl: 'https://i.ytimg.com/vi/Dr91pn3xcbU/maxresdefault.jpg',
     status: 'pending',
@@ -172,10 +186,39 @@ export const mockVideos: Video[] = [
     likes: 20,
     comments: 2,
     shares: 1,
+    views: 3800,
     commentsData: [],
     thumbnailUrl: 'https://i.ytimg.com/vi/E1_h_ JegGoE/maxresdefault.jpg',
     status: 'removed',
     uploadDate: '2024-05-15',
+  },
+   {
+    id: 'v5',
+    videoUrl: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4',
+    description: 'My first cooking video! Making pasta today. 🍝',
+    user: mockUsers[3],
+    likes: 1500,
+    comments: 80,
+    shares: 45,
+    views: 4100,
+    commentsData: [],
+    thumbnailUrl: 'https://i.ytimg.com/vi/S-4F0c_D-Wk/maxresdefault.jpg',
+    status: 'approved',
+    uploadDate: '2024-07-20',
+  },
+   {
+    id: 'v6',
+    videoUrl: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4',
+    description: 'More cooking content! This is so fun!',
+    user: mockUsers[3],
+    likes: 200,
+    comments: 10,
+    shares: 5,
+    views: 100,
+    commentsData: [],
+    thumbnailUrl: 'https://i.ytimg.com/vi/O5hShq2679A/maxresdefault.jpg',
+    status: 'approved',
+    uploadDate: '2024-07-21',
   },
 ];
 
@@ -325,4 +368,19 @@ export const mockPayoutRequests: PayoutRequest[] = [
     payoutInfo: 'Chase, Acct: ...5678',
     requestDate: '2024-07-21',
   }
+];
+
+export const mockCreatorApplications: CreatorApplication[] = [
+    {
+        id: 'ca1',
+        user: mockUsers[3],
+        status: 'pending',
+        applicationDate: '2024-07-22',
+        message: 'I have been creating content on other platforms for years and would love to bring my audience to Vidora! I stream cooking content and have a lot of great ideas.',
+        statsSnapshot: {
+            followers: 950,
+            views: 4200,
+            videos: 2,
+        }
+    }
 ];

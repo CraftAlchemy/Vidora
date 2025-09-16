@@ -1,10 +1,8 @@
 
-
-
 import React, { useState, useEffect } from 'react';
 // FIX: Added UploadSource to the import list from types.ts to support different upload methods.
-import { User, Video, LiveStream, WalletTransaction, Conversation, ChatMessage, Comment, PayoutRequest, MonetizationSettings, UploadSource } from './types';
-import { mockUser, mockUsers, mockVideos, mockLiveStreams, mockConversations, systemUser, mockPayoutRequests } from './services/mockApi';
+import { User, Video, LiveStream, WalletTransaction, Conversation, ChatMessage, Comment, PayoutRequest, MonetizationSettings, UploadSource, CreatorApplication, CoinPack, SavedPaymentMethod } from './types';
+import { mockUser, mockUsers, mockVideos, mockLiveStreams, mockConversations, systemUser, mockPayoutRequests, mockCreatorApplications } from './services/mockApi';
 import { getCurrencyInfoForLocale, CurrencyInfo } from './utils/currency';
 import { CurrencyContext } from './contexts/CurrencyContext';
 
@@ -27,15 +25,18 @@ import SuccessToast from './components/SuccessToast';
 import CommentsModal from './components/CommentsModal';
 import CreatorDashboardView from './components/views/CreatorDashboardView';
 import RequestPayoutModal from './components/RequestPayoutModal';
+import ManageAccountView from './components/views/ManageAccountView';
+import DeleteAccountModal from './components/DeleteAccountModal';
+import ChangePasswordView from './components/views/ChangePasswordView';
+import CommentPrivacyModal from './components/CommentPrivacyModal';
+import HelpCenterView from './components/views/HelpCenterView';
+import TermsOfServiceView from './components/views/TermsOfServiceView';
+import BecomeCreatorView from './components/views/BecomeCreatorView';
+import ApplyCreatorModal from './components/ApplyCreatorModal';
+import PaymentMethodsView from './components/views/PaymentMethodsView';
+import AddPaymentMethodModal from './components/AddPaymentMethodModal';
 
-export type View = 'feed' | 'live' | 'inbox' | 'profile' | 'wallet' | 'settings' | 'purchase' | 'admin' | 'creatorDashboard';
-
-export interface CoinPack {
-    amount: number;
-    price: number;
-    description: string;
-    isPopular?: boolean;
-}
+export type View = 'feed' | 'live' | 'inbox' | 'profile' | 'wallet' | 'settings' | 'purchase' | 'admin' | 'creatorDashboard' | 'manageAccount' | 'changePassword' | 'helpCenter' | 'termsOfService' | 'becomeCreator' | 'paymentMethods';
 
 const API_URL = 'https://vidora-3dvn.onrender.com/api/v1';
 
@@ -43,11 +44,25 @@ const defaultMonetizationSettings: MonetizationSettings = {
     currencySymbol: '$',
     processingFeePercent: 5,
     minPayoutAmount: 50,
-    payoutMethods: [
+    paymentProviders: [
+        { id: 'stripe', name: 'Card', isEnabled: true },
         { id: 'paypal', name: 'PayPal', isEnabled: true },
-        { id: 'bank-transfer', name: 'Bank Transfer', isEnabled: true },
     ],
+    creatorCriteria: {
+        minFollowers: 1000,
+        minViews: 5000,
+        minVideos: 5,
+    }
 };
+
+const defaultCoinPacks: CoinPack[] = [
+    { amount: 100, price: 0.99, description: 'Starter Pack' },
+    { amount: 500, price: 4.99, description: 'Fan Pack' },
+    { amount: 1000, price: 9.99, description: 'Creator Pack', isPopular: true },
+    { amount: 2500, price: 24.99, description: 'Supporter Pack' },
+    { amount: 5000, price: 49.99, description: 'Premium Pack' },
+    { amount: 10000, price: 99.99, description: 'Mega Pack' },
+];
 
 const App: React.FC = () => {
     const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -56,6 +71,7 @@ const App: React.FC = () => {
     const [videos, setVideos] = useState<Video[]>([]);
     const [conversations, setConversations] = useState<Conversation[]>(mockConversations);
     const [payoutRequests, setPayoutRequests] = useState<PayoutRequest[]>(mockPayoutRequests);
+    const [creatorApplications, setCreatorApplications] = useState<CreatorApplication[]>(mockCreatorApplications);
     
     const [activeView, setActiveView] = useState<View>('feed');
     const [previousView, setPreviousView] = useState<View>('feed');
@@ -70,6 +86,10 @@ const App: React.FC = () => {
     const [isDailyRewardOpen, setIsDailyRewardOpen] = useState(false);
     const [isCommentsModalOpen, setIsCommentsModalOpen] = useState(false);
     const [isRequestPayoutModalOpen, setIsRequestPayoutModalOpen] = useState(false);
+    const [isDeleteAccountModalOpen, setIsDeleteAccountModalOpen] = useState(false);
+    const [isCommentPrivacyModalOpen, setIsCommentPrivacyModalOpen] = useState(false);
+    const [isApplyCreatorModalOpen, setIsApplyCreatorModalOpen] = useState(false);
+    const [isAddPaymentMethodModalOpen, setIsAddPaymentMethodModalOpen] = useState(false);
     const [activeVideoForComments, setActiveVideoForComments] = useState<Video | null>(null);
     const [viewedProfileUser, setViewedProfileUser] = useState<User | null>(null);
     const [openGoLiveOnNavigate, setOpenGoLiveOnNavigate] = useState(false);
@@ -91,6 +111,16 @@ const App: React.FC = () => {
         } catch (error) {
             console.error("Could not parse monetization settings from localStorage", error);
             return defaultMonetizationSettings;
+        }
+    });
+
+    const [coinPacks, setCoinPacks] = useState<CoinPack[]>(() => {
+        try {
+            const savedPacks = localStorage.getItem('coinPacks');
+            return savedPacks ? JSON.parse(savedPacks) : defaultCoinPacks;
+        } catch (error) {
+            console.error("Could not parse coin packs from localStorage", error);
+            return defaultCoinPacks;
         }
     });
 
@@ -125,6 +155,14 @@ const App: React.FC = () => {
             console.error("Could not save monetization settings to localStorage", error);
         }
     }, [monetizationSettings]);
+    
+    useEffect(() => {
+        try {
+            localStorage.setItem('coinPacks', JSON.stringify(coinPacks));
+        } catch (error) {
+            console.error("Could not save coin packs to localStorage", error);
+        }
+    }, [coinPacks]);
 
 
     const handleLogin = () => {
@@ -228,7 +266,7 @@ const App: React.FC = () => {
                     thumbnailUrl: 'https://i.ytimg.com/vi/LXb3EKWsInQ/maxresdefault.jpg', // Placeholder
                     description,
                     user: currentUser,
-                    likes: 0, comments: 0, shares: 0, commentsData: [],
+                    likes: 0, comments: 0, shares: 0, views: 0, commentsData: [],
                     status: 'approved',
                     uploadDate: new Date().toISOString(),
                 };
@@ -568,6 +606,133 @@ const App: React.FC = () => {
         setIsRequestPayoutModalOpen(false);
         showSuccessToast('Payout request submitted!');
     };
+    
+    const handleDeleteAccount = () => {
+        // In a real app, this would be an API call.
+        // For this mock app, we'll log the user out.
+        showSuccessToast("Account deleted successfully.");
+        setIsDeleteAccountModalOpen(false);
+        // A short delay to let the user see the toast before being logged out.
+        setTimeout(() => {
+            handleLogout();
+        }, 1500);
+    };
+
+    const handleChangePassword = (currentPassword: string, newPassword: string): boolean => {
+        // In a real app, this would be an API call.
+        // For this mock app, we'll simulate the logic.
+        if (currentPassword !== 'password123') { // Mocking the current password
+          showSuccessToast("Error: Current password is incorrect.");
+          // In a real app, the ChangePasswordView would handle this error state.
+          // For simplicity, we just show a toast here.
+          return false; // Indicate failure
+        }
+        
+        // Here you would send the new password to the backend.
+        console.log('Password successfully changed.');
+        showSuccessToast('Password updated successfully!');
+        // A short delay to let the user see the toast before navigating
+        setTimeout(() => {
+            handleNavigate('manageAccount');
+        }, 1500);
+    
+        return true; // Indicate success
+    };
+    
+    const handleSetCommentPrivacySetting = (setting: 'everyone' | 'following' | 'nobody') => {
+        if (!currentUser) return;
+        const updatedUser = {
+            ...currentUser,
+            commentPrivacySetting: setting,
+        };
+        setCurrentUser(updatedUser);
+        // Also update the mock users array so other users see the new setting
+        setUsers(users.map(u => u.id === currentUser.id ? updatedUser : u));
+        setVideos(videos.map(v => v.user.id === currentUser.id ? { ...v, user: updatedUser } : v));
+        setIsCommentPrivacyModalOpen(false);
+        showSuccessToast('Comment privacy updated!');
+    };
+
+    const handleApplyForCreator = (message: string) => {
+        if (!currentUser) return;
+        const userVideos = videos.filter(v => v.user.id === currentUser.id);
+        const totalViews = userVideos.reduce((sum, video) => sum + video.views, 0);
+
+        const newApplication: CreatorApplication = {
+            id: `ca-${Date.now()}`,
+            user: currentUser,
+            status: 'pending',
+            applicationDate: new Date().toISOString().split('T')[0],
+            message,
+            statsSnapshot: {
+                followers: currentUser.followers || 0,
+                views: totalViews,
+                videos: userVideos.length,
+            }
+        };
+
+        setCreatorApplications(prev => [newApplication, ...prev]);
+        setIsApplyCreatorModalOpen(false);
+        showSuccessToast('Application submitted!');
+    };
+    
+    const handleCreatorApplicationDecision = (applicationId: string, status: 'approved' | 'rejected') => {
+        const application = creatorApplications.find(app => app.id === applicationId);
+        if (!application) return;
+
+        setCreatorApplications(prev => prev.map(app => 
+            app.id === applicationId ? { ...app, status } : app
+        ));
+
+        if (status === 'approved') {
+            const userToUpdate = users.find(u => u.id === application.user.id);
+            if (userToUpdate) {
+                const updatedUser = { ...userToUpdate, role: 'creator' as const };
+                setUsers(users.map(u => u.id === userToUpdate.id ? updatedUser : u));
+                // If the approved user is the current user, update their state too
+                if (currentUser && currentUser.id === userToUpdate.id) {
+                    setCurrentUser(updatedUser);
+                }
+                sendSystemMessage(userToUpdate.id, "Congratulations! Your application to become a creator has been approved. The Creator Dashboard is now available on your profile.");
+                showSuccessToast(`Application for @${userToUpdate.username} approved.`);
+            }
+        } else {
+             sendSystemMessage(application.user.id, "We have reviewed your creator application. Unfortunately, you do not meet the criteria at this time. Please continue to grow your channel and apply again later.");
+             showSuccessToast(`Application for @${application.user.username} rejected.`);
+        }
+    };
+
+    const handleAddPaymentMethod = (method: Omit<SavedPaymentMethod, 'id'>) => {
+        if (!currentUser) return;
+        const newMethod = { ...method, id: `pm-${Date.now()}` };
+
+        // If setting new method as default, unset other defaults
+        let updatedMethods = (currentUser.savedPaymentMethods || []).map(m =>
+            newMethod.isDefault ? { ...m, isDefault: false } : m
+        );
+        updatedMethods.push(newMethod);
+
+        const updatedUser = { ...currentUser, savedPaymentMethods: updatedMethods };
+        setCurrentUser(updatedUser);
+        setUsers(users.map(u => u.id === currentUser.id ? updatedUser : u));
+        setIsAddPaymentMethodModalOpen(false);
+        showSuccessToast('Payment method added!');
+    };
+    
+    const handleRemovePaymentMethod = (methodId: string) => {
+        if (!currentUser) return;
+        const updatedMethods = (currentUser.savedPaymentMethods || []).filter(m => m.id !== methodId);
+        
+        // If the removed method was the default, and there are others, make the first one the new default
+        if (updatedMethods.length > 0 && !updatedMethods.some(m => m.isDefault)) {
+            updatedMethods[0].isDefault = true;
+        }
+
+        const updatedUser = { ...currentUser, savedPaymentMethods: updatedMethods };
+        setCurrentUser(updatedUser);
+        setUsers(users.map(u => u.id === currentUser.id ? updatedUser : u));
+        showSuccessToast('Payment method removed.');
+    };
 
     const showSuccessToast = (message: string) => {
         setSuccessMessage(message);
@@ -611,6 +776,11 @@ const App: React.FC = () => {
                     showSuccessToast={showSuccessToast} 
                     monetizationSettings={monetizationSettings}
                     setMonetizationSettings={setMonetizationSettings}
+                    creatorApplications={creatorApplications}
+                    onCreatorApplicationDecision={handleCreatorApplicationDecision}
+                    onLogout={handleLogout}
+                    coinPacks={coinPacks}
+                    setCoinPacks={setCoinPacks}
                 />
             </CurrencyContext.Provider>
         );
@@ -664,17 +834,56 @@ const App: React.FC = () => {
                             onGoLive={handleGoLive}
                         />;
             case 'wallet':
-                return <WalletView user={currentUser} onBack={() => handleNavigate('profile')} onNavigateToPurchase={handleNavigateToPurchase} />;
+                return <WalletView user={currentUser} onBack={() => handleNavigate('profile')} onNavigateToPurchase={handleNavigateToPurchase} coinPacks={coinPacks} />;
             case 'settings':
-                return <SettingsView onBack={() => handleNavigate('profile')} onLogout={handleLogout} />;
+                return <SettingsView 
+                            onBack={() => handleNavigate('profile')} 
+                            onLogout={handleLogout} 
+                            onNavigate={handleNavigate}
+                            commentPrivacySetting={currentUser.commentPrivacySetting || 'everyone'}
+                            onOpenCommentPrivacyModal={() => setIsCommentPrivacyModalOpen(true)}
+                            currentUser={currentUser}
+                        />;
             case 'purchase':
-                return selectedCoinPack ? <PurchaseCoinsView pack={selectedCoinPack} onBack={() => handleNavigate('wallet')} onPurchaseComplete={handlePurchaseComplete} /> : null;
+                return selectedCoinPack ? <PurchaseCoinsView pack={selectedCoinPack} onBack={() => handleNavigate('wallet')} onPurchaseComplete={handlePurchaseComplete} availableMethods={monetizationSettings.paymentProviders.filter(m => m.isEnabled)} /> : null;
             case 'creatorDashboard':
                  return <CreatorDashboardView 
                             user={currentUser} 
                             payouts={payoutRequests.filter(p => p.user.id === currentUser.id)}
                             onBack={() => handleNavigate('profile')} 
                             onOpenRequestPayout={() => setIsRequestPayoutModalOpen(true)}
+                        />;
+            case 'manageAccount':
+                return <ManageAccountView 
+                            user={currentUser}
+                            onBack={() => handleNavigate('settings')}
+                            onOpenDeleteModal={() => setIsDeleteAccountModalOpen(true)}
+                            onNavigate={handleNavigate}
+                        />;
+            case 'changePassword':
+                return <ChangePasswordView
+                            onBack={() => handleNavigate('manageAccount')}
+                            onChangePassword={handleChangePassword}
+                        />;
+            case 'helpCenter':
+                return <HelpCenterView onBack={() => handleNavigate('settings')} onNavigate={handleNavigate} />;
+            case 'termsOfService':
+                return <TermsOfServiceView onBack={() => handleNavigate('settings')} />;
+            case 'becomeCreator':
+                 return <BecomeCreatorView
+                            user={currentUser}
+                            videos={videos.filter(v => v.user.id === currentUser.id)}
+                            onBack={() => handleNavigate('settings')}
+                            onApply={() => setIsApplyCreatorModalOpen(true)}
+                            criteria={monetizationSettings.creatorCriteria}
+                            hasPendingApplication={creatorApplications.some(app => app.user.id === currentUser.id && app.status === 'pending')}
+                        />;
+            case 'paymentMethods':
+                return <PaymentMethodsView
+                            user={currentUser}
+                            onBack={() => handleNavigate('settings')}
+                            onAddMethod={() => setIsAddPaymentMethodModalOpen(true)}
+                            onRemoveMethod={handleRemovePaymentMethod}
                         />;
             default:
                 return <FeedView videos={videos} currentUser={currentUser} onOpenComments={handleOpenComments} setIsNavVisible={setIsNavVisible} onToggleFollow={handleToggleFollow} onShareVideo={handleShareVideo} onViewProfile={handleViewProfile} />;
@@ -704,7 +913,7 @@ const App: React.FC = () => {
                 {isDailyRewardOpen && <DailyRewardModal streakCount={currentUser.streakCount || 0} onClaim={handleClaimReward} onClose={() => setIsDailyRewardOpen(false)} />}
                 {isCommentsModalOpen && activeVideoForComments && (
                     <CommentsModal 
-                        comments={activeVideoForComments.commentsData}
+                        video={activeVideoForComments}
                         currentUser={currentUser}
                         onClose={handleCloseComments}
                         onAddComment={handleAddComment}
@@ -716,7 +925,34 @@ const App: React.FC = () => {
                         user={currentUser}
                         onClose={() => setIsRequestPayoutModalOpen(false)}
                         onSubmit={handleRequestPayout}
-                        availableMethods={monetizationSettings.payoutMethods.filter(m => m.isEnabled)}
+                        availableMethods={monetizationSettings.paymentProviders.filter(m => m.isEnabled)}
+                    />
+                )}
+                {isDeleteAccountModalOpen && (
+                    <DeleteAccountModal 
+                        user={currentUser}
+                        onClose={() => setIsDeleteAccountModalOpen(false)}
+                        onConfirmDelete={handleDeleteAccount}
+                    />
+                )}
+                {isCommentPrivacyModalOpen && (
+                    <CommentPrivacyModal
+                        currentSetting={currentUser.commentPrivacySetting || 'everyone'}
+                        onClose={() => setIsCommentPrivacyModalOpen(false)}
+                        onSave={handleSetCommentPrivacySetting}
+                    />
+                )}
+                {isApplyCreatorModalOpen && (
+                    <ApplyCreatorModal
+                        onClose={() => setIsApplyCreatorModalOpen(false)}
+                        onSubmit={handleApplyForCreator}
+                    />
+                )}
+                {isAddPaymentMethodModalOpen && (
+                    <AddPaymentMethodModal
+                        onClose={() => setIsAddPaymentMethodModalOpen(false)}
+                        onAddMethod={handleAddPaymentMethod}
+                        availableMethods={monetizationSettings.paymentProviders.filter(p => p.isEnabled)}
                     />
                 )}
             </div>
@@ -725,3 +961,4 @@ const App: React.FC = () => {
 };
 
 export default App;
+      

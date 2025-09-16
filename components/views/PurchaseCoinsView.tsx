@@ -1,30 +1,25 @@
-
 import React, { useState } from 'react';
 import { ChevronLeftIcon, CoinIcon } from '../icons/Icons';
 import { useCurrency } from '../../contexts/CurrencyContext';
-
-type CoinPack = {
-    amount: number;
-    price: number;
-    description: string;
-};
+import { CoinPack, PaymentProvider } from '../../types';
 
 interface PurchaseCoinsViewProps {
     pack: CoinPack;
     onBack: () => void;
     onPurchaseComplete: (amount: number, description: string) => void;
+    availableMethods: PaymentProvider[];
 }
 
-const paymentMethods = [
-    { id: 'stripe', name: 'Card', icon: '💳' },
-    { id: 'paypal', name: 'PayPal', icon: '🅿️' },
-    { id: 'gpay', name: 'Google Pay', icon: '🇬' },
-    { id: 'mobile', name: 'Mobile Money', icon: '📱' },
-    { id: 'payoneer', name: 'Payoneer', icon: '℗' },
-]
+const paymentIcons: { [key: string]: string } = {
+    'Card': '💳',
+    'PayPal': '🅿️',
+    'Google Pay': '🇬',
+    'Mobile Money': '📱',
+    'Payoneer': '℗',
+};
 
-const PurchaseCoinsView: React.FC<PurchaseCoinsViewProps> = ({ pack, onBack, onPurchaseComplete }) => {
-    const [selectedMethod, setSelectedMethod] = useState<string | null>('stripe');
+const PurchaseCoinsView: React.FC<PurchaseCoinsViewProps> = ({ pack, onBack, onPurchaseComplete, availableMethods }) => {
+    const [selectedMethod, setSelectedMethod] = useState<string | null>(availableMethods[0]?.id || null);
     const [isProcessing, setIsProcessing] = useState(false);
     const formatCurrency = useCurrency();
 
@@ -66,13 +61,13 @@ const PurchaseCoinsView: React.FC<PurchaseCoinsViewProps> = ({ pack, onBack, onP
                 <div>
                     <h3 className="text-lg font-bold mb-3">Select Payment Method</h3>
                     <div className="space-y-2">
-                        {paymentMethods.map(method => (
+                        {availableMethods.map(method => (
                             <button
                                 key={method.id}
                                 onClick={() => setSelectedMethod(method.id)}
                                 className={`w-full flex items-center p-4 rounded-lg border-2 transition-all ${selectedMethod === method.id ? 'border-pink-500 bg-pink-500/10' : 'border-zinc-700 bg-zinc-800 hover:border-zinc-600'}`}
                             >
-                                <span className="text-2xl mr-4">{method.icon}</span>
+                                <span className="text-2xl mr-4">{paymentIcons[method.name] || '💵'}</span>
                                 <span className="font-semibold">{method.name}</span>
                                 {selectedMethod === method.id && (
                                     <div className="ml-auto w-5 h-5 rounded-full bg-pink-500 flex items-center justify-center">
@@ -81,6 +76,11 @@ const PurchaseCoinsView: React.FC<PurchaseCoinsViewProps> = ({ pack, onBack, onP
                                 )}
                             </button>
                         ))}
+                         {availableMethods.length === 0 && (
+                            <div className="text-center text-gray-400 p-4 bg-zinc-800 rounded-lg">
+                                No payment methods are available at this time.
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

@@ -1,8 +1,7 @@
-
-import React, { useState, useEffect } from 'react';
-import { User, Video, Report, PayoutRequest, Gift, MonetizationSettings } from '../types';
+import React, { useState, useEffect, useRef } from 'react';
+import { User, Video, Report, PayoutRequest, Gift, MonetizationSettings, CreatorApplication, CoinPack } from '../types';
 import { mockUsers, mockVideos, mockReports, mockPayoutRequests, mockGifts } from '../services/mockApi';
-import { DashboardIcon, UsersIcon, VideoIcon, ShieldCheckIcon, DollarSignIcon, GiftIcon, RestoreIcon, SettingsIcon, LogOutIcon, SunIcon, MoonIcon } from './icons/Icons';
+import { DashboardIcon, UsersIcon, VideoIcon, ShieldCheckIcon, DollarSignIcon, GiftIcon, RestoreIcon, SettingsIcon, LogOutIcon, SunIcon, MoonIcon, ProfileIcon, StarIcon } from './icons/Icons';
 import DashboardView from './admin/DashboardView';
 import UserManagementView from './admin/UserManagementView';
 import ContentManagementView from './admin/ContentManagementView';
@@ -12,6 +11,7 @@ import GiftManagementView from './admin/GiftManagementView';
 import CorbeilView from './admin/CorbeilView';
 import VerificationView from './admin/VerificationView';
 import AdminSettingsView from './admin/AdminSettingsView';
+import CreatorApplicationsView from './admin/CreatorApplicationsView';
 
 interface AdminPanelProps {
   user: User;
@@ -20,12 +20,22 @@ interface AdminPanelProps {
   showSuccessToast: (message: string) => void;
   monetizationSettings: MonetizationSettings;
   setMonetizationSettings: React.Dispatch<React.SetStateAction<MonetizationSettings>>;
+  creatorApplications: CreatorApplication[];
+  onCreatorApplicationDecision: (applicationId: string, status: 'approved' | 'rejected') => void;
+  onLogout: () => void;
+  coinPacks: CoinPack[];
+  setCoinPacks: React.Dispatch<React.SetStateAction<CoinPack[]>>;
 }
 
-type AdminView = 'dashboard' | 'users' | 'content' | 'moderation' | 'financials' | 'gifts' | 'verification' | 'corbeil' | 'settings';
+type AdminView = 'dashboard' | 'users' | 'content' | 'moderation' | 'financials' | 'gifts' | 'verification' | 'corbeil' | 'settings' | 'creatorApps';
 
-const AdminPanel: React.FC<AdminPanelProps> = ({ user, onExit, onSendSystemMessage, showSuccessToast, monetizationSettings, setMonetizationSettings }) => {
+const AdminPanel: React.FC<AdminPanelProps> = ({ 
+    user, onExit, onSendSystemMessage, showSuccessToast, monetizationSettings, setMonetizationSettings,
+    creatorApplications, onCreatorApplicationDecision, onLogout, coinPacks, setCoinPacks
+}) => {
   const [activeView, setActiveView] = useState<AdminView>('dashboard');
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const profileMenuRef = useRef<HTMLDivElement>(null);
 
   // Theme State
   const [isDarkMode, setIsDarkMode] = useState(() => {
@@ -82,6 +92,18 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ user, onExit, onSendSystemMessa
     localStorage.setItem('sidebarLayout', sidebarLayout);
   }, [sidebarLayout]);
 
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+        if (profileMenuRef.current && !profileMenuRef.current.contains(event.target as Node)) {
+            setIsProfileMenuOpen(false);
+        }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
   const handleSetSidebarPosition = (position: 'left' | 'right') => {
     if (sidebarLayout === 'swappable') {
         setIsAnimating(true);
@@ -124,6 +146,14 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ user, onExit, onSendSystemMessa
       
       if (message) onSendSystemMessage(userId, message);
       showSuccessToast(`User status updated to '${status}'.`);
+  };
+  
+  const handleUpdateUserRole = (userId: string, role: User['role']) => {
+    const userToUpdate = users.find(u => u.id === userId);
+    if (!userToUpdate) return;
+
+    setUsers(users.map(u => u.id === userId ? { ...u, role } : u));
+    showSuccessToast(`@${userToUpdate.username}'s role updated to '${role}'.`);
   };
 
   const handleBulkUpdateUserStatus = (ids: string[], status: User['status']) => {
@@ -294,10 +324,11 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ user, onExit, onSendSystemMessa
       case 'dashboard': return <DashboardView />;
       case 'users': return <UserManagementView 
                                 users={users}
-                                onUpdateUser={()=>{}}
                                 onAddUser={handleAddUser}
                                 onStartVerification={setUserForVerification}
                                 onUpdateUserVerification={handleUpdateUserVerification}
+                                onUpdateUserStatus={handleUpdateUserStatus}
+                                onUpdateUserRole={handleUpdateUserRole}
                                 onDeleteUser={handleDeleteUser}
                                 selectedUserIds={selectedUserIds}
                                 onSetSelectedUserIds={setSelectedUserIds}
@@ -328,6 +359,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ user, onExit, onSendSystemMessa
                                 />;
       case 'financials': return <FinancialsView payouts={payouts} users={users} onUpdatePayoutStatus={handleUpdatePayoutStatus} />;
       case 'gifts': return <GiftManagementView gifts={gifts} onAddGift={handleAddGift} onUpdateGift={handleUpdateGift} onDeleteGift={handleDeleteGift} />;
+      case 'creatorApps': return <CreatorApplicationsView applications={creatorApplications} onDecision={onCreatorApplicationDecision} />;
       case 'corbeil': return <CorbeilView 
                                 users={deletedUsers}
                                 onRestoreUser={handleRestoreUser}
@@ -347,6 +379,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ user, onExit, onSendSystemMessa
                                 monetizationSettings={monetizationSettings}
                                 onSetMonetizationSettings={setMonetizationSettings}
                                 showSuccessToast={showSuccessToast}
+                                coinPacks={coinPacks}
+                                setCoinPacks={setCoinPacks}
                               />;
       default: return null;
     }
@@ -382,6 +416,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ user, onExit, onSendSystemMessa
           <NavItem view="users" icon={<UsersIcon />} label="Users" />
           <NavItem view="content" icon={<VideoIcon />} label="Content" />
           <NavItem view="moderation" icon={<ShieldCheckIcon />} label="Moderation" />
+          <NavItem view="creatorApps" icon={<StarIcon />} label="Creator Apps" />
           <NavItem view="financials" icon={<DollarSignIcon />} label="Financials" />
           <NavItem view="gifts" icon={<GiftIcon />} label="Gifts" />
           <NavItem view="corbeil" icon={<RestoreIcon />} label="Corbeil" />
@@ -412,9 +447,22 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ user, onExit, onSendSystemMessa
         <header className="flex justify-between items-center p-4 bg-white dark:bg-zinc-900 border-b dark:border-zinc-800 shrink-0">
           <div/>
           <div className="flex items-center gap-4">
-            <div className="flex items-center">
-              <img src={user.avatarUrl} alt={user.username} className="w-8 h-8 rounded-full" />
-              <span className="ml-2 font-semibold text-sm hidden sm:block">@{user.username}</span>
+            <div className="relative" ref={profileMenuRef}>
+              <button onClick={() => setIsProfileMenuOpen(prev => !prev)} className="flex items-center focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-zinc-900 rounded-full p-0.5">
+                <img src={user.avatarUrl} alt={user.username} className="w-8 h-8 rounded-full" />
+                <span className="ml-2 font-semibold text-sm hidden sm:block">@{user.username}</span>
+              </button>
+              {isProfileMenuOpen && (
+                <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-zinc-800 rounded-md shadow-lg z-20 border dark:border-zinc-700 py-1 animate-fade-in-up">
+                  <button onClick={() => { onExit(); setIsProfileMenuOpen(false); }} className="flex items-center w-full px-4 py-2 text-sm text-left text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors">
+                      <ProfileIcon className="w-4 h-4 mr-3" /> View Profile
+                  </button>
+                  <div className="border-t border-gray-100 dark:border-zinc-700 my-1"></div>
+                  <button onClick={() => { onLogout(); setIsProfileMenuOpen(false); }} className="flex items-center w-full px-4 py-2 text-sm text-left text-red-500 hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors">
+                      <LogOutIcon className="w-4 h-4 mr-3" /> Logout
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </header>

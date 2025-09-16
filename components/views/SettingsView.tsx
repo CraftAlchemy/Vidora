@@ -1,9 +1,15 @@
 import React, { useState } from 'react';
 import { ChevronLeftIcon, ChevronRightIcon } from '../icons/Icons';
+import { View } from '../../App';
+import { User } from '../../types';
 
 interface SettingsViewProps {
   onBack: () => void;
   onLogout: () => void;
+  onNavigate: (view: View) => void;
+  commentPrivacySetting: string;
+  onOpenCommentPrivacyModal: () => void;
+  currentUser: User;
 }
 
 const SettingsCategory: React.FC<{ title: string, children: React.ReactNode }> = ({ title, children }) => (
@@ -38,7 +44,7 @@ const ToggleSwitch: React.FC<{ isEnabled: boolean; onToggle: () => void; }> = ({
     );
 };
 
-const SettingsView: React.FC<SettingsViewProps> = ({ onBack, onLogout }) => {
+const SettingsView: React.FC<SettingsViewProps> = ({ onBack, onLogout, onNavigate, commentPrivacySetting, onOpenCommentPrivacyModal, currentUser }) => {
   const [isPrivateAccount, setIsPrivateAccount] = useState(false);
   const [allowPushNotifications, setAllowPushNotifications] = useState(true);
 
@@ -53,21 +59,29 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onBack, onLogout }) => {
 
       <div className="p-4">
         <SettingsCategory title="Account">
-          <SettingsItem label="Manage Account" onClick={() => alert('Navigate to Manage Account')}>
+          <SettingsItem label="Manage Account" onClick={() => onNavigate('manageAccount')}>
             <ChevronRightIcon />
           </SettingsItem>
-          <SettingsItem label="Change Password" onClick={() => alert('Navigate to Change Password')}>
+           <SettingsItem label="Payment Methods" onClick={() => onNavigate('paymentMethods')}>
             <ChevronRightIcon />
           </SettingsItem>
+           {currentUser.role === 'user' && (
+             <SettingsItem label="Become a Creator" onClick={() => onNavigate('becomeCreator')}>
+                <div className="flex items-center gap-2">
+                    <span className="text-xs font-semibold bg-gradient-to-r from-pink-500 to-red-500 text-white px-2 py-0.5 rounded-full">New</span>
+                    <ChevronRightIcon />
+                </div>
+            </SettingsItem>
+           )}
         </SettingsCategory>
         
         <SettingsCategory title="Privacy">
           <SettingsItem label="Private Account">
             <ToggleSwitch isEnabled={isPrivateAccount} onToggle={() => setIsPrivateAccount(!isPrivateAccount)} />
           </SettingsItem>
-          <SettingsItem label="Who can comment" onClick={() => alert('Navigate to Comment Settings')}>
+          <SettingsItem label="Who can comment" onClick={onOpenCommentPrivacyModal}>
              <div className="flex items-center">
-                <span className="text-gray-400 mr-2">Everyone</span>
+                <span className="text-gray-400 mr-2 capitalize">{commentPrivacySetting}</span>
                 <ChevronRightIcon />
             </div>
           </SettingsItem>
@@ -80,10 +94,10 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onBack, onLogout }) => {
         </SettingsCategory>
 
          <SettingsCategory title="Support & About">
-          <SettingsItem label="Help Center" onClick={() => alert('Navigate to Help Center')}>
+          <SettingsItem label="Help Center" onClick={() => onNavigate('helpCenter')}>
             <ChevronRightIcon />
           </SettingsItem>
-          <SettingsItem label="Terms of Service" onClick={() => alert('Navigate to Terms of Service')}>
+          <SettingsItem label="Terms of Service" onClick={() => onNavigate('termsOfService')}>
             <ChevronRightIcon />
           </SettingsItem>
         </SettingsCategory>

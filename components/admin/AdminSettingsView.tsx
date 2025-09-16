@@ -1,7 +1,6 @@
-
 import React, { useState } from 'react';
-import { MonetizationSettings, PayoutMethod } from '../../types';
-import { TrashIcon } from '../icons/Icons';
+import { MonetizationSettings, PaymentProvider, CoinPack } from '../../types';
+import { TrashIcon, PlusCircleIcon, PencilIcon, CheckCircleIcon } from '../icons/Icons';
 
 interface NotificationTemplates {
     accountSuspended: string;
@@ -21,6 +20,8 @@ interface AdminSettingsViewProps {
     monetizationSettings: MonetizationSettings;
     onSetMonetizationSettings: React.Dispatch<React.SetStateAction<MonetizationSettings>>;
     showSuccessToast: (message: string) => void;
+    coinPacks: CoinPack[];
+    setCoinPacks: React.Dispatch<React.SetStateAction<CoinPack[]>>;
 }
 
 
@@ -88,53 +89,139 @@ const ToggleSwitch: React.FC<{ isEnabled: boolean; onToggle: () => void; }> = ({
     );
 };
 
+const CoinPackEditor: React.FC<{
+    packs: CoinPack[];
+    setPacks: React.Dispatch<React.SetStateAction<CoinPack[]>>;
+}> = ({ packs, setPacks }) => {
+    const [editingIndex, setEditingIndex] = useState<number | null>(null);
+    const [tempPack, setTempPack] = useState<CoinPack | null>(null);
+
+    const handleEdit = (index: number) => {
+        setEditingIndex(index);
+        setTempPack(packs[index]);
+    };
+
+    const handleSave = (index: number) => {
+        if (tempPack) {
+            const newPacks = [...packs];
+            newPacks[index] = tempPack;
+            setPacks(newPacks);
+        }
+        setEditingIndex(null);
+        setTempPack(null);
+    };
+    
+    const handleAdd = () => {
+        const newPack: CoinPack = { amount: 0, price: 0, description: 'New Pack', isPopular: false };
+        setPacks([...packs, newPack]);
+        setEditingIndex(packs.length);
+        setTempPack(newPack);
+    };
+
+    const handleDelete = (index: number) => {
+        if (window.confirm('Are you sure you want to delete this coin pack?')) {
+            setPacks(packs.filter((_, i) => i !== index));
+        }
+    };
+    
+    const handleInputChange = (field: keyof CoinPack, value: string | number | boolean) => {
+        if (tempPack) {
+            setTempPack({ ...tempPack, [field]: value });
+        }
+    };
+
+    return (
+        <div className="space-y-3">
+            {packs.map((pack, index) => (
+                <div key={index} className="bg-gray-200 dark:bg-zinc-700/50 p-3 rounded-md">
+                    {editingIndex === index ? (
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 items-end">
+                            <input type="number" placeholder="Amount" value={tempPack?.amount} onChange={e => handleInputChange('amount', parseInt(e.target.value) || 0)} className="w-full text-sm p-1 bg-gray-50 dark:bg-zinc-800 rounded-md"/>
+                            <input type="number" step="0.01" placeholder="Price" value={tempPack?.price} onChange={e => handleInputChange('price', parseFloat(e.target.value) || 0)} className="w-full text-sm p-1 bg-gray-50 dark:bg-zinc-800 rounded-md"/>
+                            <input type="text" placeholder="Description" value={tempPack?.description} onChange={e => handleInputChange('description', e.target.value)} className="w-full text-sm p-1 bg-gray-50 dark:bg-zinc-800 rounded-md"/>
+                            <div className="flex items-center justify-end gap-2">
+                                <label className="flex items-center text-xs"><input type="checkbox" checked={tempPack?.isPopular} onChange={e => handleInputChange('isPopular', e.target.checked)} className="mr-1 h-3 w-3 rounded-sm"/>Popular</label>
+                                <button onClick={() => handleSave(index)} className="p-1.5 text-green-500"><CheckCircleIcon className="w-5 h-5"/></button>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 items-center text-sm">
+                            <p><strong>Amount:</strong> {pack.amount.toLocaleString()}</p>
+                            <p><strong>Price:</strong> ${pack.price.toFixed(2)}</p>
+                            <p><strong>Desc:</strong> {pack.description} {pack.isPopular && '⭐'}</p>
+                            <div className="flex justify-end gap-2">
+                                <button onClick={() => handleEdit(index)} className="p-1.5 text-blue-500"><PencilIcon className="w-4 h-4"/></button>
+                                <button onClick={() => handleDelete(index)} className="p-1.5 text-red-500"><TrashIcon className="w-4 h-4"/></button>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            ))}
+            <button onClick={handleAdd} className="flex items-center gap-2 text-sm font-semibold text-pink-500 dark:text-pink-400 hover:underline">
+                <PlusCircleIcon /> Add Coin Pack
+            </button>
+        </div>
+    );
+};
+
 
 const AdminSettingsView: React.FC<AdminSettingsViewProps> = ({ 
     sidebarPosition, onSetSidebarPosition,
     sidebarLayout, onSetSidebarLayout,
     notificationTemplates, onUpdateTemplate,
     monetizationSettings, onSetMonetizationSettings,
-    showSuccessToast
+    showSuccessToast,
+    coinPacks, setCoinPacks,
  }) => {
 
     const [localMonetizationSettings, setLocalMonetizationSettings] = useState(monetizationSettings);
-    const [newPayoutMethodName, setNewPayoutMethodName] = useState('');
+    const [newPaymentProviderName, setNewPaymentProviderName] = useState('');
 
-    const handleMonetizationChange = (field: keyof Omit<MonetizationSettings, 'payoutMethods'>, value: string | number) => {
+    const handleMonetizationChange = (field: keyof Omit<MonetizationSettings, 'paymentProviders' | 'creatorCriteria'>, value: string | number) => {
         setLocalMonetizationSettings(prev => ({ ...prev, [field]: value }));
     };
 
-    const handleTogglePayoutMethod = (id: string) => {
+    const handleCriteriaChange = (field: keyof MonetizationSettings['creatorCriteria'], value: number) => {
         setLocalMonetizationSettings(prev => ({
             ...prev,
-            payoutMethods: prev.payoutMethods.map(method =>
+            creatorCriteria: {
+                ...prev.creatorCriteria,
+                [field]: value,
+            }
+        }));
+    };
+
+    const handleTogglePaymentProvider = (id: string) => {
+        setLocalMonetizationSettings(prev => ({
+            ...prev,
+            paymentProviders: prev.paymentProviders.map(method =>
                 method.id === id ? { ...method, isEnabled: !method.isEnabled } : method
             ),
         }));
     };
     
-    const handleAddPayoutMethod = () => {
-        if (!newPayoutMethodName.trim()) return;
-        const newMethod: PayoutMethod = {
-            id: newPayoutMethodName.trim().toLowerCase().replace(/\s+/g, '-'),
-            name: newPayoutMethodName.trim(),
+    const handleAddPaymentProvider = () => {
+        if (!newPaymentProviderName.trim()) return;
+        const newMethod: PaymentProvider = {
+            id: newPaymentProviderName.trim().toLowerCase().replace(/\s+/g, '-'),
+            name: newPaymentProviderName.trim(),
             isEnabled: true,
         };
-        if (localMonetizationSettings.payoutMethods.some(m => m.id === newMethod.id || m.name.toLowerCase() === newMethod.name.toLowerCase())) {
-            alert('A payout method with this name already exists.');
+        if (localMonetizationSettings.paymentProviders.some(m => m.id === newMethod.id || m.name.toLowerCase() === newMethod.name.toLowerCase())) {
+            alert('A payment provider with this name already exists.');
             return;
         }
         setLocalMonetizationSettings(prev => ({
             ...prev,
-            payoutMethods: [...prev.payoutMethods, newMethod]
+            paymentProviders: [...prev.paymentProviders, newMethod]
         }));
-        setNewPayoutMethodName('');
+        setNewPaymentProviderName('');
     };
 
-    const handleRemovePayoutMethod = (id: string) => {
+    const handleRemovePaymentProvider = (id: string) => {
          setLocalMonetizationSettings(prev => ({
             ...prev,
-            payoutMethods: prev.payoutMethods.filter(method => method.id !== id),
+            paymentProviders: prev.paymentProviders.filter(method => method.id !== id),
         }));
     };
 
@@ -171,7 +258,7 @@ const AdminSettingsView: React.FC<AdminSettingsViewProps> = ({
             
             <SettingsCard
                 title="Monetization Settings"
-                description="Configure currency, fees, and payout options for creators."
+                description="Configure currency, fees, and payment options for the platform."
             >
                 <div className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -207,17 +294,38 @@ const AdminSettingsView: React.FC<AdminSettingsViewProps> = ({
                         </div>
                     </div>
                     <div>
-                        <p className="font-medium mb-2">Payout Methods</p>
+                        <p className="font-medium mb-2">Creator Program Criteria</p>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                           <div>
+                                <label htmlFor="minFollowers" className="block text-sm font-medium mb-1">Min Followers</label>
+                                <input id="minFollowers" type="number" value={localMonetizationSettings.creatorCriteria.minFollowers} onChange={(e) => handleCriteriaChange('minFollowers', parseInt(e.target.value) || 0)} className="w-full p-2 bg-gray-200 dark:bg-zinc-700 rounded-md" />
+                            </div>
+                            <div>
+                                <label htmlFor="minViews" className="block text-sm font-medium mb-1">Min Total Views</label>
+                                <input id="minViews" type="number" value={localMonetizationSettings.creatorCriteria.minViews} onChange={(e) => handleCriteriaChange('minViews', parseInt(e.target.value) || 0)} className="w-full p-2 bg-gray-200 dark:bg-zinc-700 rounded-md" />
+                            </div>
+                            <div>
+                                <label htmlFor="minVideos" className="block text-sm font-medium mb-1">Min Videos Uploaded</label>
+                                <input id="minVideos" type="number" value={localMonetizationSettings.creatorCriteria.minVideos} onChange={(e) => handleCriteriaChange('minVideos', parseInt(e.target.value) || 0)} className="w-full p-2 bg-gray-200 dark:bg-zinc-700 rounded-md" />
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <p className="font-medium mb-2">Coin Package Configuration</p>
+                        <CoinPackEditor packs={coinPacks} setPacks={setCoinPacks} />
+                    </div>
+                    <div>
+                        <p className="font-medium mb-2">Payment Providers (for Top-ups & Payouts)</p>
                         <div className="space-y-2">
-                             {localMonetizationSettings.payoutMethods.map(method => (
+                             {localMonetizationSettings.paymentProviders.map(method => (
                                 <div key={method.id} className="flex items-center justify-between p-2 bg-gray-200 dark:bg-zinc-700/50 rounded-md">
                                     <label htmlFor={`${method.id}-toggle`} className="flex-1 font-medium">{method.name}</label>
                                     <div className="flex items-center gap-4">
                                         <ToggleSwitch
                                             isEnabled={method.isEnabled}
-                                            onToggle={() => handleTogglePayoutMethod(method.id)}
+                                            onToggle={() => handleTogglePaymentProvider(method.id)}
                                         />
-                                        <button onClick={() => handleRemovePayoutMethod(method.id)} className="text-red-500 hover:text-red-400" aria-label={`Remove ${method.name}`}>
+                                        <button onClick={() => handleRemovePaymentProvider(method.id)} className="text-red-500 hover:text-red-400" aria-label={`Remove ${method.name}`}>
                                             <TrashIcon className="w-4 h-4" />
                                         </button>
                                     </div>
@@ -226,18 +334,18 @@ const AdminSettingsView: React.FC<AdminSettingsViewProps> = ({
                         </div>
                     </div>
                      <div className="mt-4 pt-4 border-t border-gray-200 dark:border-zinc-700">
-                        <p className="font-medium mb-2">Add New Payout Method</p>
+                        <p className="font-medium mb-2">Add New Payment Provider</p>
                         <div className="flex items-center gap-2">
                             <input
                                 type="text"
                                 placeholder="e.g., Payoneer"
-                                value={newPayoutMethodName}
-                                onChange={(e) => setNewPayoutMethodName(e.target.value)}
+                                value={newPaymentProviderName}
+                                onChange={(e) => setNewPaymentProviderName(e.target.value)}
                                 className="flex-1 p-2 bg-gray-200 dark:bg-zinc-700 rounded-md"
                             />
                             <button
-                                onClick={handleAddPayoutMethod}
-                                disabled={!newPayoutMethodName.trim()}
+                                onClick={handleAddPaymentProvider}
+                                disabled={!newPaymentProviderName.trim()}
                                 className="px-4 py-2 text-sm font-semibold bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors disabled:opacity-50"
                             >
                                 Add

@@ -1,24 +1,14 @@
-
 import React from 'react';
-import { User, WalletTransaction } from '../../types';
+import { User, WalletTransaction, CoinPack } from '../../types';
 import { ChevronLeftIcon, CoinIcon, PlusCircleIcon, GiftIcon, StarIcon } from '../icons/Icons';
-import { CoinPack } from '../../App';
 import { useCurrency } from '../../contexts/CurrencyContext';
 
 interface WalletViewProps {
   user: User;
   onBack: () => void;
   onNavigateToPurchase: (pack: CoinPack) => void;
+  coinPacks: CoinPack[];
 }
-
-const coinPacks: CoinPack[] = [
-    { amount: 100, price: 0.99, description: 'Starter Pack' },
-    { amount: 500, price: 4.99, description: 'Fan Pack' },
-    { amount: 1000, price: 9.99, description: 'Creator Pack', isPopular: true },
-    { amount: 2500, price: 24.99, description: 'Supporter Pack' },
-    { amount: 5000, price: 49.99, description: 'Premium Pack' },
-    { amount: 10000, price: 99.99, description: 'Mega Pack' },
-];
 
 const TransactionIcon: React.FC<{ type: WalletTransaction['type'] }> = ({ type }) => {
     switch (type) {
@@ -56,7 +46,7 @@ const TransactionItem: React.FC<{ transaction: WalletTransaction }> = ({ transac
     );
 };
 
-const WalletView: React.FC<WalletViewProps> = ({ user, onBack, onNavigateToPurchase }) => {
+const WalletView: React.FC<WalletViewProps> = ({ user, onBack, onNavigateToPurchase, coinPacks }) => {
   const wallet = user.wallet;
   const formatCurrency = useCurrency();
 
