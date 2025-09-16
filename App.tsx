@@ -107,8 +107,20 @@ const App: React.FC = () => {
     // Global App Settings (managed by admin) - now with persistence
     const [monetizationSettings, setMonetizationSettings] = useState<MonetizationSettings>(() => {
         try {
-            const savedSettings = localStorage.getItem('monetizationSettings');
-            return savedSettings ? JSON.parse(savedSettings) : defaultMonetizationSettings;
+            const saved = localStorage.getItem('monetizationSettings');
+            if (saved) {
+                const loaded = JSON.parse(saved);
+                // Deep merge to ensure all properties, especially nested ones, exist
+                return {
+                    ...defaultMonetizationSettings,
+                    ...loaded,
+                    creatorCriteria: {
+                        ...defaultMonetizationSettings.creatorCriteria,
+                        ...(loaded.creatorCriteria || {}),
+                    },
+                };
+            }
+            return defaultMonetizationSettings;
         } catch (error) {
             console.error("Could not parse monetization settings from localStorage", error);
             return defaultMonetizationSettings;
@@ -117,8 +129,13 @@ const App: React.FC = () => {
 
     const [coinPacks, setCoinPacks] = useState<CoinPack[]>(() => {
         try {
-            const savedPacks = localStorage.getItem('coinPacks');
-            return savedPacks ? JSON.parse(savedPacks) : defaultCoinPacks;
+            const saved = localStorage.getItem('coinPacks');
+            if (saved) {
+                const loaded = JSON.parse(saved);
+                // Ensure loaded data conforms to the CoinPack type, especially if new fields were added
+                return Array.isArray(loaded) ? loaded : defaultCoinPacks;
+            }
+            return defaultCoinPacks;
         } catch (error) {
             console.error("Could not parse coin packs from localStorage", error);
             return defaultCoinPacks;
