@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { LiveStream, ChatMessage, User, Gift } from '../../types';
-import { CloseIcon, HeartIcon, SendIcon, EmojiIcon, GiftIcon, ShareIcon, CoinIcon, ChevronLeftIcon, PinIcon, PaperclipIcon, VolumeUpIcon, VolumeOffIcon, FullScreenIcon } from '../icons/Icons';
+import { CloseIcon, HeartIcon, SendIcon, EmojiIcon, GiftIcon, ShareIcon, CoinIcon, ChevronLeftIcon, PinIcon, PaperclipIcon, VolumeUpIcon, VolumeOffIcon } from '../icons/Icons';
 import { mockUser, mockGifts, mockUsers } from '../../services/mockApi';
 import SendGiftModal from '../SendGiftModal';
 import EmojiPicker from '../EmojiPicker';
@@ -71,11 +71,9 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, current
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  const containerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const volumeSliderTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const [isFullScreen, setIsFullScreen] = useState(false);
   const [volume, setVolume] = useState(1);
   const [showVolumeSlider, setShowVolumeSlider] = useState(false);
 
@@ -147,35 +145,11 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, current
   }, [newMessage]);
   
   useEffect(() => {
-    const handleFullScreenChange = () => {
-      const isCurrentlyFullScreen = document.fullscreenElement === containerRef.current;
-      setIsFullScreen(isCurrentlyFullScreen);
-    };
-
-    document.addEventListener('fullscreenchange', handleFullScreenChange);
-    return () => document.removeEventListener('fullscreenchange', handleFullScreenChange);
-  }, []);
-
-  useEffect(() => {
     if (videoRef.current) {
         videoRef.current.volume = volume;
         videoRef.current.muted = isMuted;
     }
   }, [volume, isMuted]);
-
-  const toggleFullScreen = () => {
-    if (!containerRef.current) return;
-
-    if (!document.fullscreenElement) {
-        containerRef.current.requestFullscreen().catch(err => {
-            console.error(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
-        });
-    } else {
-        if (document.exitFullscreen) {
-            document.exitFullscreen();
-        }
-    }
-  };
 
   const toggleMute = () => {
     setIsMuted(prev => !prev);
@@ -426,7 +400,6 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, current
   return (
     <>
       <div 
-        ref={containerRef}
         className="absolute inset-0 w-full h-full bg-black text-white overflow-hidden select-none"
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
@@ -573,13 +546,6 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, current
                 
                 {/* Vertically stacked Action Buttons */}
                 <div className="flex flex-col space-y-2">
-                    <button 
-                        onClick={toggleFullScreen}
-                        className="w-10 h-10 bg-black/40 rounded-full flex items-center justify-center shrink-0"
-                        aria-label={isFullScreen ? "Exit fullscreen" : "Enter fullscreen"}
-                    >
-                        <FullScreenIcon isFullScreen={isFullScreen} className="w-6 h-6"/>
-                    </button>
                     <button 
                         onClick={toggleMute}
                         className="w-10 h-10 bg-black/40 rounded-full flex items-center justify-center shrink-0"
