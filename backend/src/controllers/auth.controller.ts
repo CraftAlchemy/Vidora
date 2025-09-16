@@ -7,8 +7,7 @@ import { Request, Response } from 'express';
 // const prisma = new PrismaClient();
 
 // Placeholder register function
-// FIX: Use namespaced express types to prevent conflicts with global types.
-// FIX: Use imported Request and Response types to avoid global type conflicts.
+// FIX: Use Request and Response types directly from express to resolve type conflicts.
 export const register = async (req: Request, res: Response) => {
   const { email, username, password } = req.body;
 
@@ -33,8 +32,7 @@ export const register = async (req: Request, res: Response) => {
 };
 
 // Placeholder login function
-// FIX: Use namespaced express types to prevent conflicts with global types.
-// FIX: Use imported Request and Response types to avoid global type conflicts.
+// FIX: Use Request and Response types directly from express to resolve type conflicts.
 export const login = async (req: Request, res: Response) => {
   const { email, password } = req.body;
 

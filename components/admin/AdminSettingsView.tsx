@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MonetizationSettings, PaymentProvider, CoinPack } from '../../types';
+import { MonetizationSettings, PaymentProvider, CoinPack, DailyRewardSettings, AdSettings } from '../../types';
 import { TrashIcon, PlusCircleIcon, PencilIcon, CheckCircleIcon } from '../icons/Icons';
 
 interface NotificationTemplates {
@@ -22,6 +22,10 @@ interface AdminSettingsViewProps {
     showSuccessToast: (message: string) => void;
     coinPacks: CoinPack[];
     setCoinPacks: React.Dispatch<React.SetStateAction<CoinPack[]>>;
+    dailyRewardSettings: DailyRewardSettings;
+    onSetDailyRewardSettings: React.Dispatch<React.SetStateAction<DailyRewardSettings>>;
+    adSettings: AdSettings;
+    onSetAdSettings: React.Dispatch<React.SetStateAction<AdSettings>>;
 }
 
 
@@ -172,9 +176,13 @@ const AdminSettingsView: React.FC<AdminSettingsViewProps> = ({
     monetizationSettings, onSetMonetizationSettings,
     showSuccessToast,
     coinPacks, setCoinPacks,
+    dailyRewardSettings, onSetDailyRewardSettings,
+    adSettings, onSetAdSettings,
  }) => {
 
     const [localMonetizationSettings, setLocalMonetizationSettings] = useState(monetizationSettings);
+    const [localDailyRewardSettings, setLocalDailyRewardSettings] = useState(dailyRewardSettings);
+    const [localAdSettings, setLocalAdSettings] = useState(adSettings);
     const [newPaymentProviderName, setNewPaymentProviderName] = useState('');
 
     const handleMonetizationChange = (field: keyof Omit<MonetizationSettings, 'paymentProviders' | 'creatorCriteria'>, value: string | number) => {
@@ -230,6 +238,47 @@ const AdminSettingsView: React.FC<AdminSettingsViewProps> = ({
         showSuccessToast('Monetization settings saved!');
     };
 
+    const handleDailyRewardChange = (field: keyof Omit<DailyRewardSettings, 'rewards'>, value: string | boolean) => {
+        setLocalDailyRewardSettings(prev => ({ ...prev, [field]: value }));
+    };
+    
+    const handleRewardTierChange = (index: number, amount: number) => {
+        setLocalDailyRewardSettings(prev => {
+            const newRewards = [...prev.rewards];
+            newRewards[index] = { amount };
+            return { ...prev, rewards: newRewards };
+        });
+    };
+    
+    const handleAddRewardTier = () => {
+        setLocalDailyRewardSettings(prev => ({
+            ...prev,
+            rewards: [...prev.rewards, { amount: 0 }]
+        }));
+    };
+    
+    const handleRemoveRewardTier = (index: number) => {
+        setLocalDailyRewardSettings(prev => ({
+            ...prev,
+            rewards: prev.rewards.filter((_, i) => i !== index)
+        }));
+    };
+    
+    const handleSaveDailyRewards = () => {
+        onSetDailyRewardSettings(localDailyRewardSettings);
+        showSuccessToast('Daily Reward settings saved!');
+    };
+    
+    const handleAdSettingsChange = (field: keyof AdSettings, value: string | number | boolean) => {
+        setLocalAdSettings(prev => ({ ...prev, [field]: value }));
+    };
+
+    const handleSaveAdSettings = () => {
+        onSetAdSettings(localAdSettings);
+        showSuccessToast('Advertisement settings saved!');
+    };
+
+
     return (
         <div className="space-y-6">
             <h1 className="text-2xl font-bold">System Settings</h1>
@@ -253,6 +302,105 @@ const AdminSettingsView: React.FC<AdminSettingsViewProps> = ({
                             <button onClick={() => onSetSidebarLayout('swappable')} className={`px-4 py-1.5 text-sm rounded-full ${sidebarLayout === 'swappable' ? 'bg-white dark:bg-zinc-900 shadow' : ''}`}>Swappable</button>
                         </div>
                     </div>
+                </div>
+            </SettingsCard>
+
+            <SettingsCard
+                title="Advertisement System"
+                description="Manage how ads are displayed across the application."
+            >
+                <div className="space-y-6">
+                    <div className="flex items-center justify-between">
+                        <label htmlFor="enableAds" className="font-medium">Enable Ad System</label>
+                        <ToggleSwitch
+                            isEnabled={localAdSettings.isEnabled}
+                            onToggle={() => handleAdSettingsChange('isEnabled', !localAdSettings.isEnabled)}
+                        />
+                    </div>
+                    <div>
+                        <label htmlFor="interstitialFrequency" className="block text-sm font-medium mb-1">Interstitial Ad Frequency</label>
+                        <input
+                            id="interstitialFrequency" type="number"
+                            value={localAdSettings.interstitialFrequency}
+                            onChange={(e) => handleAdSettingsChange('interstitialFrequency', parseInt(e.target.value) || 0)}
+                            className="w-full p-2 bg-gray-200 dark:bg-zinc-700 rounded-md"
+                        />
+                         <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            Show a full-screen video ad in the main feed every N videos.
+                        </p>
+                    </div>
+                </div>
+                 <div className="mt-6 flex justify-end">
+                    <button
+                        onClick={handleSaveAdSettings}
+                        className="px-4 py-2 text-sm font-semibold bg-pink-600 text-white rounded-md hover:bg-pink-700 transition-colors"
+                    >
+                        Save Ad Settings
+                    </button>
+                </div>
+            </SettingsCard>
+
+            <SettingsCard
+                title="Daily Reward System"
+                description="Configure the daily check-in rewards and streak bonuses for users."
+            >
+                <div className="space-y-6">
+                    <div className="flex items-center justify-between">
+                        <label htmlFor="enableRewards" className="font-medium">Enable Daily Rewards</label>
+                        <ToggleSwitch
+                            isEnabled={localDailyRewardSettings.isEnabled}
+                            onToggle={() => handleDailyRewardChange('isEnabled', !localDailyRewardSettings.isEnabled)}
+                        />
+                    </div>
+                    <div>
+                        <label htmlFor="modalTitle" className="block text-sm font-medium mb-1">Modal Title</label>
+                        <input
+                            id="modalTitle" type="text"
+                            value={localDailyRewardSettings.modalTitle}
+                            onChange={(e) => handleDailyRewardChange('modalTitle', e.target.value)}
+                            className="w-full p-2 bg-gray-200 dark:bg-zinc-700 rounded-md"
+                        />
+                    </div>
+                    <div>
+                        <label htmlFor="modalSubtitle" className="block text-sm font-medium mb-1">Modal Subtitle</label>
+                        <input
+                            id="modalSubtitle" type="text"
+                            value={localDailyRewardSettings.modalSubtitle}
+                            onChange={(e) => handleDailyRewardChange('modalSubtitle', e.target.value)}
+                            className="w-full p-2 bg-gray-200 dark:bg-zinc-700 rounded-md"
+                        />
+                    </div>
+
+                    <div>
+                        <p className="font-medium mb-2">Reward Tiers (by streak day)</p>
+                        <div className="space-y-2">
+                            {localDailyRewardSettings.rewards.map((tier, index) => (
+                                <div key={index} className="flex items-center gap-3 p-2 bg-gray-200 dark:bg-zinc-700/50 rounded-md">
+                                    <span className="font-semibold text-sm">Day {index + 1}</span>
+                                    <input
+                                        type="number"
+                                        value={tier.amount}
+                                        onChange={(e) => handleRewardTierChange(index, parseInt(e.target.value) || 0)}
+                                        className="w-full p-1 bg-gray-50 dark:bg-zinc-800 rounded-md text-sm"
+                                    />
+                                    <button onClick={() => handleRemoveRewardTier(index)} className="text-red-500 hover:text-red-400" aria-label={`Remove Day ${index + 1}`}>
+                                        <TrashIcon className="w-4 h-4" />
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                        <button onClick={handleAddRewardTier} className="flex items-center gap-2 text-sm font-semibold text-pink-500 dark:text-pink-400 hover:underline mt-3">
+                            <PlusCircleIcon /> Add Day
+                        </button>
+                    </div>
+                </div>
+                <div className="mt-6 flex justify-end">
+                    <button
+                        onClick={handleSaveDailyRewards}
+                        className="px-4 py-2 text-sm font-semibold bg-pink-600 text-white rounded-md hover:bg-pink-700 transition-colors"
+                    >
+                        Save Daily Reward Settings
+                    </button>
                 </div>
             </SettingsCard>
             

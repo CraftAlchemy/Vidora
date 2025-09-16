@@ -2,8 +2,7 @@
 import { Request, Response } from 'express';
 
 // Placeholder: Get all active livestreams
-// FIX: Use namespaced express types to prevent conflicts with global types.
-// FIX: Use imported Request and Response types to avoid global type conflicts.
+// FIX: Use Request and Response types directly from express to resolve type conflicts.
 export const getLiveStreams = async (req: Request, res: Response) => {
     console.log('Fetching active livestreams');
     const mockStreams = [
@@ -14,8 +13,7 @@ export const getLiveStreams = async (req: Request, res: Response) => {
 };
 
 // Placeholder: Start a new livestream
-// FIX: Use namespaced express types to prevent conflicts with global types.
-// FIX: Use imported Request and Response types to avoid global type conflicts.
+// FIX: Use Request and Response types directly from express to resolve type conflicts.
 export const startLiveStream = async (req: Request, res: Response) => {
     const { title } = req.body;
     // const userId = req.user.id; // From auth middleware

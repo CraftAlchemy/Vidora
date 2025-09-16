@@ -1,6 +1,8 @@
 
+
 import React, { useState, useEffect } from 'react';
-import { LiveStream, User } from '../../types';
+// FIX: Added Ad type to support banner ads.
+import { LiveStream, User, Ad } from '../../types';
 import LiveDiscoveryView from './LiveDiscoveryView';
 import BroadcasterView from './BroadcasterView';
 import GoLiveModal from '../GoLiveModal';
@@ -15,11 +17,12 @@ interface LiveViewProps {
   showSuccessToast: (message: string) => void;
   openGoLiveModal: boolean;
   onModalOpened: () => void;
+  bannerAds: Ad[];
 }
 
 export type BroadcastSource = 'camera' | 'video' | 'url';
 
-const LiveView: React.FC<LiveViewProps> = ({ setIsNavVisible, currentUser, onToggleFollow, onShareStream, onViewProfile, showSuccessToast, openGoLiveModal, onModalOpened }) => {
+const LiveView: React.FC<LiveViewProps> = ({ setIsNavVisible, currentUser, onToggleFollow, onShareStream, onViewProfile, showSuccessToast, openGoLiveModal, onModalOpened, bannerAds }) => {
   const [isBroadcasting, setIsBroadcasting] = useState(false);
   const [myStreamTitle, setMyStreamTitle] = useState('');
   const [myStreamSource, setMyStreamSource] = useState<BroadcastSource>('camera');
@@ -81,6 +84,7 @@ const LiveView: React.FC<LiveViewProps> = ({ setIsNavVisible, currentUser, onTog
         onToggleFollow={onToggleFollow}
         onShareStream={onShareStream}
         onViewProfile={onViewProfile}
+        bannerAds={bannerAds}
       />
       {isGoLiveModalOpen && (
         <GoLiveModal 

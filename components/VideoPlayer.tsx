@@ -1,7 +1,9 @@
+
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { Video, User } from '../types';
+import { Video, User, Ad } from '../types';
 import { HeartIcon, CommentIcon, ShareIcon, MusicIcon, PlayIcon, PauseIcon, FullScreenIcon, VolumeUpIcon, VolumeOffIcon, SettingsIcon } from './icons/Icons';
 import { getYouTubeEmbedUrl } from '../utils/videoUtils';
+import AdBannerOverlay from './AdBannerOverlay';
 
 interface VideoPlayerProps {
   video: Video;
@@ -11,9 +13,10 @@ interface VideoPlayerProps {
   onToggleFollow: (userId: string) => void;
   onShareVideo: (videoId: string) => void;
   onViewProfile: (user: User) => void;
+  bannerAd?: Ad;
 }
 
-const VideoPlayer: React.FC<VideoPlayerProps> = ({ video, isActive, onOpenComments, currentUser, onToggleFollow, onShareVideo, onViewProfile }) => {
+const VideoPlayer: React.FC<VideoPlayerProps> = ({ video, isActive, onOpenComments, currentUser, onToggleFollow, onShareVideo, onViewProfile, bannerAd }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const qualityMenuRef = useRef<HTMLDivElement>(null);
@@ -21,23 +24,18 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ video, isActive, onOpenCommen
   const [isLiked, setIsLiked] = useState(false);
   const [showPlayPause, setShowPlayPause] = useState(false);
   const [isShared, setIsShared] = useState(false);
-  const [isSharing, setIsSharing] = useState(false); // Add state to track sharing process
+  const [isSharing, setIsSharing] = useState(false);
   const [isFullScreen, setIsFullScreen] = useState(false);
   
-  // Volume state
-  const [isMuted, setIsMuted] = useState(true); // Start muted for autoplay
+  const [isMuted, setIsMuted] = useState(true);
   const [volume, setVolume] = useState(1);
   const [showVolumeSlider, setShowVolumeSlider] = useState(false);
-  // FIX: Replaced NodeJS.Timeout with ReturnType<typeof setTimeout> for browser compatibility.
   const volumeSliderTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // New state and refs for double-tap feature
   const [likeAnimation, setLikeAnimation] = useState<{ key: number, x: number, y: number } | null>(null);
-  // FIX: Replaced NodeJS.Timeout with ReturnType<typeof setTimeout> for browser compatibility.
   const tapTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastTap = useRef(0);
 
-  // Video Quality State
   const [currentQuality, setCurrentQuality] = useState(video.videoSources[0].quality);
   const [isQualityMenuOpen, setIsQualityMenuOpen] = useState(false);
 
@@ -48,9 +46,8 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ video, isActive, onOpenCommen
   const embedUrl = useMemo(() => getYouTubeEmbedUrl(videoUrl, isMuted), [videoUrl, isMuted]);
 
   useEffect(() => {
-    // This effect should only control playback for direct <video> elements
     if (embedUrl) {
-        setIsPlaying(isActive); // For embeds, we assume it plays if active
+        setIsPlaying(isActive);
         return;
     };
 
@@ -58,7 +55,6 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ video, isActive, onOpenCommen
       videoRef.current?.play().then(() => {
         setIsPlaying(true);
       }).catch(err => {
-        // Autoplay was prevented.
         setIsPlaying(false);
       });
     } else {
@@ -76,7 +72,6 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ video, isActive, onOpenCommen
   
   useEffect(() => {
     const handleFullScreenChange = () => {
-      // Check if THIS component's container is the fullscreen element
       const isCurrentlyFullScreen = document.fullscreenElement === containerRef.current;
       setIsFullScreen(isCurrentlyFullScreen);
     };
@@ -122,7 +117,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ video, isActive, onOpenCommen
       setIsLiked(!isLiked);
   }
   
-  const handleClickOnVideo = (e: React.MouseEvent<HTMLVideoElement>) => {
+  const handleClickOnVideo = (e: React.MouseEvent<HTMLDivElement>) => {
     if (tapTimeout.current) {
         clearTimeout(tapTimeout.current);
         tapTimeout.current = null;
@@ -132,7 +127,6 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ video, isActive, onOpenCommen
     const timeDifference = currentTime - lastTap.current;
 
     if (timeDifference < 300 && timeDifference > 0) {
-        // Double tap
         if (!isLiked) {
             setIsLiked(true);
         }
@@ -142,10 +136,8 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ video, isActive, onOpenCommen
         const y = e.clientY - rect.top;
         setLikeAnimation({ key: Date.now(), x, y });
         
-        // Reset last tap to prevent triple tap from being a single tap
         lastTap.current = 0;
     } else {
-        // Single tap
         lastTap.current = currentTime;
         tapTimeout.current = setTimeout(() => {
             togglePlayWithAnimation();
@@ -155,7 +147,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ video, isActive, onOpenCommen
   };
 
   const handleShare = async () => {
-    if (isSharing) return; // Prevent multiple clicks while share dialog is open
+    if (isSharing) return;
 
     const shareUrl = `https://vidora.app/video/${video.id}`;
     const shareData = {
@@ -170,23 +162,18 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ video, isActive, onOpenCommen
       if (navigator.share) {
         await navigator.share(shareData);
       } else {
-        // Fallback for browsers that do not support the Web Share API
         await navigator.clipboard.writeText(shareUrl);
       }
-      // This will only be reached if the share/copy is successful
-      setIsShared(true); // Optimistic UI update
-      onShareVideo(video.id); // Notify parent to update global state and show toast
+      setIsShared(true);
+      onShareVideo(video.id);
     } catch (error) {
-      // The user cancelling the share dialog is not an error we need to show.
-      // It throws a DOMException with the name "AbortError".
       if (error instanceof DOMException && error.name === 'AbortError') {
           console.log('Share was cancelled by the user.');
       } else {
           console.error('Error sharing:', error);
-          // Optional: show an error toast for other errors
       }
     } finally {
-        setIsSharing(false); // Re-enable the share button
+        setIsSharing(false);
     }
   };
 
@@ -205,13 +192,11 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ video, isActive, onOpenCommen
   };
 
   const toggleMute = () => {
-    // For direct videos, if unmuting and volume is 0, restore volume.
     if (!embedUrl && isMuted && volume === 0) {
         setVolume(1);
     }
     setIsMuted(prev => !prev);
 
-    // Only show volume slider for direct video sources
     if (!embedUrl) {
       setShowVolumeSlider(true);
       if (volumeSliderTimeout.current) clearTimeout(volumeSliderTimeout.current);
@@ -253,12 +238,12 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ video, isActive, onOpenCommen
   };
 
   return (
-    <div ref={containerRef} className="relative w-full h-full snap-start" data-video-id={video.id}>
+    <div ref={containerRef} className="relative w-full h-full snap-start" data-video-id={video.id} onClick={handleClickOnVideo}>
       {embedUrl ? (
         <iframe
           src={isActive ? embedUrl : ''}
           title={video.description}
-          className="w-full h-full object-cover"
+          className="w-full h-full object-cover pointer-events-none"
           frameBorder="0"
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
           allowFullScreen
@@ -269,10 +254,11 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ video, isActive, onOpenCommen
           src={videoUrl}
           loop
           playsInline
-          className="w-full h-full object-cover"
-          onClick={handleClickOnVideo}
+          className="w-full h-full object-cover pointer-events-none"
         />
       )}
+      
+      {bannerAd && <AdBannerOverlay ad={bannerAd} />}
       
       {likeAnimation && (
         <div
@@ -296,16 +282,16 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ video, isActive, onOpenCommen
         </div>
       )}
 
-      <div className="absolute bottom-0 left-0 right-0 p-4 pb-20 text-white bg-gradient-to-t from-black/50 to-transparent">
+      <div className="absolute bottom-0 left-0 right-0 p-4 pb-20 text-white bg-gradient-to-t from-black/50 to-transparent pointer-events-none">
         <div className="flex items-center">
-          <button onClick={() => onViewProfile(video.user)} className="flex items-center">
+          <button onClick={(e) => { e.stopPropagation(); onViewProfile(video.user); }} className="flex items-center pointer-events-auto">
             <img src={video.user.avatarUrl} alt={video.user.username} className="w-10 h-10 rounded-full border-2 border-white" />
             <h3 className="font-bold ml-3">@{video.user.username}</h3>
           </button>
           {!isOwnProfile && (
             <button
-              onClick={() => onToggleFollow(video.user.id)}
-              className={`ml-4 px-4 py-1.5 text-sm font-bold rounded-md transition-colors ${
+              onClick={(e) => { e.stopPropagation(); onToggleFollow(video.user.id); }}
+              className={`ml-4 px-4 py-1.5 text-sm font-bold rounded-md transition-colors pointer-events-auto ${
                   isFollowing
                       ? 'bg-transparent border border-gray-400 text-gray-300'
                       : 'bg-white text-black'
@@ -322,8 +308,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ video, isActive, onOpenCommen
         </div>
       </div>
       
-      <div className="absolute right-2 bottom-20 flex items-end space-x-2 text-white">
-        {/* Volume Slider */}
+      <div className="absolute right-2 bottom-20 flex items-end space-x-2 text-white pointer-events-auto">
         {showVolumeSlider && !embedUrl && (
             <div className="bg-black/50 rounded-full h-24 w-8 flex items-center justify-center p-2 animate-fade-in-fast">
                 <input
@@ -348,7 +333,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ video, isActive, onOpenCommen
         )}
         
         {isQualityMenuOpen && (
-            <div ref={qualityMenuRef} className="bg-black/70 backdrop-blur-sm rounded-lg p-2 animate-fade-in-fast">
+            <div ref={qualityMenuRef} className="bg-black/70 backdrop-blur-sm rounded-lg p-2 animate-fade-in-fast" onClick={e => e.stopPropagation()}>
                 <div className="text-xs text-gray-300 mb-1 px-2 font-semibold">Quality</div>
                 {video.videoSources.map(source => (
                     <button 
@@ -363,30 +348,29 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ video, isActive, onOpenCommen
         )}
 
 
-        {/* Action Buttons Column */}
         <div className="flex flex-col items-center space-y-5">
-            <button onClick={handleLike} className="flex flex-col items-center">
+            <button onClick={(e) => { e.stopPropagation(); handleLike(); }} className="flex flex-col items-center">
             <HeartIcon isFilled={isLiked} />
             <span className="text-xs font-semibold mt-1">{video.likes + (isLiked ? 1 : 0)}</span>
             </button>
-            <button onClick={onOpenComments} className="flex flex-col items-center">
+            <button onClick={(e) => { e.stopPropagation(); onOpenComments(); }} className="flex flex-col items-center">
             <CommentIcon />
             <span className="text-xs font-semibold mt-1">{video.comments}</span>
             </button>
-            <button onClick={handleShare} disabled={isSharing} className="flex flex-col items-center disabled:opacity-50">
+            <button onClick={(e) => { e.stopPropagation(); handleShare(); }} disabled={isSharing} className="flex flex-col items-center disabled:opacity-50">
             <ShareIcon />
             <span className="text-xs font-semibold mt-1">{video.shares + (isShared ? 1 : 0)}</span>
             </button>
-            <button onClick={toggleFullScreen} className="flex flex-col items-center">
+            <button onClick={(e) => { e.stopPropagation(); toggleFullScreen(); }} className="flex flex-col items-center">
             <FullScreenIcon isFullScreen={isFullScreen} />
             <span className="text-xs font-semibold mt-1">{isFullScreen ? 'Exit' : 'Full'}</span>
             </button>
-            <button onClick={toggleMute} className="flex flex-col items-center">
+            <button onClick={(e) => { e.stopPropagation(); toggleMute(); }} className="flex flex-col items-center">
                 {isMuted ? <VolumeOffIcon /> : <VolumeUpIcon />}
                 <span className="text-xs font-semibold mt-1">{isMuted ? 'Unmute' : 'Mute'}</span>
             </button>
              {!embedUrl && video.videoSources.length > 1 && (
-                <button onClick={() => setIsQualityMenuOpen(prev => !prev)} className="flex flex-col items-center">
+                <button onClick={(e) => { e.stopPropagation(); setIsQualityMenuOpen(prev => !prev); }} className="flex flex-col items-center">
                     <SettingsIcon className="w-8 h-8" />
                     <span className="text-xs font-semibold mt-1">{currentQuality}</span>
                 </button>
@@ -396,6 +380,5 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ video, isActive, onOpenCommen
     </div>
   );
 };
-
 
 export default VideoPlayer;

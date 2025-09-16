@@ -1,11 +1,12 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { LiveStream, ChatMessage, User, Gift } from '../../types';
+import { LiveStream, ChatMessage, User, Gift, Ad } from '../../types';
 import { CloseIcon, HeartIcon, SendIcon, EmojiIcon, GiftIcon, ShareIcon, CoinIcon, ChevronLeftIcon, PinIcon, PaperclipIcon, VolumeUpIcon, VolumeOffIcon } from '../icons/Icons';
 import { mockUser, mockGifts, mockUsers } from '../../services/mockApi';
 import SendGiftModal from '../SendGiftModal';
 import EmojiPicker from '../EmojiPicker';
 import { getYouTubeEmbedUrl } from '../../utils/videoUtils';
+import AdBannerOverlay from '../AdBannerOverlay';
 
 interface ViewerLiveViewProps {
   stream: LiveStream;
@@ -14,6 +15,7 @@ interface ViewerLiveViewProps {
   onToggleFollow: (userId: string) => void;
   onShareStream: (streamId: string) => void;
   onViewProfile: (user: User) => void;
+  bannerAds: Ad[];
 }
 
 type TopGifter = {
@@ -21,17 +23,15 @@ type TopGifter = {
     amount: number;
 }
 
-// Floating Heart Component for live interaction
 const FloatingHeart: React.FC<{ onAnimationEnd: () => void }> = ({ onAnimationEnd }) => {
     useEffect(() => {
-        const timer = setTimeout(onAnimationEnd, 3000); // Must match animation duration
+        const timer = setTimeout(onAnimationEnd, 3000);
         return () => clearTimeout(timer);
     }, [onAnimationEnd]);
 
-    // Randomize horizontal position and animation duration for a natural look
     const style = {
         left: `${Math.random() * 100}%`,
-        animationDuration: `${2 + Math.random() * 2}s`, // Duration between 2s and 4s
+        animationDuration: `${2 + Math.random() * 2}s`,
     };
 
     return (
@@ -41,7 +41,7 @@ const FloatingHeart: React.FC<{ onAnimationEnd: () => void }> = ({ onAnimationEn
     );
 };
 
-const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, currentUser, onToggleFollow, onShareStream, onViewProfile }) => {
+const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, currentUser, onToggleFollow, onShareStream, onViewProfile, bannerAds }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([
     { id: '1', senderId: stream.user.id, text: `Welcome to the stream!`, isRead: true, timestamp: '' },
   ]);
@@ -57,7 +57,6 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, current
   const [pinnedMessage, setPinnedMessage] = useState<string | null>(null);
   const [isMuted, setIsMuted] = useState(true);
   
-  // State for Zen Mode (hide UI)
   const [isUiVisible, setIsUiVisible] = useState(true);
   const [isDragging, setIsDragging] = useState(false);
   const touchStartX = useRef(0);
@@ -76,6 +75,7 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, current
 
   const [volume, setVolume] = useState(1);
   const [showVolumeSlider, setShowVolumeSlider] = useState(false);
+  const [activeBannerAd, setActiveBannerAd] = useState<Ad | null>(null);
 
   const isFollowing = currentUser.followingIds?.includes(stream.user.id);
   const isOwnStream = currentUser.id === stream.user.id;
@@ -91,7 +91,6 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, current
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
        const target = event.target as Node;
-      // Also close if the textarea is clicked
       const isTextarea = target === textareaRef.current;
       if (emojiPickerRef.current && (!emojiPickerRef.current.contains(target) || isTextarea)) {
         setShowEmojiPicker(false);
@@ -139,7 +138,7 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, current
     if (textareaRef.current) {
         const el = textareaRef.current;
         el.style.height = 'auto';
-        const maxHeight = 96; // 6rem or max-h-24
+        const maxHeight = 96;
         el.style.height = `${Math.min(el.scrollHeight, maxHeight)}px`;
     }
   }, [newMessage]);
@@ -151,9 +150,26 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, current
     }
   }, [volume, isMuted]);
 
+  useEffect(() => {
+    if (bannerAds.length > 0) {
+        const showAd = () => {
+            const adToShow = bannerAds[Math.floor(Math.random() * bannerAds.length)];
+            setActiveBannerAd(adToShow);
+            setTimeout(() => setActiveBannerAd(null), 15000);
+        };
+
+        const adInterval = setInterval(showAd, 60000);
+        const initialAdTimeout = setTimeout(showAd, 10000);
+
+        return () => {
+            clearInterval(adInterval);
+            clearTimeout(initialAdTimeout);
+        };
+    }
+  }, [bannerAds]);
+
   const toggleMute = () => {
     setIsMuted(prev => !prev);
-    // For direct video, also show slider
     if (!embedUrl) {
       setShowVolumeSlider(true);
       if (volumeSliderTimeout.current) clearTimeout(volumeSliderTimeout.current);
@@ -215,7 +231,6 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, current
     setMessages(prevMessages => [...prevMessages, message]);
     setNewMessage('');
     
-    // Reset image state
     setImageFile(null);
     if (imagePreview) URL.revokeObjectURL(imagePreview);
     setImagePreview(null);
@@ -229,7 +244,7 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, current
         setImageFile(file);
         if (imagePreview) URL.revokeObjectURL(imagePreview);
         setImagePreview(URL.createObjectURL(file));
-        e.target.value = ''; // Allow selecting the same file again
+        e.target.value = '';
     }
   };
 
@@ -276,7 +291,6 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, current
     }
   };
 
-  // --- Universal Swipe/Drag Handlers ---
   const handleDragStart = (clientX: number, clientY: number) => {
     touchStartX.current = clientX;
     touchStartY.current = clientY;
@@ -299,11 +313,10 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, current
     if (swipeDirection.current !== 'horizontal') return;
     const swipeDistance = touchEndX.current - touchStartX.current;
     const swipeThreshold = 50;
-    if (swipeDistance > swipeThreshold) setIsUiVisible(false); // Swipe Right to Hide
-    else if (swipeDistance < -swipeThreshold) setIsUiVisible(true); // Swipe Left to Show
+    if (swipeDistance > swipeThreshold) setIsUiVisible(false);
+    else if (swipeDistance < -swipeThreshold) setIsUiVisible(true);
   };
 
-  // Touch Events
   const handleTouchStart = (e: React.TouchEvent) => {
     const target = e.target as HTMLElement;
     if (target.tagName === 'TEXTAREA' || target.closest('button')) {
@@ -313,7 +326,6 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, current
   };
   const handleTouchMove = (e: React.TouchEvent) => handleDragMove(e.targetTouches[0].clientX, e.targetTouches[0].clientY);
 
-  // Mouse Events
   const handleMouseDown = (e: React.MouseEvent) => {
     const target = e.target as HTMLElement;
     if (target.tagName === 'TEXTAREA' || target.closest('button')) {
@@ -409,7 +421,6 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, current
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseLeave}
       >
-        {/* Background */}
         {stream.videoUrl ? (
             embedUrl ? (
                 <iframe
@@ -436,14 +447,14 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, current
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/30 pointer-events-none"></div>
 
-        {/* Floating Hearts Area */}
+        {activeBannerAd && <AdBannerOverlay ad={activeBannerAd} />}
+
         <div className="absolute bottom-24 right-4 h-96 w-20 pointer-events-none z-20">
           {floatingHearts.map(heart => (
             <FloatingHeart key={heart.id} onAnimationEnd={() => removeHeart(heart.id)} />
           ))}
         </div>
         
-        {/* UI Container */}
         <div className={`absolute inset-0 flex flex-col transition-all duration-300 ease-in-out ${isUiVisible ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-full pointer-events-none'}`}>
           <header className="absolute top-0 left-0 right-0 p-4 flex justify-between items-start">
             <button onClick={() => onViewProfile(stream.user)} className="flex items-center bg-black/40 p-2 rounded-lg">
@@ -473,7 +484,6 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, current
           <div className="flex-1"></div>
           
           <footer className="p-4 flex flex-col-reverse gap-2">
-            {/* Stable part: chat input and action buttons */}
             <div>
               {imagePreview && (
                   <div className="self-start p-2 relative w-24 bg-black/40 rounded-lg pointer-events-auto mb-2">
@@ -488,7 +498,6 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, current
                   <div ref={messagesEndRef} />
               </div>
               <div className="flex items-end space-x-2 mt-2">
-                {/* Input field group */}
                 <div ref={emojiPickerRef} className="flex-1 flex items-end bg-black/40 rounded-full px-2 py-1.5 min-h-[44px] relative">
                     <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
                     <button onClick={() => fileInputRef.current?.click()} className="p-2 text-gray-300 hover:text-white shrink-0" aria-label="Attach an image">
@@ -520,7 +529,6 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, current
                     )}
                 </div>
 
-                {/* Volume slider for direct video */}
                 {showVolumeSlider && !embedUrl && (
                     <div className="bg-black/40 rounded-full h-24 w-8 flex items-center justify-center p-2 animate-fade-in-fast pointer-events-auto">
                         <input
@@ -544,7 +552,6 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, current
                     </div>
                 )}
                 
-                {/* Vertically stacked Action Buttons */}
                 <div className="flex flex-col space-y-2">
                     <button 
                         onClick={toggleMute}

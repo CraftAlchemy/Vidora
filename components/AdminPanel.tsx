@@ -1,7 +1,8 @@
+
 import React, { useState, useEffect, useRef } from 'react';
-import { User, Video, Report, PayoutRequest, Gift, MonetizationSettings, CreatorApplication, CoinPack } from '../types';
-import { mockUsers, mockVideos, mockReports, mockPayoutRequests, mockGifts } from '../services/mockApi';
-import { DashboardIcon, UsersIcon, VideoIcon, ShieldCheckIcon, DollarSignIcon, GiftIcon, RestoreIcon, SettingsIcon, LogOutIcon, SunIcon, MoonIcon, ProfileIcon, StarIcon } from './icons/Icons';
+import { User, Video, Report, PayoutRequest, Gift, MonetizationSettings, CreatorApplication, CoinPack, DailyRewardSettings, Ad, AdSettings } from '../types';
+import { mockUsers, mockVideos, mockReports, mockPayoutRequests, mockGifts, mockAds } from '../services/mockApi';
+import { DashboardIcon, UsersIcon, VideoIcon, ShieldCheckIcon, DollarSignIcon, GiftIcon, RestoreIcon, SettingsIcon, LogOutIcon, SunIcon, MoonIcon, ProfileIcon, StarIcon, MegaphoneIcon } from './icons/Icons';
 import DashboardView from './admin/DashboardView';
 import UserManagementView from './admin/UserManagementView';
 import ContentManagementView from './admin/ContentManagementView';
@@ -12,6 +13,7 @@ import CorbeilView from './admin/CorbeilView';
 import VerificationView from './admin/VerificationView';
 import AdminSettingsView from './admin/AdminSettingsView';
 import CreatorApplicationsView from './admin/CreatorApplicationsView';
+import AdManagementView from './admin/AdManagementView';
 
 interface AdminPanelProps {
   user: User;
@@ -25,13 +27,20 @@ interface AdminPanelProps {
   onLogout: () => void;
   coinPacks: CoinPack[];
   setCoinPacks: React.Dispatch<React.SetStateAction<CoinPack[]>>;
+  dailyRewardSettings: DailyRewardSettings;
+  setDailyRewardSettings: React.Dispatch<React.SetStateAction<DailyRewardSettings>>;
+  ads: Ad[];
+  setAds: React.Dispatch<React.SetStateAction<Ad[]>>;
+  adSettings: AdSettings;
+  setAdSettings: React.Dispatch<React.SetStateAction<AdSettings>>;
 }
 
-type AdminView = 'dashboard' | 'users' | 'content' | 'moderation' | 'financials' | 'gifts' | 'verification' | 'corbeil' | 'settings' | 'creatorApps';
+type AdminView = 'dashboard' | 'users' | 'content' | 'moderation' | 'financials' | 'gifts' | 'verification' | 'corbeil' | 'settings' | 'creatorApps' | 'ads';
 
 const AdminPanel: React.FC<AdminPanelProps> = ({ 
     user, onExit, onSendSystemMessage, showSuccessToast, monetizationSettings, setMonetizationSettings,
-    creatorApplications, onCreatorApplicationDecision, onLogout, coinPacks, setCoinPacks
+    creatorApplications, onCreatorApplicationDecision, onLogout, coinPacks, setCoinPacks,
+    dailyRewardSettings, setDailyRewardSettings, ads, setAds, adSettings, setAdSettings
 }) => {
   const [activeView, setActiveView] = useState<AdminView>('dashboard');
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
@@ -359,6 +368,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                                 />;
       case 'financials': return <FinancialsView payouts={payouts} users={users} onUpdatePayoutStatus={handleUpdatePayoutStatus} />;
       case 'gifts': return <GiftManagementView gifts={gifts} onAddGift={handleAddGift} onUpdateGift={handleUpdateGift} onDeleteGift={handleDeleteGift} />;
+      case 'ads': return <AdManagementView ads={ads} setAds={setAds} showSuccessToast={showSuccessToast} />;
       case 'creatorApps': return <CreatorApplicationsView applications={creatorApplications} onDecision={onCreatorApplicationDecision} />;
       case 'corbeil': return <CorbeilView 
                                 users={deletedUsers}
@@ -381,6 +391,10 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                                 showSuccessToast={showSuccessToast}
                                 coinPacks={coinPacks}
                                 setCoinPacks={setCoinPacks}
+                                dailyRewardSettings={dailyRewardSettings}
+                                onSetDailyRewardSettings={setDailyRewardSettings}
+                                adSettings={adSettings}
+                                onSetAdSettings={setAdSettings}
                               />;
       default: return null;
     }
@@ -419,6 +433,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
           <NavItem view="creatorApps" icon={<StarIcon />} label="Creator Apps" />
           <NavItem view="financials" icon={<DollarSignIcon />} label="Financials" />
           <NavItem view="gifts" icon={<GiftIcon />} label="Gifts" />
+          <NavItem view="ads" icon={<MegaphoneIcon />} label="Ads" />
           <NavItem view="corbeil" icon={<RestoreIcon />} label="Corbeil" />
         </nav>
         <div className="p-2 lg:p-4 border-t border-zinc-800 shrink-0">

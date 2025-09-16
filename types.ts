@@ -170,6 +170,18 @@ export interface MonetizationSettings {
     };
 }
 
+export interface DailyReward {
+    amount: number;
+}
+
+export interface DailyRewardSettings {
+    isEnabled: boolean;
+    modalTitle: string;
+    modalSubtitle: string;
+    rewards: DailyReward[];
+}
+
+
 export type UploadSource = { type: 'file', data: File } | { type: 'url', data: string };
 
 export interface PollOption {
@@ -215,4 +227,23 @@ export interface SavedPaymentMethod {
     type: string;
     details: string;
     isDefault: boolean;
+}
+
+export interface Ad {
+  id: string;
+  name: string;
+  type: 'banner' | 'video';
+  placement: 'feed_video_overlay' | 'live_stream_overlay' | 'feed_interstitial';
+  content: {
+    imageUrl?: string;
+    videoUrl?: string;
+    linkUrl: string;
+  };
+  ctaText: string;
+  isActive: boolean;
+}
+
+export interface AdSettings {
+    isEnabled: boolean;
+    interstitialFrequency: number; // Show an ad every N videos
 }

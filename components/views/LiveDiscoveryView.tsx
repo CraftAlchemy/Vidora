@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { LiveStream, User } from '../../types';
+// FIX: Added Ad type to support banner ads.
+import { LiveStream, User, Ad } from '../../types';
 import ViewerLiveView from './ViewerLiveView'; 
 import { SearchIcon } from '../icons/Icons';
 
@@ -11,6 +12,7 @@ interface LiveDiscoveryViewProps {
   onToggleFollow: (userId: string) => void;
   onShareStream: (streamId: string) => void;
   onViewProfile: (user: User) => void;
+  bannerAds: Ad[];
 }
 
 const LiveCard: React.FC<{ stream: LiveStream; onClick: () => void }> = ({ stream, onClick }) => (
@@ -29,7 +31,7 @@ const LiveCard: React.FC<{ stream: LiveStream; onClick: () => void }> = ({ strea
   </div>
 );
 
-const LiveDiscoveryView: React.FC<LiveDiscoveryViewProps> = ({ liveStreams, onGoLive, setIsNavVisible, currentUser, onToggleFollow, onShareStream, onViewProfile }) => {
+const LiveDiscoveryView: React.FC<LiveDiscoveryViewProps> = ({ liveStreams, onGoLive, setIsNavVisible, currentUser, onToggleFollow, onShareStream, onViewProfile, bannerAds }) => {
   const [selectedStream, setSelectedStream] = useState<LiveStream | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -51,6 +53,7 @@ const LiveDiscoveryView: React.FC<LiveDiscoveryViewProps> = ({ liveStreams, onGo
             onToggleFollow={onToggleFollow}
             onShareStream={onShareStream}
             onViewProfile={onViewProfile}
+            bannerAds={bannerAds}
           />;
   }
 

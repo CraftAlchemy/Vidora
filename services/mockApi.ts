@@ -1,4 +1,4 @@
-import { User, Video, LiveStream, Conversation, Notification, Gift, WalletTransaction, LeaderboardUser, Report, PayoutRequest, CreatorApplication } from '../types';
+import { User, Video, LiveStream, Conversation, Notification, Gift, WalletTransaction, LeaderboardUser, Report, PayoutRequest, CreatorApplication, Ad } from '../types';
 
 export const mockUsers: User[] = [
   {
@@ -399,4 +399,55 @@ export const mockCreatorApplications: CreatorApplication[] = [
             videos: 2,
         }
     }
+];
+
+export const mockAds: Ad[] = [
+    {
+        id: 'ad-1',
+        name: 'V-Bucks Sale',
+        type: 'video',
+        placement: 'feed_interstitial',
+        content: {
+            videoUrl: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4',
+            linkUrl: 'https://example.com/gaming',
+        },
+        ctaText: 'Get V-Bucks',
+        isActive: true,
+    },
+    {
+        id: 'ad-2',
+        name: 'Gamer-God Merch',
+        type: 'banner',
+        placement: 'feed_video_overlay',
+        content: {
+            imageUrl: 'https://images.pexels.com/photos/163036/mario-luigi-yoschi-figures-163036.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2',
+            linkUrl: 'https://example.com/store',
+        },
+        ctaText: 'Shop Now',
+        isActive: true,
+    },
+    {
+        id: 'ad-3',
+        name: 'Vidora Pro Subscription',
+        type: 'banner',
+        placement: 'live_stream_overlay',
+        content: {
+            imageUrl: 'https://images.pexels.com/photos/3184431/pexels-photo-3184431.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2',
+            linkUrl: 'https://example.com/pro',
+        },
+        ctaText: 'Go Pro!',
+        isActive: true,
+    },
+     {
+        id: 'ad-4',
+        name: 'Inactive Banner Ad',
+        type: 'banner',
+        placement: 'feed_video_overlay',
+        content: {
+            imageUrl: 'https://images.pexels.com/photos/163036/mario-luigi-yoschi-figures-163036.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2',
+            linkUrl: 'https://example.com/store',
+        },
+        ctaText: 'Shop Now',
+        isActive: false,
+    },
 ];

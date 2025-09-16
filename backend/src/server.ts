@@ -24,8 +24,7 @@ app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/videos', videoRoutes);
 app.use('/api/v1/livestreams', livestreamRoutes);
 
-// FIX: Use namespaced express types to prevent conflicts with global types.
-// FIX: Use imported Request and Response types to avoid global type conflicts and fix method errors.
+// FIX: Use Request and Response types directly from express to resolve type conflicts.
 app.get('/', (req: Request, res: Response) => {
     res.send('BuzzCast API is running');
 });

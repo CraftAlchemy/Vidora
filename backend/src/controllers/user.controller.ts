@@ -2,8 +2,7 @@
 import { Request, Response } from 'express';
 
 // Placeholder: Get current user's profile
-// FIX: Use namespaced express types to prevent conflicts with global types.
-// FIX: Use imported Request and Response types to avoid global type conflicts.
+// FIX: Use Request and Response types directly from express to resolve type conflicts.
 export const getMe = async (req: Request, res: Response) => {
   // In a real app, the user ID would come from the decoded JWT token
   // const userId = req.user.id;
@@ -19,8 +18,7 @@ export const getMe = async (req: Request, res: Response) => {
 };
 
 // Placeholder: Update current user's profile
-// FIX: Use namespaced express types to prevent conflicts with global types.
-// FIX: Use imported Request and Response types to avoid global type conflicts.
+// FIX: Use Request and Response types directly from express to resolve type conflicts.
 export const updateMe = async (req: Request, res: Response) => {
   const { username, bio } = req.body;
   // const userId = req.user.id;
@@ -36,8 +34,7 @@ export const updateMe = async (req: Request, res: Response) => {
 };
 
 // Placeholder: Get user profile by username
-// FIX: Use namespaced express types to prevent conflicts with global types.
-// FIX: Use imported Request and Response types to avoid global type conflicts.
+// FIX: Use Request and Response types directly from express to resolve type conflicts.
 export const getUserProfile = async (req: Request, res: Response) => {
   const { username } = req.params;
   console.log(`Fetching profile for username: ${username}`);

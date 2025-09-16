@@ -1,9 +1,10 @@
 
 
+
 import React, { useState, useEffect } from 'react';
 // FIX: Added UploadSource to the import list from types.ts to support different upload methods.
-import { User, Video, LiveStream, WalletTransaction, Conversation, ChatMessage, Comment, PayoutRequest, MonetizationSettings, UploadSource, CreatorApplication, CoinPack, SavedPaymentMethod } from './types';
-import { mockUser, mockUsers, mockVideos, mockLiveStreams, mockConversations, systemUser, mockPayoutRequests, mockCreatorApplications } from './services/mockApi';
+import { User, Video, LiveStream, WalletTransaction, Conversation, ChatMessage, Comment, PayoutRequest, MonetizationSettings, UploadSource, CreatorApplication, CoinPack, SavedPaymentMethod, DailyRewardSettings, Ad, AdSettings } from './types';
+import { mockUser, mockUsers, mockVideos, mockLiveStreams, mockConversations, systemUser, mockPayoutRequests, mockCreatorApplications, mockAds } from './services/mockApi';
 import { getCurrencyInfoForLocale, CurrencyInfo } from './utils/currency';
 import { CurrencyContext } from './contexts/CurrencyContext';
 
@@ -64,6 +65,27 @@ const defaultCoinPacks: CoinPack[] = [
     { amount: 5000, price: 49.99, description: 'Premium Pack' },
     { amount: 10000, price: 99.99, description: 'Mega Pack' },
 ];
+
+const defaultDailyRewardSettings: DailyRewardSettings = {
+    isEnabled: true,
+    modalTitle: 'Daily Reward!',
+    modalSubtitle: 'Come back tomorrow for a bigger reward.',
+    rewards: [
+        { amount: 50 },
+        { amount: 75 },
+        { amount: 100 },
+        { amount: 125 },
+        { amount: 150 },
+        { amount: 200 },
+        { amount: 500 }, // Special Day 7 reward
+    ],
+};
+
+const defaultAdSettings: AdSettings = {
+    isEnabled: true,
+    interstitialFrequency: 5,
+};
+
 
 const App: React.FC = () => {
     const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -142,6 +164,40 @@ const App: React.FC = () => {
         }
     });
 
+    const [dailyRewardSettings, setDailyRewardSettings] = useState<DailyRewardSettings>(() => {
+        try {
+            const saved = localStorage.getItem('dailyRewardSettings');
+            if (saved) {
+                const loaded = JSON.parse(saved);
+                return { ...defaultDailyRewardSettings, ...loaded }; // Merge to handle new properties
+            }
+            return defaultDailyRewardSettings;
+        } catch (error) {
+            console.error("Could not parse daily reward settings from localStorage", error);
+            return defaultDailyRewardSettings;
+        }
+    });
+
+    const [ads, setAds] = useState<Ad[]>(() => {
+        try {
+            const saved = localStorage.getItem('ads');
+            return saved ? JSON.parse(saved) : mockAds;
+        } catch (error) {
+            console.error("Could not parse ads from localStorage", error);
+            return mockAds;
+        }
+    });
+
+    const [adSettings, setAdSettings] = useState<AdSettings>(() => {
+        try {
+            const saved = localStorage.getItem('adSettings');
+            return saved ? JSON.parse(saved) : defaultAdSettings;
+        } catch (error) {
+            console.error("Could not parse ad settings from localStorage", error);
+            return defaultAdSettings;
+        }
+    });
+
     useEffect(() => {
         const loggedIn = sessionStorage.getItem('isLoggedIn') === 'true';
         if (loggedIn) {
@@ -151,7 +207,7 @@ const App: React.FC = () => {
 
             const lastClaimed = localStorage.getItem('lastRewardClaim');
             const today = new Date().toISOString().split('T')[0];
-            if (lastClaimed !== today) {
+            if (dailyRewardSettings.isEnabled && lastClaimed !== today) {
                 setTimeout(() => setIsDailyRewardOpen(true), 1000);
             }
         }
@@ -181,6 +237,30 @@ const App: React.FC = () => {
             console.error("Could not save coin packs to localStorage", error);
         }
     }, [coinPacks]);
+
+    useEffect(() => {
+        try {
+            localStorage.setItem('dailyRewardSettings', JSON.stringify(dailyRewardSettings));
+        } catch (error) {
+            console.error("Could not save daily reward settings to localStorage", error);
+        }
+    }, [dailyRewardSettings]);
+
+    useEffect(() => {
+        try {
+            localStorage.setItem('ads', JSON.stringify(ads));
+        } catch (error) {
+            console.error("Could not save ads to localStorage", error);
+        }
+    }, [ads]);
+
+    useEffect(() => {
+        try {
+            localStorage.setItem('adSettings', JSON.stringify(adSettings));
+        } catch (error) {
+            console.error("Could not save ad settings to localStorage", error);
+        }
+    }, [adSettings]);
 
 
     const handleLogin = () => {
@@ -414,8 +494,20 @@ const App: React.FC = () => {
         showSuccessToast('Profile updated!');
     };
     
-    const handleClaimReward = (amount: number) => {
+    const handleClaimReward = () => {
         if (!currentUser || !currentUser.wallet) return;
+
+        const streakIndex = currentUser.streakCount || 0;
+        const rewards = dailyRewardSettings.rewards;
+        // If streak is longer than defined rewards, use the last available reward
+        const rewardTier = rewards[Math.min(streakIndex, rewards.length - 1)];
+
+        if (!rewardTier) { // Safety check in case rewards array is empty
+            console.error("Daily rewards are enabled but no reward tiers are configured.");
+            setIsDailyRewardOpen(false);
+            return;
+        }
+        const amount = rewardTier.amount;
 
         const newTransaction: WalletTransaction = {
             id: `tx-reward-${Date.now()}`,
@@ -801,15 +893,34 @@ const App: React.FC = () => {
                     onLogout={handleLogout}
                     coinPacks={coinPacks}
                     setCoinPacks={setCoinPacks}
+                    dailyRewardSettings={dailyRewardSettings}
+                    setDailyRewardSettings={setDailyRewardSettings}
+                    ads={ads}
+                    setAds={setAds}
+                    adSettings={adSettings}
+                    setAdSettings={setAdSettings}
                 />
             </CurrencyContext.Provider>
         );
     }
 
     const renderView = () => {
+        const activeAds = ads.filter(ad => ad.isActive);
+
         switch (activeView) {
             case 'feed':
-                return <FeedView videos={videos} currentUser={currentUser} onOpenComments={handleOpenComments} setIsNavVisible={setIsNavVisible} onToggleFollow={handleToggleFollow} onShareVideo={handleShareVideo} onViewProfile={handleViewProfile} />;
+                return <FeedView 
+                            videos={videos} 
+                            currentUser={currentUser} 
+                            onOpenComments={handleOpenComments} 
+                            setIsNavVisible={setIsNavVisible} 
+                            onToggleFollow={handleToggleFollow} 
+                            onShareVideo={handleShareVideo} 
+                            onViewProfile={handleViewProfile}
+                            adSettings={adSettings}
+                            interstitialAds={activeAds.filter(ad => ad.placement === 'feed_interstitial')}
+                            bannerAds={activeAds.filter(ad => ad.placement === 'feed_video_overlay')}
+                        />;
             case 'live':
                 return <LiveView 
                     setIsNavVisible={setIsNavVisible} 
@@ -821,6 +932,7 @@ const App: React.FC = () => {
                     showSuccessToast={showSuccessToast}
                     openGoLiveModal={openGoLiveOnNavigate}
                     onModalOpened={() => setOpenGoLiveOnNavigate(false)}
+                    bannerAds={activeAds.filter(ad => ad.placement === 'live_stream_overlay')}
                 />;
             case 'inbox': {
                 if (selectedConversationId) {
@@ -906,7 +1018,7 @@ const App: React.FC = () => {
                             onRemoveMethod={handleRemovePaymentMethod}
                         />;
             default:
-                return <FeedView videos={videos} currentUser={currentUser} onOpenComments={handleOpenComments} setIsNavVisible={setIsNavVisible} onToggleFollow={handleToggleFollow} onShareVideo={handleShareVideo} onViewProfile={handleViewProfile} />;
+                return <FeedView videos={videos} currentUser={currentUser} onOpenComments={handleOpenComments} setIsNavVisible={setIsNavVisible} onToggleFollow={handleToggleFollow} onShareVideo={handleShareVideo} onViewProfile={handleViewProfile} adSettings={adSettings} interstitialAds={[]} bannerAds={[]} />;
         }
     };
 
@@ -930,7 +1042,12 @@ const App: React.FC = () => {
 
                 {isUploadViewOpen && <UploadView onUpload={handleUpload} onClose={handleCloseUpload} />}
                 {isEditProfileOpen && <EditProfileModal user={currentUser} onSave={handleSaveProfile} onClose={() => setIsEditProfileOpen(false)} />}
-                {isDailyRewardOpen && <DailyRewardModal streakCount={currentUser.streakCount || 0} onClaim={handleClaimReward} onClose={() => setIsDailyRewardOpen(false)} />}
+                {isDailyRewardOpen && <DailyRewardModal 
+                    streakCount={currentUser.streakCount || 0} 
+                    onClaim={handleClaimReward} 
+                    onClose={() => setIsDailyRewardOpen(false)} 
+                    dailyRewardSettings={dailyRewardSettings}
+                />}
                 {isCommentsModalOpen && activeVideoForComments && (
                     <CommentsModal 
                         video={activeVideoForComments}
