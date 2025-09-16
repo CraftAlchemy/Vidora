@@ -31,13 +31,14 @@ export const uploadVideo = async (req: express.Request, res: express.Response) =
     const newVideo: Video = {
         id: `v${Date.now()}`,
         // In a real app, this URL would come from a cloud storage service
-        videoUrl: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4', 
+        videoSources: [{ quality: 'Auto', url: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4' }],
         thumbnailUrl: 'https://i.ytimg.com/vi/otNh9bTjX1k/maxresdefault.jpg',
         description,
         user: currentUser,
         likes: 0,
         comments: 0,
         shares: 0,
+        views: 0,
         commentsData: [],
         status: 'approved',
         uploadDate: new Date().toISOString(),

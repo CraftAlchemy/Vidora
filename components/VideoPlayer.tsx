@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Video, User } from '../types';
-import { HeartIcon, CommentIcon, ShareIcon, MusicIcon, PlayIcon, PauseIcon, FullScreenIcon, VolumeUpIcon, VolumeOffIcon } from './icons/Icons';
+import { HeartIcon, CommentIcon, ShareIcon, MusicIcon, PlayIcon, PauseIcon, FullScreenIcon, VolumeUpIcon, VolumeOffIcon, SettingsIcon } from './icons/Icons';
 import { getYouTubeEmbedUrl } from '../utils/videoUtils';
 
 interface VideoPlayerProps {
@@ -16,6 +16,7 @@ interface VideoPlayerProps {
 const VideoPlayer: React.FC<VideoPlayerProps> = ({ video, isActive, onOpenComments, currentUser, onToggleFollow, onShareVideo, onViewProfile }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const qualityMenuRef = useRef<HTMLDivElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
   const [showPlayPause, setShowPlayPause] = useState(false);
@@ -36,10 +37,15 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ video, isActive, onOpenCommen
   const tapTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastTap = useRef(0);
 
+  // Video Quality State
+  const [currentQuality, setCurrentQuality] = useState(video.videoSources[0].quality);
+  const [isQualityMenuOpen, setIsQualityMenuOpen] = useState(false);
+
   const isFollowing = currentUser.followingIds?.includes(video.user.id);
   const isOwnProfile = currentUser.id === video.user.id;
   
-  const embedUrl = useMemo(() => getYouTubeEmbedUrl(video.videoUrl, isMuted), [video.videoUrl, isMuted]);
+  const videoUrl = video.videoSources.find(s => s.quality === currentQuality)?.url || video.videoSources[0].url;
+  const embedUrl = useMemo(() => getYouTubeEmbedUrl(videoUrl, isMuted), [videoUrl, isMuted]);
 
   useEffect(() => {
     // This effect should only control playback for direct <video> elements
@@ -78,6 +84,21 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ video, isActive, onOpenCommen
     document.addEventListener('fullscreenchange', handleFullScreenChange);
     return () => document.removeEventListener('fullscreenchange', handleFullScreenChange);
   }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+        if (qualityMenuRef.current && !qualityMenuRef.current.contains(event.target as Node)) {
+            setIsQualityMenuOpen(false);
+        }
+    };
+    if (isQualityMenuOpen) {
+        document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isQualityMenuOpen]);
+
 
   const togglePlay = () => {
     if (videoRef.current) {
@@ -207,6 +228,30 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ video, isActive, onOpenCommen
     volumeSliderTimeout.current = setTimeout(() => setShowVolumeSlider(false), 3000);
   };
 
+  const handleQualityChange = (quality: string) => {
+    if (videoRef.current) {
+        const currentTime = videoRef.current.currentTime;
+        const wasPlaying = !videoRef.current.paused;
+
+        videoRef.current.src = video.videoSources.find(s => s.quality === quality)?.url || '';
+        videoRef.current.load();
+
+        const onLoaded = () => {
+            if (videoRef.current) {
+                videoRef.current.currentTime = currentTime;
+                if (wasPlaying) {
+                    videoRef.current.play();
+                }
+                videoRef.current.removeEventListener('loadedmetadata', onLoaded);
+            }
+        };
+
+        videoRef.current.addEventListener('loadedmetadata', onLoaded);
+    }
+    setCurrentQuality(quality);
+    setIsQualityMenuOpen(false);
+  };
+
   return (
     <div ref={containerRef} className="relative w-full h-full snap-start" data-video-id={video.id}>
       {embedUrl ? (
@@ -221,7 +266,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ video, isActive, onOpenCommen
       ) : (
         <video
           ref={videoRef}
-          src={video.videoUrl}
+          src={videoUrl}
           loop
           playsInline
           className="w-full h-full object-cover"
@@ -301,6 +346,22 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ video, isActive, onOpenCommen
                 />
             </div>
         )}
+        
+        {isQualityMenuOpen && (
+            <div ref={qualityMenuRef} className="bg-black/70 backdrop-blur-sm rounded-lg p-2 animate-fade-in-fast">
+                <div className="text-xs text-gray-300 mb-1 px-2 font-semibold">Quality</div>
+                {video.videoSources.map(source => (
+                    <button 
+                        key={source.quality}
+                        onClick={() => handleQualityChange(source.quality)}
+                        className={`w-full text-left text-sm px-2 py-1 rounded ${currentQuality === source.quality ? 'bg-pink-600' : 'hover:bg-zinc-700'}`}
+                    >
+                        {source.quality}
+                    </button>
+                ))}
+            </div>
+        )}
+
 
         {/* Action Buttons Column */}
         <div className="flex flex-col items-center space-y-5">
@@ -324,6 +385,12 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ video, isActive, onOpenCommen
                 {isMuted ? <VolumeOffIcon /> : <VolumeUpIcon />}
                 <span className="text-xs font-semibold mt-1">{isMuted ? 'Unmute' : 'Mute'}</span>
             </button>
+             {!embedUrl && video.videoSources.length > 1 && (
+                <button onClick={() => setIsQualityMenuOpen(prev => !prev)} className="flex flex-col items-center">
+                    <SettingsIcon className="w-8 h-8" />
+                    <span className="text-xs font-semibold mt-1">{currentQuality}</span>
+                </button>
+            )}
         </div>
       </div>
     </div>

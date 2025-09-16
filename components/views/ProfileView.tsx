@@ -1,4 +1,5 @@
 
+
 import React, { useState } from 'react';
 import { User, Video } from '../../types';
 import { View } from '../../App';
@@ -173,7 +174,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ user, currentUser, isOwnProfi
                   {video.thumbnailUrl ? (
                       <img src={video.thumbnailUrl} alt={video.description} className="w-full h-full object-cover" />
                   ) : (
-                      <video src={video.videoUrl} className="w-full h-full object-cover" />
+                      <video src={video.videoSources[0]?.url} className="w-full h-full object-cover" />
                   )}
                   <div className="absolute inset-0 bg-black/20"></div>
                 </div>

@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect } from 'react';
 // FIX: Added UploadSource to the import list from types.ts to support different upload methods.
 import { User, Video, LiveStream, WalletTransaction, Conversation, ChatMessage, Comment, PayoutRequest, MonetizationSettings, UploadSource, CreatorApplication, CoinPack, SavedPaymentMethod } from './types';
@@ -260,9 +261,10 @@ const App: React.FC = () => {
             // In a real app, you would send the URL to the backend to process.
             // Here, we'll simulate it.
             setTimeout(() => {
+// FIX: Changed `videoUrl` to `videoSources` to maintain consistency with the Video type and other components.
                 const newVideo: Video = {
                     id: `v-url-${Date.now()}`,
-                    videoUrl: source.data, // Use the user-provided URL
+                    videoSources: [{ quality: 'Auto', url: source.data as string }],
                     thumbnailUrl: 'https://i.ytimg.com/vi/LXb3EKWsInQ/maxresdefault.jpg', // Placeholder
                     description,
                     user: currentUser,
@@ -724,6 +726,7 @@ const App: React.FC = () => {
         const updatedMethods = (currentUser.savedPaymentMethods || []).filter(m => m.id !== methodId);
         
         // If the removed method was the default, and there are others, make the first one the new default
+// FIX: Property 'isDefault' does not exist on type '{ id: string; }'. This is fixed by correcting the `SavedPaymentMethod` type definition in `types.ts`.
         if (updatedMethods.length > 0 && !updatedMethods.some(m => m.isDefault)) {
             updatedMethods[0].isDefault = true;
         }
@@ -961,4 +964,3 @@ const App: React.FC = () => {
 };
 
 export default App;
-      

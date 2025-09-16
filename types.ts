@@ -1,4 +1,3 @@
-
 export interface User {
   id: string;
   username: string;
@@ -41,9 +40,15 @@ export interface Comment {
   timestamp: string;
 }
 
+export interface VideoSource {
+    quality: string;
+    url: string;
+}
+
 export interface Video {
   id: string;
-  videoUrl: string;
+  videoSources: VideoSource[];
+  videoUrl?: string; // For backward compatibility
   description: string;
   user: User;
   likes: number;
@@ -66,7 +71,7 @@ export interface LiveStream {
 }
 
 export interface ChatMessage {
-  id:string;
+  id: string;
   senderId: string;
   text: string;
   timestamp: string;
@@ -105,12 +110,6 @@ export interface Gift {
   price: number;
   icon: string;
   category: 'Trending' | 'Classic' | 'Premium' | 'Fun';
-}
-
-export interface GiftEvent {
-  id: string;
-  user: User;
-  gift: Gift;
 }
 
 export interface WalletTransaction {
@@ -171,12 +170,24 @@ export interface MonetizationSettings {
     };
 }
 
-export type UploadSource = { type: 'file'; data: File } | { type: 'url'; data: string };
+export type UploadSource = { type: 'file', data: File } | { type: 'url', data: string };
+
+export interface PollOption {
+  id: string;
+  text: string;
+  votes: number;
+}
 
 export interface Poll {
-    question: string;
-    options: { id: string, text: string, votes: number }[];
-    totalVotes: number;
+  question: string;
+  options: PollOption[];
+  totalVotes: number;
+}
+
+export interface GiftEvent {
+    id: string;
+    user: User;
+    gift: Gift;
 }
 
 export interface CreatorApplication {
@@ -189,14 +200,7 @@ export interface CreatorApplication {
         followers: number;
         views: number;
         videos: number;
-    }
-}
-
-export interface SavedPaymentMethod {
-  id: string;
-  type: string;
-  details: string; // e.g., 'Visa ending in 4242' or 'user@example.com'
-  isDefault: boolean;
+    };
 }
 
 export interface CoinPack {
@@ -205,4 +209,10 @@ export interface CoinPack {
     description: string;
     isPopular?: boolean;
 }
-      
+
+export interface SavedPaymentMethod {
+    id: string;
+    type: string;
+    details: string;
+    isDefault: boolean;
+}

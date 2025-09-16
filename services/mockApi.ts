@@ -135,7 +135,10 @@ export const mockUser = mockUsers[0];
 export const mockVideos: Video[] = [
   {
     id: 'v1',
-    videoUrl: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+    videoSources: [
+        { quality: '1080p', url: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4' },
+        { quality: '720p', url: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4' },
+    ],
     description: 'This is a fun video of a bunny!',
     user: mockUsers[1],
     likes: 12000,
@@ -152,7 +155,11 @@ export const mockVideos: Video[] = [
   },
   {
     id: 'v2',
-    videoUrl: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
+    videoSources: [
+        { quality: '1080p', url: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4' },
+        { quality: '720p', url: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4' },
+        { quality: '360p', url: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4' },
+    ],
     description: 'Check out this cool animation. #animation',
     user: mockUsers[2],
     likes: 55000,
@@ -166,7 +173,9 @@ export const mockVideos: Video[] = [
   },
   {
     id: 'v3',
-    videoUrl: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+    videoSources: [
+        { quality: 'Auto', url: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4' },
+    ],
     description: 'Coding my new project!',
     user: mockUsers[0],
     likes: 8900,
@@ -180,7 +189,9 @@ export const mockVideos: Video[] = [
   },
   {
     id: 'v4',
-    videoUrl: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
+    videoSources: [
+        { quality: 'Auto', url: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4' },
+    ],
     description: 'Travel vlog from Bali!',
     user: mockUsers[4],
     likes: 20,
@@ -194,7 +205,10 @@ export const mockVideos: Video[] = [
   },
    {
     id: 'v5',
-    videoUrl: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4',
+    videoSources: [
+        { quality: '720p', url: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4' },
+        { quality: '360p', url: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4' },
+    ],
     description: 'My first cooking video! Making pasta today. 🍝',
     user: mockUsers[3],
     likes: 1500,
@@ -208,7 +222,9 @@ export const mockVideos: Video[] = [
   },
    {
     id: 'v6',
-    videoUrl: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4',
+    videoSources: [
+        { quality: 'Auto', url: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4' },
+    ],
     description: 'More cooking content! This is so fun!',
     user: mockUsers[3],
     likes: 200,

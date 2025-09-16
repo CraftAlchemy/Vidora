@@ -1,4 +1,3 @@
-
 export interface User {
   id: string;
   username: string;
@@ -23,6 +22,8 @@ export interface User {
   streakCount?: number;
   badges?: Badge[];
   deletionDate?: string;
+  commentPrivacySetting?: 'everyone' | 'following' | 'nobody';
+  savedPaymentMethods?: SavedPaymentMethod[];
 }
 
 export interface Badge {
@@ -39,14 +40,21 @@ export interface Comment {
   timestamp: string;
 }
 
+export interface VideoSource {
+    quality: string;
+    url: string;
+}
+
 export interface Video {
   id: string;
-  videoUrl: string;
+  videoSources: VideoSource[];
+  videoUrl?: string; // For backward compatibility
   description: string;
   user: User;
   likes: number;
   comments: number;
   shares: number;
+  views: number;
   commentsData: Comment[];
   thumbnailUrl?: string;
   status: 'approved' | 'pending' | 'removed';
@@ -59,14 +67,16 @@ export interface LiveStream {
   user: User;
   thumbnailUrl: string;
   viewers: number;
+  videoUrl?: string;
 }
 
 export interface ChatMessage {
-  id:string;
+  id: string;
   senderId: string;
   text: string;
   timestamp: string;
   isRead: boolean;
+  imageUrl?: string;
 }
 
 export interface Conversation {
@@ -129,4 +139,80 @@ export interface Report {
     reason: string;
     timestamp: string;
     status: 'pending' | 'resolved' | 'dismissed';
+}
+
+export interface PayoutRequest {
+  id: string;
+  user: User;
+  amount: number;
+  status: 'pending' | 'approved' | 'rejected';
+  method: string;
+  payoutInfo: string;
+  requestDate: string;
+  processedDate?: string;
+}
+
+export interface PaymentProvider {
+    id: string;
+    name: string;
+    isEnabled: boolean;
+}
+
+export interface MonetizationSettings {
+    currencySymbol: string;
+    processingFeePercent: number;
+    minPayoutAmount: number;
+    paymentProviders: PaymentProvider[];
+    creatorCriteria: {
+        minFollowers: number;
+        minViews: number;
+        minVideos: number;
+    };
+}
+
+export type UploadSource = { type: 'file', data: File } | { type: 'url', data: string };
+
+export interface PollOption {
+  id: string;
+  text: string;
+  votes: number;
+}
+
+export interface Poll {
+  question: string;
+  options: PollOption[];
+  totalVotes: number;
+}
+
+export interface GiftEvent {
+    id: string;
+    user: User;
+    gift: Gift;
+}
+
+export interface CreatorApplication {
+    id: string;
+    user: User;
+    status: 'pending' | 'approved' | 'rejected';
+    applicationDate: string;
+    message: string;
+    statsSnapshot: {
+        followers: number;
+        views: number;
+        videos: number;
+    };
+}
+
+export interface CoinPack {
+    amount: number;
+    price: number;
+    description: string;
+    isPopular?: boolean;
+}
+
+export interface SavedPaymentMethod {
+    id: string;
+    type: string;
+    details: string;
+    isDefault: boolean;
 }
