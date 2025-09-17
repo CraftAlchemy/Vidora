@@ -1,8 +1,7 @@
-
 import React, { useState, useEffect, useRef } from 'react';
-import { User, Video, Report, PayoutRequest, Gift, MonetizationSettings, CreatorApplication, CoinPack, DailyRewardSettings, Ad, AdSettings } from '../types';
-import { mockUsers, mockVideos, mockReports, mockPayoutRequests, mockGifts, mockAds } from '../services/mockApi';
-import { DashboardIcon, UsersIcon, VideoIcon, ShieldCheckIcon, DollarSignIcon, GiftIcon, RestoreIcon, SettingsIcon, LogOutIcon, ProfileIcon, StarIcon, MegaphoneIcon } from './icons/Icons';
+import { User, Video, Report, PayoutRequest, Gift, MonetizationSettings, CreatorApplication, CoinPack, DailyRewardSettings, Ad, AdSettings, Badge } from '../types';
+import { mockUsers, mockVideos, mockReports, mockPayoutRequests, mockGifts, mockAds, mockBadges } from '../services/mockApi';
+import { DashboardIcon, UsersIcon, VideoIcon, ShieldCheckIcon, DollarSignIcon, GiftIcon, RestoreIcon, SettingsIcon, LogOutIcon, ProfileIcon, StarIcon, MegaphoneIcon, BadgeIcon } from './icons/Icons';
 import DashboardView from './admin/DashboardView';
 import UserManagementView from './admin/UserManagementView';
 import ContentManagementView from './admin/ContentManagementView';
@@ -14,6 +13,7 @@ import VerificationView from './admin/VerificationView';
 import AdminSettingsView from './admin/AdminSettingsView';
 import CreatorApplicationsView from './admin/CreatorApplicationsView';
 import AdManagementView from './admin/AdManagementView';
+import BadgeManagementView from './admin/BadgeManagementView';
 
 interface AdminPanelProps {
   user: User;
@@ -35,7 +35,7 @@ interface AdminPanelProps {
   setAdSettings: React.Dispatch<React.SetStateAction<AdSettings>>;
 }
 
-type AdminView = 'dashboard' | 'users' | 'content' | 'moderation' | 'financials' | 'gifts' | 'verification' | 'corbeil' | 'settings' | 'creatorApps' | 'ads';
+type AdminView = 'dashboard' | 'users' | 'content' | 'moderation' | 'financials' | 'gifts' | 'verification' | 'corbeil' | 'settings' | 'creatorApps' | 'ads' | 'badges';
 
 const AdminPanel: React.FC<AdminPanelProps> = ({ 
     user, onExit, onSendSystemMessage, showSuccessToast, monetizationSettings, setMonetizationSettings,
@@ -45,6 +45,9 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   const [activeView, setActiveView] = useState<AdminView>('dashboard');
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement>(null);
+  
+  // Lifted state for user search to enable cross-component filtering
+  const [userSearchTerm, setUserSearchTerm] = useState('');
 
   // Sidebar Layout State
   const [sidebarPosition, setSidebarPosition] = useState<'left' | 'right'>(() => {
@@ -61,6 +64,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   const [reports, setReports] = useState<Report[]>(mockReports);
   const [payouts, setPayouts] = useState<PayoutRequest[]>(mockPayoutRequests);
   const [gifts, setGifts] = useState<Gift[]>(mockGifts);
+  const [badges, setBadges] = useState<Badge[]>(mockBadges);
   const [deletedUsers, setDeletedUsers] = useState<User[]>([]);
 
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
@@ -110,6 +114,19 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
     } else {
         setSidebarPosition(position);
     }
+  };
+  
+  const handleNavigate = (view: AdminView) => {
+      // Clear user search term if navigating away from the user management view
+      if (activeView === 'users' && view !== 'users') {
+          setUserSearchTerm('');
+      }
+      setActiveView(view);
+  };
+  
+  const handleViewUser = (userToView: User) => {
+      setUserSearchTerm(userToView.username);
+      setActiveView('users');
   };
 
   const handleUpdateTemplate = (templateName: keyof typeof notificationTemplates, newText: string) => {
@@ -179,6 +196,11 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
           onSendSystemMessage(userId, formatSystemMessage(notificationTemplates.accountVerified, userToUpdate));
       }
       showSuccessToast(`User status updated to ${statusText}.`);
+  };
+
+  const handleUpdateUserBadges = (userId: string, updatedBadges: Badge[]) => {
+    setUsers(users.map(u => u.id === userId ? { ...u, badges: updatedBadges } : u));
+    showSuccessToast(`Badges updated for user.`);
   };
 
   const handleUpdatePayoutStatus = (payoutId: string, status: 'approved' | 'rejected') => {
@@ -332,6 +354,10 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                                 onBulkDelete={handleBulkDeleteUsers}
                                 onSendSystemMessage={onSendSystemMessage}
                                 onBulkSendMessage={handleBulkSendMessage}
+                                searchTerm={userSearchTerm}
+                                onSearchTermChange={setUserSearchTerm}
+                                availableBadges={badges}
+                                onUpdateUserBadges={handleUpdateUserBadges}
                              />;
       case 'content': return <ContentManagementView 
                                 videos={videos}
@@ -341,6 +367,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                                 onSetSelectedVideoIds={setSelectedVideoIds}
                                 onBulkUpdateStatus={handleBulkUpdateVideoStatus}
                                 onBulkDelete={handleBulkDeleteVideos}
+                                onViewUser={handleViewUser}
                              />;
       case 'moderation': return <ModerationQueueView 
                                     reports={reports}
@@ -355,6 +382,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                                 />;
       case 'financials': return <FinancialsView payouts={payouts} users={users} onUpdatePayoutStatus={handleUpdatePayoutStatus} />;
       case 'gifts': return <GiftManagementView gifts={gifts} onAddGift={handleAddGift} onUpdateGift={handleUpdateGift} onDeleteGift={handleDeleteGift} />;
+      case 'badges': return <BadgeManagementView badges={badges} setBadges={setBadges} showSuccessToast={showSuccessToast} />;
       case 'ads': return <AdManagementView ads={ads} setAds={setAds} showSuccessToast={showSuccessToast} />;
       case 'creatorApps': return <CreatorApplicationsView applications={creatorApplications} onDecision={onCreatorApplicationDecision} />;
       case 'corbeil': return <CorbeilView 
@@ -389,7 +417,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
 
   const NavItem: React.FC<{ view: AdminView; icon: React.ReactNode; label: string }> = ({ view, icon, label }) => (
     <button
-      onClick={() => setActiveView(view)}
+      onClick={() => handleNavigate(view)}
       title={label}
       className={`flex items-center justify-center lg:justify-start w-full p-3 my-1 rounded-lg transition-colors text-sm ${
         activeView === view ? 'bg-pink-600 text-white' : 'text-gray-300 hover:bg-zinc-700'
@@ -420,6 +448,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
           <NavItem view="creatorApps" icon={<StarIcon />} label="Creator Apps" />
           <NavItem view="financials" icon={<DollarSignIcon />} label="Financials" />
           <NavItem view="gifts" icon={<GiftIcon />} label="Gifts" />
+          <NavItem view="badges" icon={<BadgeIcon />} label="Badges" />
           <NavItem view="ads" icon={<MegaphoneIcon />} label="Ads" />
           <NavItem view="corbeil" icon={<RestoreIcon />} label="Corbeil" />
         </nav>

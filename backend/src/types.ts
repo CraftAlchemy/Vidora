@@ -11,7 +11,9 @@ export interface User {
   bio?: string;
   followers?: number;
   following?: number;
+  totalLikes?: number;
   followingIds?: string[];
+  likedVideoIds?: string[];
   wallet?: Wallet;
   creatorStats?: {
     totalEarnings: number;

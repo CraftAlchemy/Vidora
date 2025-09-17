@@ -1,7 +1,4 @@
 
-
-
-
 import React, { useState, useEffect } from 'react';
 // FIX: Added UploadSource to the import list from types.ts to support different upload methods.
 import { User, Video, LiveStream, WalletTransaction, Conversation, ChatMessage, Comment, PayoutRequest, MonetizationSettings, UploadSource, CreatorApplication, CoinPack, SavedPaymentMethod, DailyRewardSettings, Ad, AdSettings } from './types';
@@ -38,6 +35,8 @@ import BecomeCreatorView from './components/views/BecomeCreatorView';
 import ApplyCreatorModal from './components/ApplyCreatorModal';
 import PaymentMethodsView from './components/views/PaymentMethodsView';
 import AddPaymentMethodModal from './components/AddPaymentMethodModal';
+import ProfileVideoFeedModal from './components/ProfileVideoFeedModal';
+import ProfileStatsModal from './components/ProfileStatsModal';
 
 export type View = 'feed' | 'live' | 'inbox' | 'profile' | 'wallet' | 'settings' | 'purchase' | 'admin' | 'creatorDashboard' | 'manageAccount' | 'changePassword' | 'helpCenter' | 'termsOfService' | 'becomeCreator' | 'paymentMethods';
 
@@ -126,7 +125,9 @@ const App: React.FC = () => {
     const [activeVideoForComments, setActiveVideoForComments] = useState<Video | null>(null);
     const [viewedProfileUser, setViewedProfileUser] = useState<User | null>(null);
     const [openGoLiveOnNavigate, setOpenGoLiveOnNavigate] = useState(false);
-    
+    const [profileFeedState, setProfileFeedState] = useState<{ videos: Video[], startIndex: number } | null>(null);
+    const [profileStatsModalState, setProfileStatsModalState] = useState<{ user: User; initialTab: 'following' | 'followers' | 'likes'; } | null>(null);
+
     // Purchase flow state
     const [selectedCoinPack, setSelectedCoinPack] = useState<CoinPack | null>(null);
 
@@ -447,47 +448,53 @@ const App: React.FC = () => {
 
     const handleToggleFollow = (userIdToToggle: string) => {
         if (!currentUser) return;
-    
+
         const isCurrentlyFollowing = currentUser.followingIds?.includes(userIdToToggle);
-        let updatedFollowingIds: string[];
-        let newFollowingCount: number = currentUser.following || 0;
-    
-        if (isCurrentlyFollowing) {
-            // Unfollow
-            updatedFollowingIds = currentUser.followingIds?.filter(id => id !== userIdToToggle) || [];
-            newFollowingCount--;
-        } else {
-            // Follow
-            updatedFollowingIds = [...(currentUser.followingIds || []), userIdToToggle];
-            newFollowingCount++;
-        }
-    
-        // Update current user state
-        const updatedCurrentUser = {
-            ...currentUser,
-            followingIds: updatedFollowingIds,
-            following: newFollowingCount,
-        };
-        setCurrentUser(updatedCurrentUser);
-    
-        // Update the user's follower count in the videos state for immediate UI feedback
-        const updatedVideos = videos.map(video => {
-            if (video.user.id === userIdToToggle) {
-                const currentFollowers = video.user.followers || 0;
-                const newFollowers = isCurrentlyFollowing ? currentFollowers - 1 : currentFollowers + 1;
-                return {
-                    ...video,
-                    user: {
-                        ...video.user,
-                        followers: newFollowers
-                    }
-                };
+
+        // Update the main source of truth: the users array
+        const updatedUsers = users.map(u => {
+            // Update the user being followed/unfollowed
+            if (u.id === userIdToToggle) {
+                const currentFollowers = u.followers || 0;
+                return { ...u, followers: isCurrentlyFollowing ? currentFollowers - 1 : currentFollowers + 1 };
             }
-            return video;
+            // Update the current user who is doing the following/unfollowing
+            if (u.id === currentUser.id) {
+                const updatedFollowingIds = isCurrentlyFollowing
+                    ? u.followingIds?.filter(id => id !== userIdToToggle) || []
+                    : [...(u.followingIds || []), userIdToToggle];
+                return { ...u, followingIds: updatedFollowingIds, following: updatedFollowingIds.length };
+            }
+            return u;
         });
-        setVideos(updatedVideos);
-    
-        // Show a toast message
+        setUsers(updatedUsers);
+
+        // Sync other state slices from the updated users array
+        const updatedCurrentUser = updatedUsers.find(u => u.id === currentUser.id);
+        if (updatedCurrentUser) {
+            setCurrentUser(updatedCurrentUser);
+        }
+        
+        if (viewedProfileUser) {
+            const updatedViewedUser = updatedUsers.find(u => u.id === viewedProfileUser.id);
+            if (updatedViewedUser) {
+                setViewedProfileUser(updatedViewedUser);
+            }
+        }
+        
+        if (profileStatsModalState) {
+            const updatedModalUser = updatedUsers.find(u => u.id === profileStatsModalState.user.id);
+            if (updatedModalUser) {
+                setProfileStatsModalState(prev => prev ? {...prev, user: updatedModalUser} : null);
+            }
+        }
+
+        // Update videos array which has its own user objects
+        setVideos(prevVideos => prevVideos.map(video => {
+            const updatedVideoUser = updatedUsers.find(u => u.id === video.user.id);
+            return updatedVideoUser ? { ...video, user: updatedVideoUser } : video;
+        }));
+        
         showSuccessToast(isCurrentlyFollowing ? `Unfollowed!` : `Followed!`);
     };
 
@@ -498,6 +505,16 @@ const App: React.FC = () => {
             )
         );
         showSuccessToast('Video link copied to clipboard!');
+    };
+
+    const handleShareProfile = (username: string) => {
+        const url = `https://vidora.app/@${username}`;
+        navigator.clipboard.writeText(url).then(() => {
+            showSuccessToast('Profile link copied to clipboard!');
+        }).catch(err => {
+            console.error('Failed to copy profile link: ', err);
+            showSuccessToast('Could not copy link.');
+        });
     };
 
     const handleShareStream = (streamId: string) => {
@@ -895,6 +912,22 @@ const App: React.FC = () => {
         return `${baseFormatted} (≈ ${convertedFormatted})`;
     };
 
+    const handleOpenProfileVideoFeed = (videos: Video[], startIndex: number) => {
+        setProfileFeedState({ videos, startIndex });
+    };
+    
+    const handleCloseProfileVideoFeed = () => {
+        setProfileFeedState(null);
+    };
+
+    const handleOpenProfileStats = (user: User, initialTab: 'following' | 'followers' | 'likes') => {
+        setProfileStatsModalState({ user, initialTab });
+    };
+
+    const handleCloseProfileStats = () => {
+        setProfileStatsModalState(null);
+    };
+
 
     if (!isLoggedIn || !currentUser) {
         return <AuthView onLoginSuccess={handleLogin} />;
@@ -988,6 +1021,9 @@ const App: React.FC = () => {
                             onToggleFollow={handleToggleFollow}
                             onGoLive={handleGoLive}
                             bannerAd={profileBannerAd}
+                            onShareProfile={handleShareProfile}
+                            onOpenProfileVideoFeed={handleOpenProfileVideoFeed}
+                            onOpenProfileStats={handleOpenProfileStats}
                         />;
             case 'wallet':
                 return <WalletView user={currentUser} onBack={() => handleNavigate('profile')} onNavigateToPurchase={handleNavigateToPurchase} coinPacks={coinPacks} />;
@@ -1114,6 +1150,41 @@ const App: React.FC = () => {
                         onClose={() => setIsAddPaymentMethodModalOpen(false)}
                         onAddMethod={handleAddPaymentMethod}
                         availableMethods={monetizationSettings.paymentProviders.filter(p => p.isEnabled)}
+                    />
+                )}
+                {profileFeedState && (
+                    <ProfileVideoFeedModal
+                        videos={profileFeedState.videos}
+                        startIndex={profileFeedState.startIndex}
+                        currentUser={currentUser}
+                        onClose={handleCloseProfileVideoFeed}
+                        onOpenComments={handleOpenComments}
+                        onToggleFollow={handleToggleFollow}
+                        onShareVideo={handleShareVideo}
+                        onViewProfile={(userToView) => {
+                            // When viewing a profile from the modal, close the modal first.
+                            handleCloseProfileVideoFeed();
+                            handleViewProfile(userToView);
+                        }}
+                    />
+                )}
+                {profileStatsModalState && (
+                    <ProfileStatsModal
+                        user={profileStatsModalState.user}
+                        initialTab={profileStatsModalState.initialTab}
+                        currentUser={currentUser}
+                        allUsers={users}
+                        allVideos={videos}
+                        onClose={handleCloseProfileStats}
+                        onToggleFollow={handleToggleFollow}
+                        onViewProfile={(userToView) => {
+                            handleCloseProfileStats();
+                            handleViewProfile(userToView);
+                        }}
+                        onOpenProfileVideoFeed={(videos, startIndex) => {
+                            handleCloseProfileStats();
+                            handleOpenProfileVideoFeed(videos, startIndex);
+                        }}
                     />
                 )}
             </div>

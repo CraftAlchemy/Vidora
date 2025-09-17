@@ -1,7 +1,4 @@
 
-
-
-
 import React, { useState } from 'react';
 import { User, Video, Ad } from '../../types';
 import { View } from '../../App';
@@ -19,6 +16,9 @@ interface ProfileViewProps {
   onToggleFollow: (userId: string) => void;
   onGoLive: () => void;
   bannerAd?: Ad;
+  onShareProfile: (username: string) => void;
+  onOpenProfileVideoFeed: (videos: Video[], startIndex: number) => void;
+  onOpenProfileStats: (user: User, initialTab: 'following' | 'followers' | 'likes') => void;
 }
 
 const StatItem: React.FC<{ value: string; label: string }> = ({ value, label }) => (
@@ -46,13 +46,12 @@ const ProfileAdBanner: React.FC<{ ad: Ad }> = ({ ad }) => (
   </a>
 );
 
-const ProfileView: React.FC<ProfileViewProps> = ({ user, currentUser, isOwnProfile, videos, onNavigate, onEditProfile, onBack, onToggleFollow, onGoLive, bannerAd }) => {
+const ProfileView: React.FC<ProfileViewProps> = ({ user, currentUser, isOwnProfile, videos, onNavigate, onEditProfile, onBack, onToggleFollow, onGoLive, bannerAd, onShareProfile, onOpenProfileVideoFeed, onOpenProfileStats }) => {
   const [activeTab, setActiveTab] = useState<'videos' | 'badges'>('videos');
   const formatCurrency = useCurrency();
   const userVideos = videos.filter(v => v.user.id === user.id);
   const xpForNextLevel = (user.level || 1) * 200;
   const xpProgress = user.xp ? (user.xp / xpForNextLevel) * 100 : 0;
-  const totalLikes = userVideos.reduce((sum, video) => sum + video.likes, 0);
   const isFollowing = currentUser.followingIds?.includes(user.id);
 
   return (
@@ -110,16 +109,22 @@ const ProfileView: React.FC<ProfileViewProps> = ({ user, currentUser, isOwnProfi
         </div>
 
         <div className="flex justify-center space-x-8 my-5">
-          <StatItem value={user.following?.toLocaleString() || '0'} label="Following" />
-          <StatItem value={user.followers?.toLocaleString() || '0'} label="Followers" />
-          <StatItem value={totalLikes.toLocaleString()} label="Likes" /> 
+          <button onClick={() => onOpenProfileStats(user, 'following')} className="hover:opacity-80 transition-opacity">
+            <StatItem value={user.following?.toLocaleString() || '0'} label="Following" />
+          </button>
+          <button onClick={() => onOpenProfileStats(user, 'followers')} className="hover:opacity-80 transition-opacity">
+            <StatItem value={user.followers?.toLocaleString() || '0'} label="Followers" />
+          </button>
+          <button onClick={() => onOpenProfileStats(user, 'likes')} className="hover:opacity-80 transition-opacity">
+            <StatItem value={(user.totalLikes || 0).toLocaleString()} label="Likes" />
+          </button>
         </div>
 
         <div className="px-4 flex space-x-2">
           {isOwnProfile ? (
             <>
               <button onClick={onEditProfile} className="flex-1 py-2 bg-zinc-700 rounded-md font-semibold text-sm">Edit profile</button>
-              <button className="flex-1 py-2 bg-zinc-700 rounded-md font-semibold text-sm">Share profile</button>
+              <button onClick={() => onShareProfile(user.username)} className="flex-1 py-2 bg-zinc-700 rounded-md font-semibold text-sm">Share profile</button>
             </>
           ) : (
              <>
@@ -196,15 +201,24 @@ const ProfileView: React.FC<ProfileViewProps> = ({ user, currentUser, isOwnProfi
         <div>
           {activeTab === 'videos' && (
             <div className="grid grid-cols-3">
-              {userVideos.map(video => (
-                <div key={video.id} className="aspect-square bg-zinc-800 relative group">
+              {userVideos.map((video, index) => (
+                <button 
+                  key={video.id} 
+                  onClick={() => onOpenProfileVideoFeed(userVideos, index)}
+                  className="aspect-square bg-zinc-800 relative group focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-inset"
+                >
                   {video.thumbnailUrl ? (
                       <img src={video.thumbnailUrl} alt={video.description} className="w-full h-full object-cover" />
                   ) : (
                       <video src={video.videoSources[0]?.url} className="w-full h-full object-cover" />
                   )}
-                  <div className="absolute inset-0 bg-black/20"></div>
-                </div>
+                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                    <div className="flex items-center gap-1 text-white font-bold text-sm">
+                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"></path></svg>
+                      <span>{video.views.toLocaleString()}</span>
+                    </div>
+                  </div>
+                </button>
               ))}
             </div>
           )}

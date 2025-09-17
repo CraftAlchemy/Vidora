@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Video, User, Ad } from '../types';
 import { HeartIcon, CommentIcon, ShareIcon, MusicIcon, PlayIcon, PauseIcon, FullScreenIcon, VolumeUpIcon, VolumeOffIcon, SettingsIcon } from './icons/Icons';
@@ -15,6 +14,16 @@ interface VideoPlayerProps {
   onViewProfile: (user: User) => void;
   bannerAd?: Ad;
 }
+
+const formatNumber = (num: number): string => {
+    if (num >= 1000000) {
+        return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+    }
+    if (num >= 1000) {
+        return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
+    }
+    return num.toString();
+};
 
 const VideoPlayer: React.FC<VideoPlayerProps> = ({ video, isActive, onOpenComments, currentUser, onToggleFollow, onShareVideo, onViewProfile, bannerAd }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -39,11 +48,27 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ video, isActive, onOpenCommen
   const [currentQuality, setCurrentQuality] = useState(video.videoSources[0]?.quality || 'Auto');
   const [isQualityMenuOpen, setIsQualityMenuOpen] = useState(false);
 
+  const [isHoveringProfile, setIsHoveringProfile] = useState(false);
+  const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const isFollowing = currentUser.followingIds?.includes(video.user.id);
   const isOwnProfile = currentUser.id === video.user.id;
   
   const videoUrl = video.videoSources.find(s => s.quality === currentQuality)?.url || video.videoSources[0]?.url;
   const embedUrl = useMemo(() => videoUrl ? getYouTubeEmbedUrl(videoUrl, isMuted) : null, [videoUrl, isMuted]);
+  
+  const handleProfileMouseEnter = () => {
+    if (hoverTimeoutRef.current) {
+        clearTimeout(hoverTimeoutRef.current);
+    }
+    setIsHoveringProfile(true);
+  };
+
+  const handleProfileMouseLeave = () => {
+    hoverTimeoutRef.current = setTimeout(() => {
+        setIsHoveringProfile(false);
+    }, 200); // Small delay to allow moving mouse into the popover
+  };
 
   useEffect(() => {
     if (embedUrl) {
@@ -298,10 +323,61 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ video, isActive, onOpenCommen
 
       <div className="absolute bottom-0 left-0 right-0 p-4 pb-20 text-white bg-gradient-to-t from-black/50 to-transparent pointer-events-none">
         <div className="flex items-center">
-          <button onClick={(e) => { e.stopPropagation(); onViewProfile(video.user); }} className="flex items-center pointer-events-auto">
-            <img src={video.user.avatarUrl} alt={video.user.username} className="w-10 h-10 rounded-full border-2 border-white" />
-            <h3 className="font-bold ml-3">@{video.user.username}</h3>
-          </button>
+            <div 
+                className="relative pointer-events-auto"
+                onMouseEnter={handleProfileMouseEnter}
+                onMouseLeave={handleProfileMouseLeave}
+            >
+                <button onClick={(e) => { e.stopPropagation(); onViewProfile(video.user); }} className="flex items-center">
+                    <img src={video.user.avatarUrl} alt={video.user.username} className="w-10 h-10 rounded-full border-2 border-white" />
+                    <h3 className="font-bold ml-3">@{video.user.username}</h3>
+                </button>
+                {isHoveringProfile && (
+                    <div 
+                        className="absolute bottom-full left-0 mb-2 w-64 bg-zinc-800/90 backdrop-blur-sm rounded-lg shadow-lg p-3 z-10 animate-fade-in-up text-left pointer-events-auto"
+                        onMouseEnter={handleProfileMouseEnter}
+                        onMouseLeave={handleProfileMouseLeave}
+                    >
+                        <div className="flex items-start justify-between mb-2">
+                            <button onClick={(e) => { e.stopPropagation(); onViewProfile(video.user); }}>
+                                <img src={video.user.avatarUrl} alt={video.user.username} className="w-12 h-12 rounded-full" />
+                            </button>
+                            {!isOwnProfile && (
+                                <button
+                                onClick={(e) => { e.stopPropagation(); onToggleFollow(video.user.id); }}
+                                className={`px-4 py-1.5 text-sm font-bold rounded-md transition-colors ${
+                                    isFollowing
+                                        ? 'bg-zinc-700 text-white'
+                                        : 'bg-white text-black'
+                                }`}
+                                >
+                                {isFollowing ? 'Following' : 'Follow'}
+                                </button>
+                            )}
+                        </div>
+                        <button onClick={(e) => { e.stopPropagation(); onViewProfile(video.user); }}>
+                            <h4 className="font-bold text-base hover:underline">@{video.user.username}</h4>
+                        </button>
+                        
+                        <p className="text-sm text-gray-300 my-2 line-clamp-2">{video.user.bio || 'No bio yet.'}</p>
+
+                        <div className="flex justify-start space-x-4 text-left mt-3 text-sm border-t border-zinc-700 pt-2">
+                            <div>
+                                <span className="font-bold">{formatNumber(video.user.following || 0)}</span>
+                                <span className="text-gray-400 ml-1">Following</span>
+                            </div>
+                            <div>
+                                <span className="font-bold">{formatNumber(video.user.followers || 0)}</span>
+                                <span className="text-gray-400 ml-1">Followers</span>
+                            </div>
+                            <div>
+                                <span className="font-bold">{formatNumber(video.user.totalLikes || 0)}</span>
+                                <span className="text-gray-400 ml-1">Likes</span>
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </div>
           {!isOwnProfile && (
             <button
               onClick={(e) => { e.stopPropagation(); onToggleFollow(video.user.id); }}

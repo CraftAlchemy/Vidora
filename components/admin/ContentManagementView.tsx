@@ -1,7 +1,8 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Video } from '../../types';
+import { Video, User } from '../../types';
 import { SearchIcon, MoreVerticalIcon, ChevronLeftIcon, ChevronRightIcon, TrashIcon, CheckCircleIcon, PauseCircleIcon, CloseIcon, SortUpIcon, SortDownIcon } from '../icons/Icons';
+import VideoPreviewModal from './VideoPreviewModal';
 
 const StatusBadge: React.FC<{ status: Video['status'] }> = ({ status }) => {
     const baseClasses = "px-2.5 py-0.5 text-xs font-semibold rounded-full";
@@ -61,19 +62,22 @@ interface ContentManagementViewProps {
     onSetSelectedVideoIds: (ids: string[]) => void;
     onBulkUpdateStatus: (ids: string[], status: Video['status']) => void;
     onBulkDelete: (ids: string[]) => void;
+    onViewUser: (user: User) => void;
 }
 
 const resolvePath = (path: string, obj: any) => path.split('.').reduce((prev, curr) => prev?.[curr], obj);
 
 const ContentManagementView: React.FC<ContentManagementViewProps> = ({ 
     videos, onUpdateVideoStatus, onDeleteVideo,
-    selectedVideoIds, onSetSelectedVideoIds, onBulkUpdateStatus, onBulkDelete 
+    selectedVideoIds, onSetSelectedVideoIds, onBulkUpdateStatus, onBulkDelete,
+    onViewUser
 }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [actionMenuForVideo, setActionMenuForVideo] = useState<string | null>(null);
     const [videoToRemove, setVideoToRemove] = useState<Video | null>(null);
     const [videoToDelete, setVideoToDelete] = useState<Video | null>(null);
+    const [previewVideo, setPreviewVideo] = useState<Video | null>(null);
     const actionMenuRef = useRef<HTMLDivElement>(null);
     const [sortConfig, setSortConfig] = useState<{ key: string | null; direction: 'asc' | 'desc' }>({ key: 'uploadDate', direction: 'desc' });
     const videosPerPage = 5;
@@ -239,11 +243,18 @@ const ContentManagementView: React.FC<ContentManagementViewProps> = ({
                                         aria-label={`Select video ${video.id}`}
                                     />
                                 </td>
-                                <td className="p-4 flex items-center">
-                                    <img src={video.thumbnailUrl} alt="thumbnail" className="w-16 h-16 object-cover rounded-md mr-4 shrink-0" />
-                                    <p className="font-semibold text-gray-800 dark:text-white max-w-xs truncate">{video.description}</p>
+                                <td className="p-4">
+                                    <button onClick={() => setPreviewVideo(video)} className="flex items-center text-left hover:opacity-80 transition-opacity">
+                                        <img src={video.thumbnailUrl} alt="thumbnail" className="w-16 h-16 object-cover rounded-md mr-4 shrink-0" />
+                                        <p className="font-semibold text-gray-800 dark:text-white max-w-xs truncate">{video.description}</p>
+                                    </button>
                                 </td>
-                                <td className="p-4">@{video.user.username}</td>
+                                <td className="p-4">
+                                    <button onClick={() => onViewUser(video.user)} className="flex items-center gap-2 group">
+                                        <img src={video.user.avatarUrl} alt={video.user.username} className="w-8 h-8 rounded-full" />
+                                        <span className="font-semibold group-hover:text-pink-400 transition-colors">@{video.user.username}</span>
+                                    </button>
+                                </td>
                                 <td className="p-4 whitespace-nowrap">
                                     <div>❤️ {video.likes.toLocaleString()}</div>
                                     <div>💬 {video.comments.toLocaleString()}</div>
@@ -293,6 +304,10 @@ const ContentManagementView: React.FC<ContentManagementViewProps> = ({
             </div>
         </div>
         
+        {previewVideo && (
+            <VideoPreviewModal video={previewVideo} onClose={() => setPreviewVideo(null)} />
+        )}
+
         {videoToRemove && (
             <div className="fixed inset-0 bg-black/70 flex justify-center items-center z-50 p-4">
                 <div className="bg-white dark:bg-zinc-800 p-6 rounded-lg shadow-xl text-center animate-fade-in-up w-full max-w-sm">

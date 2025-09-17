@@ -1,4 +1,4 @@
-import { User, Video, LiveStream, Conversation, Notification, Gift, WalletTransaction, LeaderboardUser, Report, PayoutRequest, CreatorApplication, Ad } from '../types';
+import { User, Video, LiveStream, Conversation, Notification, Gift, WalletTransaction, LeaderboardUser, Report, PayoutRequest, CreatorApplication, Ad, Badge } from '../types';
 
 export const mockUsers: User[] = [
   {
@@ -14,7 +14,9 @@ export const mockUsers: User[] = [
     bio: 'Building cool stuff with React & TypeScript. Follow for more! 🚀',
     followers: 12500,
     following: 321,
+    totalLikes: 8900,
     followingIds: ['u2'],
+    likedVideoIds: ['v2', 'v5'],
     wallet: {
       balance: 1250,
       transactions: [
@@ -50,7 +52,9 @@ export const mockUsers: User[] = [
     bio: 'Just a cat who loves to create art and dance. 🎨',
     followers: 250001,
     following: 150,
+    totalLikes: 12000,
     followingIds: [],
+    likedVideoIds: ['v3', 'v6'],
     wallet: { balance: 5000, transactions: [] },
     creatorStats: { totalEarnings: 10250.75, receivedGiftsCount: 2100 },
     level: 30,
@@ -71,7 +75,9 @@ export const mockUsers: User[] = [
     bio: 'Pro gamer. Streaming daily.',
     followers: 1200000,
     following: 5,
+    totalLikes: 55000,
     followingIds: [],
+    likedVideoIds: ['v1'],
     wallet: { balance: 10000, transactions: [] },
     creatorStats: { totalEarnings: 25800.00, receivedGiftsCount: 5500 },
     level: 50,
@@ -91,7 +97,9 @@ export const mockUsers: User[] = [
     bio: 'Exploring the best food spots!',
     followers: 950,
     following: 800,
-    followingIds: [],
+    totalLikes: 1700,
+    followingIds: ['u1', 'u2', 'u3'],
+    likedVideoIds: ['v1', 'v2', 'v3', 'v5', 'v6'],
     wallet: { balance: 200, transactions: [] },
     level: 15,
     streakCount: 25,
@@ -110,7 +118,9 @@ export const mockUsers: User[] = [
     bio: 'Wanderlust.',
     followers: 10,
     following: 50,
+    totalLikes: 20,
     followingIds: [],
+    likedVideoIds: [],
     wallet: { balance: 0, transactions: [] },
     level: 2,
     commentPrivacySetting: 'everyone',
@@ -127,6 +137,7 @@ export const systemUser: User = {
     isVerified: true,
     joinDate: '2023-01-01',
     lastLogin: '2024-07-21',
+    totalLikes: 0,
     commentPrivacySetting: 'everyone',
 };
 
@@ -298,6 +309,14 @@ export const mockGifts: Gift[] = [
     { id: 'g11', name: 'Money Gun', price: 8000, icon: '💸', category: 'Premium' },
     { id: 'g12', name: 'Castle', price: 20000, icon: '🏰', category: 'Premium' },
 ];
+
+export const mockBadges: Badge[] = [
+    { id: 'b1', name: 'Early Bird', icon: '🐦', description: 'Joined in the first year.' },
+    { id: 'b2', name: 'Top Gifter', icon: '🎁', description: 'Sent over 100 gifts.' },
+    { id: 'b3', name: 'Creator', icon: '🎨', description: 'Member of the creator program.' },
+    { id: 'b4', name: 'Moderator', icon: '🛡️', description: 'Helps keep the community safe.' },
+];
+
 
 export const mockTopGifters: LeaderboardUser[] = [
     { rank: 1, user: mockUsers[0], score: 25000 },

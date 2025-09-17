@@ -24,6 +24,39 @@ const PayoutStatusBadge: React.FC<{ status: PayoutRequest['status'] }> = ({ stat
     return <span className={statusMap[status]}>{status.charAt(0).toUpperCase() + status.slice(1)}</span>;
 };
 
+const PayoutMethodIcon: React.FC<{ method: string }> = ({ method }) => {
+    switch (method.toLowerCase()) {
+        case 'bank':
+            return <BankIcon className="w-5 h-5 text-cyan-400" />;
+        case 'paypal':
+            return <DollarSignIcon className="w-5 h-5 text-blue-400" />;
+        default:
+            return <DollarSignIcon className="w-5 h-5 text-gray-400" />;
+    }
+};
+
+const PayoutHistoryItem: React.FC<{ payout: PayoutRequest }> = ({ payout }) => {
+    const formatCurrency = useCurrency();
+    return (
+        <div className="flex items-center p-3 bg-zinc-800 rounded-lg gap-3">
+            <div className="p-3 bg-zinc-700/50 rounded-full">
+                <PayoutMethodIcon method={payout.method} />
+            </div>
+            <div className="flex-1">
+                <p className="font-semibold text-sm capitalize">Payout to {payout.method}</p>
+                <p className="text-xs text-gray-400">
+                    Requested: {payout.requestDate}
+                    {payout.processedDate && ` | Processed: ${payout.processedDate}`}
+                </p>
+            </div>
+            <div className="text-right">
+                <p className="font-bold text-sm">{formatCurrency(payout.amount)}</p>
+                <PayoutStatusBadge status={payout.status} />
+            </div>
+        </div>
+    );
+};
+
 interface CreatorDashboardViewProps {
   user: User;
   payouts: PayoutRequest[];
@@ -59,30 +92,16 @@ const CreatorDashboardView: React.FC<CreatorDashboardViewProps> = ({
             
             <div>
                 <h2 className="text-xl font-bold mb-3">Payout History</h2>
-                <div className="bg-zinc-800 rounded-lg">
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-sm text-left">
-                            <thead className="text-xs text-gray-400 uppercase">
-                                <tr>
-                                    <th className="p-3">Date</th>
-                                    <th className="p-3">Amount</th>
-                                    <th className="p-3">Method</th>
-                                    <th className="p-3 text-right">Status</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {payouts.map(payout => (
-                                    <tr key={payout.id} className="border-t border-zinc-700">
-                                        <td className="p-3 whitespace-nowrap">{payout.requestDate}</td>
-                                        <td className="p-3 font-semibold">{formatCurrency(payout.amount)}</td>
-                                        <td className="p-3 capitalize">{payout.method}</td>
-                                        <td className="p-3 text-right"><PayoutStatusBadge status={payout.status} /></td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                        {payouts.length === 0 && <p className="text-center py-8 text-gray-500">No payout history.</p>}
-                    </div>
+                <div className="space-y-2">
+                    {payouts.length > 0 ? (
+                        payouts.map(payout => (
+                            <PayoutHistoryItem key={payout.id} payout={payout} />
+                        ))
+                    ) : (
+                        <div className="text-center py-8 text-gray-500 bg-zinc-800 rounded-lg">
+                            <p>No payout history.</p>
+                        </div>
+                    )}
                 </div>
             </div>
         </main>

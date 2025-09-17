@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 // FIX: Added Ad type to support banner ads.
 import { LiveStream, User, Ad } from '../../types';
 import ViewerLiveView from './ViewerLiveView'; 
@@ -15,21 +15,70 @@ interface LiveDiscoveryViewProps {
   bannerAds: Ad[];
 }
 
-const LiveCard: React.FC<{ stream: LiveStream; onClick: () => void }> = ({ stream, onClick }) => (
-  <div className="relative aspect-[9/16] rounded-lg overflow-hidden cursor-pointer group" onClick={onClick}>
-    <img src={stream.thumbnailUrl} alt={stream.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-    <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
-    <div className="absolute top-2 left-2 bg-red-600 text-white text-xs font-bold px-2 py-0.5 rounded">LIVE</div>
-    <div className="absolute top-2 right-2 bg-black/50 text-white text-xs px-2 py-0.5 rounded">{stream.viewers.toLocaleString()} watching</div>
-    <div className="absolute bottom-0 left-0 p-3 text-white">
-      <p className="font-bold">{stream.title}</p>
-      <div className="flex items-center mt-1">
-        <img src={stream.user.avatarUrl} alt={stream.user.username} className="w-6 h-6 rounded-full border-2 border-white" />
-        <p className="text-sm ml-2">@{stream.user.username}</p>
+const LiveCard: React.FC<{ stream: LiveStream; onClick: () => void }> = ({ stream, onClick }) => {
+  const [isHovered, setIsHovered] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  // Check if the video URL is a direct link that can be played in a <video> tag
+  const canPreview = useMemo(() => 
+    stream.videoUrl && !stream.videoUrl.includes('youtube.com') && !stream.videoUrl.includes('youtu.be'),
+    [stream.videoUrl]
+  );
+
+  useEffect(() => {
+    // We only want to play the video if it's visible (isHovered and canPreview are true)
+    if (isHovered && canPreview && videoRef.current) {
+      videoRef.current.play().catch(error => {
+        // Autoplay can be blocked by browsers, this is expected behavior.
+        console.warn("Video preview autoplay failed:", error.message);
+      });
+    } else if (videoRef.current) {
+      // Pause and rewind when not hovered
+      videoRef.current.pause();
+      videoRef.current.currentTime = 0;
+    }
+  }, [isHovered, canPreview]);
+
+  return (
+    <div 
+      className="relative aspect-[9/16] rounded-lg overflow-hidden cursor-pointer group bg-zinc-800" 
+      onClick={onClick}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      {/* Thumbnail Image - always present for fallback and initial view */}
+      <img 
+        src={stream.thumbnailUrl} 
+        alt={stream.title} 
+        className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-all duration-300"
+      />
+      
+      {/* Video Preview - conditionally rendered and fades in on hover */}
+      {canPreview && (
+        <video
+          ref={videoRef}
+          src={stream.videoUrl}
+          muted
+          loop
+          playsInline
+          className={`absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-all duration-300 ${isHovered ? 'opacity-100' : 'opacity-0'}`}
+        />
+      )}
+      
+      {/* Overlays */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
+      <div className="absolute top-2 left-2 bg-red-600 text-white text-xs font-bold px-2 py-0.5 rounded z-10">LIVE</div>
+      <div className="absolute top-2 right-2 bg-black/50 text-white text-xs px-2 py-0.5 rounded z-10">{stream.viewers.toLocaleString()} watching</div>
+      <div className="absolute bottom-0 left-0 p-3 text-white z-10">
+        <p className="font-bold">{stream.title}</p>
+        <div className="flex items-center mt-1">
+          <img src={stream.user.avatarUrl} alt={stream.user.username} className="w-6 h-6 rounded-full border-2 border-white" />
+          <p className="text-sm ml-2">@{stream.user.username}</p>
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 const LiveDiscoveryView: React.FC<LiveDiscoveryViewProps> = ({ liveStreams, onGoLive, setIsNavVisible, currentUser, onToggleFollow, onShareStream, onViewProfile, bannerAds }) => {
   const [selectedStream, setSelectedStream] = useState<LiveStream | null>(null);

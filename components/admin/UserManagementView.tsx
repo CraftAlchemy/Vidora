@@ -1,7 +1,8 @@
-import React, { useState, useMemo } from 'react';
-import { User } from '../../types';
-import { SearchIcon, MoreVerticalIcon, ChevronLeftIcon, ChevronRightIcon, BanUserIcon, PauseCircleIcon, CheckCircleIcon, VerifyBadgeIcon, TrashIcon, CloseIcon, MessageIcon, SortUpIcon, SortDownIcon } from '../icons/Icons';
+import React, { useState, useMemo, useEffect } from 'react';
+import { User, Badge } from '../../types';
+import { SearchIcon, MoreVerticalIcon, ChevronLeftIcon, ChevronRightIcon, BanUserIcon, PauseCircleIcon, CheckCircleIcon, VerifyBadgeIcon, TrashIcon, CloseIcon, MessageIcon, SortUpIcon, SortDownIcon, BadgeIcon } from '../icons/Icons';
 import AddUserModal from './AddUserModal';
+import ManageUserBadgesModal from './ManageUserBadgesModal';
 
 interface SendMessageModalProps {
     user: User;
@@ -127,9 +128,10 @@ interface UserActionModalProps {
     onUpdateVerification: (userId: string, isVerified: boolean) => void;
     onDeleteUser: (userId: string) => void;
     onSendMessage: (user: User) => void;
+    onManageBadges: (user: User) => void;
 }
 
-const UserActionModal: React.FC<UserActionModalProps> = ({ user, onClose, onUpdateStatus, onUpdateRole, onStartVerification, onUpdateVerification, onDeleteUser, onSendMessage }) => {
+const UserActionModal: React.FC<UserActionModalProps> = ({ user, onClose, onUpdateStatus, onUpdateRole, onStartVerification, onUpdateVerification, onDeleteUser, onSendMessage, onManageBadges }) => {
     const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
 
     const handleDelete = () => {
@@ -171,6 +173,9 @@ const UserActionModal: React.FC<UserActionModalProps> = ({ user, onClose, onUpda
                         <div className="flex flex-col">
                              <button onClick={() => { onSendMessage(user); onClose(); }} className="flex items-center gap-3 p-4 text-left hover:bg-gray-100 dark:hover:bg-zinc-700 w-full transition-colors">
                                 <MessageIcon className="w-5 h-5 text-cyan-500" /> Send Direct Message
+                            </button>
+                            <button onClick={() => { onManageBadges(user); onClose(); }} className="flex items-center gap-3 p-4 text-left hover:bg-gray-100 dark:hover:bg-zinc-700 w-full transition-colors">
+                                <BadgeIcon className="w-5 h-5 text-purple-500" /> Manage Badges
                             </button>
                             {user.isVerified ? (
                                 <button onClick={() => { onUpdateVerification(user.id, false); onClose(); }} className="flex items-center gap-3 p-4 text-left hover:bg-gray-100 dark:hover:bg-zinc-700 w-full transition-colors">
@@ -310,20 +315,24 @@ interface UserManagementViewProps {
     onBulkDelete: (ids: string[]) => void;
     onSendSystemMessage: (userId: string, message: string) => void;
     onBulkSendMessage: (userIds: string[], message: string) => void;
+    searchTerm: string;
+    onSearchTermChange: (term: string) => void;
+    availableBadges: Badge[];
+    onUpdateUserBadges: (userId: string, updatedBadges: Badge[]) => void;
 }
 
 
 const UserManagementView: React.FC<UserManagementViewProps> = ({ 
     users, onAddUser, onStartVerification, onUpdateUserVerification, onDeleteUser, onUpdateUserStatus, onUpdateUserRole,
     selectedUserIds, onSetSelectedUserIds, onBulkUpdateStatus, onBulkDelete, onSendSystemMessage,
-    onBulkSendMessage
+    onBulkSendMessage, searchTerm, onSearchTermChange, availableBadges, onUpdateUserBadges
 }) => {
-    const [searchTerm, setSearchTerm] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [actionMenuForUser, setActionMenuForUser] = useState<string | null>(null);
     const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
     const [userToMessage, setUserToMessage] = useState<User | null>(null);
     const [isBulkMessageModalOpen, setIsBulkMessageModalOpen] = useState(false);
+    const [userForBadges, setUserForBadges] = useState<User | null>(null);
     const [sortConfig, setSortConfig] = useState<{ key: string | null; direction: 'asc' | 'desc' }>({ key: 'joinDate', direction: 'desc' });
     const usersPerPage = 7;
 
@@ -366,6 +375,11 @@ const UserManagementView: React.FC<UserManagementViewProps> = ({
         user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
         user.email.toLowerCase().includes(searchTerm.toLowerCase())
     );
+    
+    // Reset to page 1 when search term changes
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchTerm]);
 
     const indexOfLastUser = currentPage * usersPerPage;
     const indexOfFirstUser = indexOfLastUser - usersPerPage;
@@ -427,7 +441,7 @@ const UserManagementView: React.FC<UserManagementViewProps> = ({
                                 type="text"
                                 placeholder="Search users..."
                                 value={searchTerm}
-                                onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+                                onChange={(e) => onSearchTermChange(e.target.value)}
                                 className="w-full pl-10 pr-4 py-2 rounded-lg bg-gray-100 dark:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-pink-500"
                             />
                         </div>
@@ -518,6 +532,7 @@ const UserManagementView: React.FC<UserManagementViewProps> = ({
                     onUpdateVerification={onUpdateUserVerification}
                     onDeleteUser={onDeleteUser}
                     onSendMessage={setUserToMessage}
+                    onManageBadges={setUserForBadges}
                 />
             )}
 
@@ -547,6 +562,14 @@ const UserManagementView: React.FC<UserManagementViewProps> = ({
                         setIsBulkMessageModalOpen(false);
                         onSetSelectedUserIds([]); // Clear selection after sending
                     }}
+                />
+            )}
+            {userForBadges && (
+                <ManageUserBadgesModal
+                    user={userForBadges}
+                    availableBadges={availableBadges}
+                    onClose={() => setUserForBadges(null)}
+                    onSave={onUpdateUserBadges}
                 />
             )}
         </>
