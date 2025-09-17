@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-// FIX: Added Ad type to support banner ads.
 import { LiveStream, User, Ad } from '../../types';
 import ViewerLiveView from './ViewerLiveView'; 
-import { SearchIcon } from '../icons/Icons';
+import { SearchIcon, TasksIcon, ChevronRightIcon } from '../icons/Icons';
+import { View } from '../../App';
 
 interface LiveDiscoveryViewProps {
   liveStreams: LiveStream[];
@@ -14,6 +14,8 @@ interface LiveDiscoveryViewProps {
   onViewProfile: (user: User) => void;
   bannerAds: Ad[];
   onBanStreamer: (streamerId: string) => void;
+  hasIncompleteDailyTasks: boolean;
+  onNavigate: (view: View) => void;
 }
 
 const LiveCard: React.FC<{ stream: LiveStream; onClick: () => void }> = ({ stream, onClick }) => {
@@ -81,7 +83,7 @@ const LiveCard: React.FC<{ stream: LiveStream; onClick: () => void }> = ({ strea
   );
 };
 
-const LiveDiscoveryView: React.FC<LiveDiscoveryViewProps> = ({ liveStreams, onGoLive, setIsNavVisible, currentUser, onToggleFollow, onShareStream, onViewProfile, bannerAds, onBanStreamer }) => {
+const LiveDiscoveryView: React.FC<LiveDiscoveryViewProps> = ({ liveStreams, onGoLive, setIsNavVisible, currentUser, onToggleFollow, onShareStream, onViewProfile, bannerAds, onBanStreamer, hasIncompleteDailyTasks, onNavigate }) => {
   const [selectedStreamId, setSelectedStreamId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -110,6 +112,8 @@ const LiveDiscoveryView: React.FC<LiveDiscoveryViewProps> = ({ liveStreams, onGo
             onViewProfile={onViewProfile}
             bannerAds={bannerAds}
             onBanStreamer={onBanStreamer}
+            hasIncompleteDailyTasks={hasIncompleteDailyTasks}
+            onNavigate={onNavigate}
           />;
   }
 
@@ -140,6 +144,24 @@ const LiveDiscoveryView: React.FC<LiveDiscoveryViewProps> = ({ liveStreams, onGo
             className="w-full bg-zinc-800 border border-zinc-700 rounded-full py-2 pl-10 pr-4 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-pink-500"
           />
         </div>
+
+        {hasIncompleteDailyTasks && (
+            <div className="mb-4">
+                <button 
+                    onClick={() => onNavigate('tasks')}
+                    className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 p-3 rounded-lg flex justify-between items-center hover:opacity-90 transition-opacity animate-fade-in-up"
+                >
+                    <div className="flex items-center gap-3">
+                        <TasksIcon className="w-6 h-6" />
+                        <div>
+                            <p className="font-bold text-left text-sm">Complete your daily tasks!</p>
+                            <p className="text-xs text-purple-200 text-left">Earn free coins and XP.</p>
+                        </div>
+                    </div>
+                    <ChevronRightIcon />
+                </button>
+            </div>
+        )}
         
         {/* Live Stream Grid */}
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">

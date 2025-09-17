@@ -1,11 +1,10 @@
-
-
 import React, { useState, useEffect } from 'react';
 // FIX: Added Ad type to support banner ads.
 import { LiveStream, User, Ad } from '../../types';
 import LiveDiscoveryView from './LiveDiscoveryView';
 import BroadcasterView from './BroadcasterView';
 import GoLiveModal from '../GoLiveModal';
+import { View } from '../../App';
 
 interface LiveViewProps {
   setIsNavVisible: (visible: boolean) => void;
@@ -19,11 +18,13 @@ interface LiveViewProps {
   bannerAds: Ad[];
   liveStreams: LiveStream[];
   onBanStreamer: (streamerId: string) => void;
+  hasIncompleteDailyTasks: boolean;
+  onNavigate: (view: View) => void;
 }
 
 export type BroadcastSource = 'camera' | 'video' | 'url';
 
-const LiveView: React.FC<LiveViewProps> = ({ setIsNavVisible, currentUser, onToggleFollow, onShareStream, onViewProfile, showSuccessToast, openGoLiveModal, onModalOpened, bannerAds, liveStreams, onBanStreamer }) => {
+const LiveView: React.FC<LiveViewProps> = ({ setIsNavVisible, currentUser, onToggleFollow, onShareStream, onViewProfile, showSuccessToast, openGoLiveModal, onModalOpened, bannerAds, liveStreams, onBanStreamer, hasIncompleteDailyTasks, onNavigate }) => {
   const [isBroadcasting, setIsBroadcasting] = useState(false);
   const [myStreamTitle, setMyStreamTitle] = useState('');
   const [myStreamSource, setMyStreamSource] = useState<BroadcastSource>('camera');
@@ -84,6 +85,8 @@ const LiveView: React.FC<LiveViewProps> = ({ setIsNavVisible, currentUser, onTog
         onViewProfile={onViewProfile}
         bannerAds={bannerAds}
         onBanStreamer={onBanStreamer}
+        hasIncompleteDailyTasks={hasIncompleteDailyTasks}
+        onNavigate={onNavigate}
       />
       {isGoLiveModalOpen && (
         <GoLiveModal 

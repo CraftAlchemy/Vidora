@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { User, Video, Ad } from '../../types';
 import { View } from '../../App';
-import { SettingsIcon, GridIcon, CoinIcon, FlameIcon, StarIcon, BadgeIcon, AdminPanelIcon, ChevronLeftIcon, CreatorDashboardIcon, LiveIcon } from '../icons/Icons';
+import { SettingsIcon, GridIcon, CoinIcon, FlameIcon, StarIcon, BadgeIcon, AdminPanelIcon, ChevronLeftIcon, CreatorDashboardIcon, LiveIcon, TasksIcon, ChevronRightIcon } from '../icons/Icons';
 import { useCurrency } from '../../contexts/CurrencyContext';
 
 interface ProfileViewProps {
@@ -19,6 +19,7 @@ interface ProfileViewProps {
   onOpenProfileVideoFeed: (videos: Video[], startIndex: number) => void;
   onOpenProfileStats: (user: User, initialTab: 'following' | 'followers' | 'likes') => void;
   onOpenLevelInfo: () => void;
+  hasIncompleteDailyTasks: boolean;
 }
 
 const StatItem: React.FC<{ value: string; label: string }> = ({ value, label }) => (
@@ -46,7 +47,7 @@ const ProfileAdBanner: React.FC<{ ad: Ad }> = ({ ad }) => (
   </a>
 );
 
-const ProfileView: React.FC<ProfileViewProps> = ({ user, currentUser, isOwnProfile, videos, onNavigate, onEditProfile, onBack, onToggleFollow, onGoLive, bannerAd, onShareProfile, onOpenProfileVideoFeed, onOpenProfileStats, onOpenLevelInfo }) => {
+const ProfileView: React.FC<ProfileViewProps> = ({ user, currentUser, isOwnProfile, videos, onNavigate, onEditProfile, onBack, onToggleFollow, onGoLive, bannerAd, onShareProfile, onOpenProfileVideoFeed, onOpenProfileStats, onOpenLevelInfo, hasIncompleteDailyTasks }) => {
   const [activeTab, setActiveTab] = useState<'videos' | 'badges'>('videos');
   const formatCurrency = useCurrency();
   const userVideos = videos.filter(v => v.user.id === user.id);
@@ -133,6 +134,24 @@ const ProfileView: React.FC<ProfileViewProps> = ({ user, currentUser, isOwnProfi
             </>
           )}
         </div>
+        
+        {isOwnProfile && hasIncompleteDailyTasks && (
+            <div className="px-4 mt-4">
+                <button 
+                    onClick={() => onNavigate('tasks')}
+                    className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 p-3 rounded-lg flex justify-between items-center hover:opacity-90 transition-opacity animate-fade-in-up"
+                >
+                    <div className="flex items-center gap-3">
+                        <TasksIcon className="w-6 h-6" />
+                        <div>
+                            <p className="font-bold text-left text-sm">Complete your daily tasks!</p>
+                            <p className="text-xs text-purple-200 text-left">Earn free coins and XP.</p>
+                        </div>
+                    </div>
+                    <ChevronRightIcon />
+                </button>
+            </div>
+        )}
 
         {bannerAd && (
             <div className="px-4 mt-4">

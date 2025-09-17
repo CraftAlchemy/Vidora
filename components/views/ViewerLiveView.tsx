@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { LiveStream, ChatMessage, User, Gift, Ad } from '../../types';
-import { CloseIcon, HeartIcon, SendIcon, EmojiIcon, GiftIcon, ShareIcon, CoinIcon, ChevronLeftIcon, PinIcon, PaperclipIcon, VolumeUpIcon, VolumeOffIcon, ShieldCheckIcon, BanUserIcon } from '../icons/Icons';
+import { CloseIcon, HeartIcon, SendIcon, EmojiIcon, GiftIcon, ShareIcon, CoinIcon, ChevronLeftIcon, PinIcon, PaperclipIcon, VolumeUpIcon, VolumeOffIcon, ShieldCheckIcon, BanUserIcon, TasksIcon, ChevronRightIcon } from '../icons/Icons';
 import { mockUser, mockGifts, mockUsers } from '../../services/mockApi';
 import SendGiftModal from '../SendGiftModal';
 import EmojiPicker from '../EmojiPicker';
 import { getYouTubeEmbedUrl } from '../../utils/videoUtils';
 import AdBannerOverlay from '../AdBannerOverlay';
 import ModerationActionConfirmationModal from '../ModerationActionConfirmationModal';
+import { View } from '../../App';
 
 interface ViewerLiveViewProps {
   stream: LiveStream;
@@ -17,6 +18,8 @@ interface ViewerLiveViewProps {
   onViewProfile: (user: User) => void;
   bannerAds: Ad[];
   onBanStreamer: (streamerId: string) => void;
+  hasIncompleteDailyTasks: boolean;
+  onNavigate: (view: View) => void;
 }
 
 type TopGifter = {
@@ -42,7 +45,7 @@ const FloatingHeart: React.FC<{ onAnimationEnd: () => void }> = ({ onAnimationEn
     );
 };
 
-const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, currentUser, onToggleFollow, onShareStream, onViewProfile, bannerAds, onBanStreamer }) => {
+const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, currentUser, onToggleFollow, onShareStream, onViewProfile, bannerAds, onBanStreamer, hasIncompleteDailyTasks, onNavigate }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([
     { id: '1', senderId: stream.user.id, text: `Welcome to the stream!`, isRead: true, timestamp: '' },
   ]);
@@ -512,6 +515,21 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, current
               </button>
             </div>
           </header>
+          
+          {hasIncompleteDailyTasks && (
+            <div className="px-4 pt-20 pointer-events-auto">
+                <button 
+                    onClick={(e) => { e.stopPropagation(); onNavigate('tasks'); }}
+                    className="w-full bg-purple-600/70 backdrop-blur-sm p-2 rounded-lg flex justify-between items-center hover:bg-purple-500/70 transition-colors animate-fade-in-up text-xs"
+                >
+                    <div className="flex items-center gap-2">
+                        <TasksIcon className="w-5 h-5" />
+                        <p className="font-semibold text-left">Tap to complete daily tasks & earn rewards!</p>
+                    </div>
+                    <ChevronRightIcon className="w-4 h-4" />
+                </button>
+            </div>
+        )}
 
           <div className="flex-1"></div>
           

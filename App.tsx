@@ -1,6 +1,4 @@
-
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 // FIX: Added UploadSource to the import list from types.ts to support different upload methods.
 import { User, Video, LiveStream, WalletTransaction, Conversation, ChatMessage, Comment, PayoutRequest, MonetizationSettings, UploadSource, CreatorApplication, CoinPack, SavedPaymentMethod, DailyRewardSettings, Ad, AdSettings, Task, TaskSettings } from './types';
 import { mockUser, mockUsers, mockVideos, mockLiveStreams, mockConversations, systemUser, mockPayoutRequests, mockCreatorApplications, mockAds, mockTasks } from './services/mockApi';
@@ -332,6 +330,31 @@ const App: React.FC = () => {
         }
     }, [taskSettings]);
 
+
+    const hasIncompleteDailyTasks = useMemo(() => {
+        if (!currentUser || !taskSettings.isEnabled) return false;
+    
+        const isTaskCompleted = (user: User, task: Task): boolean => {
+            if (!user.completedTasks || !user.completedTasks[task.id]) {
+                return false;
+            }
+            if (task.frequency === 'once') {
+                return true;
+            }
+            if (task.frequency === 'daily') {
+                const lastCompletion = new Date(user.completedTasks[task.id]);
+                const today = new Date();
+                return lastCompletion.toDateString() === today.toDateString();
+            }
+            return false;
+        };
+    
+        return tasks.some(task => 
+            task.isActive && 
+            task.frequency === 'daily' && 
+            !isTaskCompleted(currentUser, task)
+        );
+    }, [currentUser, tasks, taskSettings]);
 
     const handleLogin = () => {
         sessionStorage.setItem('isLoggedIn', 'true');
@@ -1102,7 +1125,6 @@ const App: React.FC = () => {
                 return <LiveView 
                     setIsNavVisible={setIsNavVisible} 
                     currentUser={currentUser}
-                    // FIX: Cannot find name 'onToggleFollow'.
                     onToggleFollow={handleToggleFollow}
                     onShareStream={handleShareStream}
                     onViewProfile={handleViewProfile}
@@ -1112,6 +1134,8 @@ const App: React.FC = () => {
                     bannerAds={activeAds.filter(ad => ad.placement === 'live_stream_banner')}
                     liveStreams={liveStreams}
                     onBanStreamer={handleBanStreamer}
+                    hasIncompleteDailyTasks={hasIncompleteDailyTasks}
+                    onNavigate={handleNavigate}
                 />;
             case 'inbox': {
                 if (selectedConversationId) {
@@ -1149,6 +1173,7 @@ const App: React.FC = () => {
                             onOpenProfileVideoFeed={handleOpenProfileVideoFeed}
                             onOpenProfileStats={handleOpenProfileStats}
                             onOpenLevelInfo={handleOpenLevelInfoModal}
+                            hasIncompleteDailyTasks={hasIncompleteDailyTasks}
                         />;
             case 'wallet':
                 return <WalletView user={currentUser} onBack={() => handleNavigate('profile')} onNavigateToPurchase={handleNavigateToPurchase} coinPacks={coinPacks} onNavigate={handleNavigate} />;
@@ -1294,7 +1319,6 @@ const App: React.FC = () => {
                         currentUser={currentUser}
                         onClose={handleCloseProfileVideoFeed}
                         onOpenComments={handleOpenComments}
-                        // FIX: Cannot find name 'onToggleFollow'.
                         onToggleFollow={handleToggleFollow}
                         onShareVideo={handleShareVideo}
                         onViewProfile={(userToView) => {
@@ -1312,7 +1336,6 @@ const App: React.FC = () => {
                         allUsers={users}
                         allVideos={videos}
                         onClose={handleCloseProfileStats}
-                        // FIX: Cannot find name 'onToggleFollow'.
                         onToggleFollow={handleToggleFollow}
                         onViewProfile={(userToView) => {
                             handleCloseProfileStats();
