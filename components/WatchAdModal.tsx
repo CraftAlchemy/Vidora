@@ -150,7 +150,7 @@ const WatchAdModal: React.FC<WatchAdModalProps> = ({ task, ad, onClose, onComple
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-90 flex justify-center items-center z-50 p-4">
-            <div className="bg-zinc-900 rounded-lg shadow-xl w-full max-w-sm text-white relative animate-fade-in-up flex flex-col max-h-[90vh]">
+            <div className="bg-zinc-900 rounded-lg shadow-xl w-full max-w-sm text-white relative animate-fade-in-up flex flex-col max-h-[90vh] overflow-y-auto scrollbar-hide">
                 <header className="flex-shrink-0 flex items-center justify-between p-4 border-b border-zinc-800">
                     <h2 className="text-lg font-bold">{task.title}</h2>
                     <button onClick={onClose} className="text-gray-400 hover:text-white">
@@ -158,7 +158,7 @@ const WatchAdModal: React.FC<WatchAdModalProps> = ({ task, ad, onClose, onComple
                     </button>
                 </header>
 
-                <main className="relative aspect-[9/16] bg-black">
+                <main className="relative aspect-[9/16] bg-black flex-shrink-0">
                     {ad.content.videoUrl ? (
                         <video
                             ref={videoRef}
@@ -211,7 +211,7 @@ const WatchAdModal: React.FC<WatchAdModalProps> = ({ task, ad, onClose, onComple
                     </button>
                 </main>
 
-                <footer className="p-4 border-t border-zinc-800">
+                <footer className="p-4 border-t border-zinc-800 flex-shrink-0">
                     <div className="text-center mb-4">
                         <p className="font-semibold">{ad.name}</p>
                         <a 
