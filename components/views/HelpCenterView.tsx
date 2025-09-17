@@ -32,9 +32,15 @@ const faqData = {
     { q: "How do I change my password?", a: "You can change your password by navigating to Profile > Settings > Manage Account > Change Password." },
     { q: "How do I delete my account?", a: "To permanently delete your account, go to Profile > Settings > Manage Account and select 'Delete Account'. Please note this action is irreversible." },
   ],
-  "Content & Features": [
-    { q: "How do I go live?", a: "To start a live stream, tap the 'Live' icon in the bottom navigation, then tap the 'Go Live' button. You must have creator status to use this feature." },
-    { q: "Who can comment on my videos?", a: "You can control who comments on your videos in Profile > Settings > Who can comment. You can choose between 'Everyone', 'People you follow', or 'Nobody'." },
+  "Coins, Rewards & Tasks": [
+    {
+      q: "How can I earn free coins or XP?",
+      a: "You can earn rewards by checking in daily to claim your Daily Reward. Additionally, you can complete tasks, like watching short video ads, to earn even more coins and XP.",
+      linkView: 'tasks' as View,
+      linkText: "Go to Daily Tasks now."
+    },
+    { q: "What are Coins used for?", a: "Coins are the virtual currency on Vidora. You can use them to send virtual gifts to your favorite creators during their live streams, showing your support and helping them earn." },
+    { q: "What is XP and Leveling up?", a: "XP (Experience Points) helps you level up your account. Leveling up shows your dedication to the community and unlocks special profile badges and rewards over time. You can earn XP by completing tasks and engaging with the platform." },
   ],
   "Creator Program": [
     { 
@@ -43,14 +49,16 @@ const faqData = {
         linkView: 'becomeCreator' as View,
         linkText: "Check your progress and apply here."
     },
+     { q: "How do I request a payout?", a: "Creators can request a payout from their Creator Dashboard, accessible from the profile page. You must meet the minimum payout threshold." },
+  ],
+  "Content & Features": [
+    { q: "How do I go live?", a: "To start a live stream, tap the 'Live' icon in the bottom navigation, then tap the 'Go Live' button. You must have creator status to use this feature." },
+    { q: "Who can comment on my videos?", a: "You can control who comments on your videos in Profile > Settings > Who can comment. You can choose between 'Everyone', 'People you follow', or 'Nobody'." },
+    { q: "Why am I seeing ads?", a: "Ads help support the platform and our creators, allowing us to keep many features free. We try to make them as relevant and unobtrusive as possible. Some ads are part of optional tasks that reward you for watching." },
   ],
   "Safety & Privacy": [
     { q: "How do I report a user or video?", a: "To report content or a user, tap the 'Share' icon on a video and look for the 'Report' option. For user profiles, tap the three-dot menu to find the report function." },
     { q: "What is a private account?", a: "Setting your account to private means only users you approve can follow you and see your content. You can change this in Profile > Settings." },
-  ],
-  "Monetization": [
-    { q: "How do I request a payout?", a: "Creators can request a payout from their Creator Dashboard, accessible from the profile page. You must meet the minimum payout threshold." },
-    { q: "What are the fees for payouts?", a: "A standard processing fee is applied to all payouts. The exact percentage can be found in the Monetization Settings within the Admin Panel." },
   ],
 };
 

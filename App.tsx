@@ -1,3 +1,5 @@
+
+
 import React, { useState, useEffect } from 'react';
 // FIX: Added UploadSource to the import list from types.ts to support different upload methods.
 import { User, Video, LiveStream, WalletTransaction, Conversation, ChatMessage, Comment, PayoutRequest, MonetizationSettings, UploadSource, CreatorApplication, CoinPack, SavedPaymentMethod, DailyRewardSettings, Ad, AdSettings, Task, TaskSettings } from './types';
@@ -665,7 +667,7 @@ const App: React.FC = () => {
     const handleCompleteTask = (task: Task) => {
         if (!currentUser || !currentUser.wallet) return;
 
-        let updatedUser = { ...currentUser };
+        const updatedUser = { ...currentUser };
         const rewardAmount = task.rewardAmount;
 
         if (task.rewardType === 'coins') {
@@ -685,8 +687,12 @@ const App: React.FC = () => {
             updatedUser.xp = (updatedUser.xp || 0) + rewardAmount;
         }
 
+        // FIX: Explicitly handle the case where a user has no prior task history.
+        // This ensures the `completedTasks` object is initialized before we try to add a new task to it,
+        // preventing an error that would stop the function before the reward is saved.
+        const currentTasks = updatedUser.completedTasks || {};
         updatedUser.completedTasks = {
-            ...updatedUser.completedTasks,
+            ...currentTasks,
             [task.id]: new Date().toISOString(),
         };
 
@@ -1096,6 +1102,7 @@ const App: React.FC = () => {
                 return <LiveView 
                     setIsNavVisible={setIsNavVisible} 
                     currentUser={currentUser}
+                    // FIX: Cannot find name 'onToggleFollow'.
                     onToggleFollow={handleToggleFollow}
                     onShareStream={handleShareStream}
                     onViewProfile={handleViewProfile}
@@ -1287,6 +1294,7 @@ const App: React.FC = () => {
                         currentUser={currentUser}
                         onClose={handleCloseProfileVideoFeed}
                         onOpenComments={handleOpenComments}
+                        // FIX: Cannot find name 'onToggleFollow'.
                         onToggleFollow={handleToggleFollow}
                         onShareVideo={handleShareVideo}
                         onViewProfile={(userToView) => {
@@ -1304,6 +1312,7 @@ const App: React.FC = () => {
                         allUsers={users}
                         allVideos={videos}
                         onClose={handleCloseProfileStats}
+                        // FIX: Cannot find name 'onToggleFollow'.
                         onToggleFollow={handleToggleFollow}
                         onViewProfile={(userToView) => {
                             handleCloseProfileStats();

@@ -9,13 +9,14 @@ interface WatchAdModalProps {
     onComplete: (task: Task) => void;
 }
 
-const CircularProgress: React.FC<{ progress: number; timeLeft: number; isComplete: boolean }> = ({ progress, timeLeft, isComplete }) => {
+const CircularProgress: React.FC<{ progress: number; timeLeft: number; isComplete: boolean; onClick?: () => void }> = ({ progress, timeLeft, isComplete, onClick }) => {
     const radius = 24;
     const circumference = 2 * Math.PI * radius;
     const offset = circumference - (progress / 100) * circumference;
+    const containerClasses = `relative w-14 h-14 bg-black/50 rounded-full flex items-center justify-center ${onClick ? 'cursor-pointer hover:scale-110 transition-transform' : 'pointer-events-none'}`;
 
     return (
-        <div className="relative w-14 h-14 bg-black/50 rounded-full flex items-center justify-center">
+        <button disabled={!onClick} onClick={onClick} className={containerClasses} aria-label={isComplete ? "Claim Reward" : `Time left: ${timeLeft} seconds`}>
             <svg className="w-full h-full" viewBox="0 0 52 52">
                 <circle className="text-zinc-700" strokeWidth="3" stroke="currentColor" fill="transparent" r={radius} cx="26" cy="26" />
                 <circle
@@ -40,7 +41,7 @@ const CircularProgress: React.FC<{ progress: number; timeLeft: number; isComplet
                     <span className="font-bold text-lg">{timeLeft}</span>
                 )}
             </div>
-        </div>
+        </button>
     );
 };
 
@@ -121,9 +122,9 @@ const WatchAdModal: React.FC<WatchAdModalProps> = ({ task, ad, onClose, onComple
             return (
                 <button
                     onClick={() => onComplete(task)}
-                    className="w-full py-3 font-semibold rounded-lg bg-green-600 hover:bg-green-700 text-white shadow-lg animate-fade-in-up"
+                    className="w-full py-4 font-bold text-lg rounded-lg bg-green-600 hover:bg-green-700 text-white shadow-lg animate-fade-in-up flex items-center justify-center gap-2 transition-transform transform hover:scale-105"
                 >
-                    Claim {task.rewardAmount} {task.rewardType}
+                    Claim Reward: +{task.rewardAmount.toLocaleString()} {task.rewardType === 'coins' ? 'Coins' : 'XP'}
                 </button>
             );
         }
@@ -163,7 +164,7 @@ const WatchAdModal: React.FC<WatchAdModalProps> = ({ task, ad, onClose, onComple
                             ref={videoRef}
                             src={ad.content.videoUrl}
                             playsInline
-                            className="w-full h-full object-cover"
+                            className={`w-full h-full object-cover transition-opacity duration-500 ${isTaskFullyComplete ? 'opacity-20' : 'opacity-100'}`}
                             onClick={togglePlay}
                         />
                     ) : (
@@ -172,9 +173,17 @@ const WatchAdModal: React.FC<WatchAdModalProps> = ({ task, ad, onClose, onComple
                         </div>
                     )}
                     
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent pointer-events-none"></div>
+                    {isTaskFullyComplete && (
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent flex flex-col items-center justify-center text-center p-4 animate-fade-in-fast pointer-events-none">
+                            <div className="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center shadow-lg">
+                                <svg className="w-14 h-14 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                            </div>
+                            <h3 className="text-2xl font-bold mt-4">Task Complete!</h3>
+                            <p className="text-gray-300 mt-1">Claim your reward below.</p>
+                        </div>
+                    )}
 
-                    {showPlayPause && (
+                    {showPlayPause && !isTaskFullyComplete && (
                         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                             <div className="bg-black/50 p-4 rounded-full animate-fade-out">
                                 {isPlaying ? <PauseIcon /> : <PlayIcon />}
@@ -182,8 +191,13 @@ const WatchAdModal: React.FC<WatchAdModalProps> = ({ task, ad, onClose, onComple
                         </div>
                     )}
 
-                    <div className="absolute top-4 right-4">
-                        <CircularProgress progress={progress} timeLeft={timeLeft} isComplete={isCurrentAdComplete} />
+                    <div className="absolute top-4 right-4 z-10">
+                        <CircularProgress 
+                            progress={progress} 
+                            timeLeft={timeLeft} 
+                            isComplete={isCurrentAdComplete}
+                            onClick={isTaskFullyComplete ? () => onComplete(task) : undefined}
+                         />
                     </div>
 
                      {task.adsToWatch > 1 && (
