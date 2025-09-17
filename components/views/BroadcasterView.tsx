@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { mockUsers, mockUser, mockGifts } from '../../services/mockApi';
 import { User, ChatMessage, Poll, GiftEvent } from '../../types';
-import { SendIcon, EmojiIcon, ShieldCheckIcon, PinIcon, MuteUserIcon, BanUserIcon, CloseIcon, SignalIcon, PollIcon, ChevronRightIcon, PaperclipIcon, VolumeUpIcon, VolumeOffIcon } from '../icons/Icons';
+import { SendIcon, EmojiIcon, ShieldCheckIcon, PinIcon, MuteUserIcon, BanUserIcon, CloseIcon, SignalIcon, PollIcon, ChevronRightIcon, PaperclipIcon, VolumeUpIcon, VolumeOffIcon, ChevronLeftIcon } from '../icons/Icons';
 import HostToolsModal from '../HostToolsModal';
 import CreatePollModal from '../CreatePollModal';
 import LivePollDisplay from '../LivePollDisplay';
@@ -572,11 +572,15 @@ const BroadcasterView: React.FC<BroadcasterViewProps> = ({ streamTitle, sourceTy
                 )}
             </footer>
              {!isUiVisible && (
-                <div className="absolute inset-y-0 left-0 flex items-center pl-2 pointer-events-none animate-pulse z-20">
+                <button
+                    onClick={() => setIsUiVisible(true)}
+                    className="absolute inset-y-0 right-0 flex items-center pr-2 animate-pulse z-20"
+                    aria-label="Show stream controls"
+                >
                     <div className="bg-black/40 p-2 rounded-full">
-                        <ChevronRightIcon className="w-6 h-6 text-white/70" />
+                        <ChevronLeftIcon className="w-6 h-6 text-white/70" />
                     </div>
-                </div>
+                </button>
             )}
         </div>
         

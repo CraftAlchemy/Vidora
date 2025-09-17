@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { LiveStream, ChatMessage, User, Gift, Ad } from '../../types';
 import { CloseIcon, HeartIcon, SendIcon, EmojiIcon, GiftIcon, ShareIcon, CoinIcon, ChevronLeftIcon, PinIcon, PaperclipIcon, VolumeUpIcon, VolumeOffIcon } from '../icons/Icons';
@@ -598,11 +597,15 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, current
         </div>
 
         {!isUiVisible && (
-            <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none animate-pulse z-20">
+            <button
+                onClick={() => setIsUiVisible(true)}
+                className="absolute inset-y-0 right-0 flex items-center pr-2 animate-pulse z-20"
+                aria-label="Show stream controls"
+            >
                 <div className="bg-black/40 p-2 rounded-full">
                     <ChevronLeftIcon className="w-6 h-6 text-white/70" />
                 </div>
-            </div>
+            </button>
         )}
 
         {isGiftModalOpen && (
