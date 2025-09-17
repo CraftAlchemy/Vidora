@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { User, Video, Ad } from '../../types';
 import { View } from '../../App';
@@ -19,6 +18,7 @@ interface ProfileViewProps {
   onShareProfile: (username: string) => void;
   onOpenProfileVideoFeed: (videos: Video[], startIndex: number) => void;
   onOpenProfileStats: (user: User, initialTab: 'following' | 'followers' | 'likes') => void;
+  onOpenLevelInfo: () => void;
 }
 
 const StatItem: React.FC<{ value: string; label: string }> = ({ value, label }) => (
@@ -46,12 +46,10 @@ const ProfileAdBanner: React.FC<{ ad: Ad }> = ({ ad }) => (
   </a>
 );
 
-const ProfileView: React.FC<ProfileViewProps> = ({ user, currentUser, isOwnProfile, videos, onNavigate, onEditProfile, onBack, onToggleFollow, onGoLive, bannerAd, onShareProfile, onOpenProfileVideoFeed, onOpenProfileStats }) => {
+const ProfileView: React.FC<ProfileViewProps> = ({ user, currentUser, isOwnProfile, videos, onNavigate, onEditProfile, onBack, onToggleFollow, onGoLive, bannerAd, onShareProfile, onOpenProfileVideoFeed, onOpenProfileStats, onOpenLevelInfo }) => {
   const [activeTab, setActiveTab] = useState<'videos' | 'badges'>('videos');
   const formatCurrency = useCurrency();
   const userVideos = videos.filter(v => v.user.id === user.id);
-  const xpForNextLevel = (user.level || 1) * 200;
-  const xpProgress = user.xp ? (user.xp / xpForNextLevel) * 100 : 0;
   const isFollowing = currentUser.followingIds?.includes(user.id);
 
   return (
@@ -84,7 +82,13 @@ const ProfileView: React.FC<ProfileViewProps> = ({ user, currentUser, isOwnProfi
       <div className="max-w-2xl mx-auto -mt-12 pt-12">
         <div className="flex flex-col items-center px-4">
           <img src={user.avatarUrl} alt={user.username} className="w-24 h-24 rounded-full object-cover border-4 border-zinc-800" />
-          <h1 className="text-xl font-bold mt-3">@{user.username}</h1>
+          <div className="flex items-center gap-3 mt-3">
+             <h1 className="text-xl font-bold">@{user.username}</h1>
+             <button onClick={onOpenLevelInfo} className="bg-gradient-to-br from-purple-600 to-indigo-600 px-3 py-1 rounded-full text-xs font-bold shadow-lg flex items-center gap-1.5 hover:opacity-90 transition-opacity">
+                <StarIcon className="w-3 h-3"/>
+                LVL {user.level || 1}
+            </button>
+          </div>
           
           <div className="flex items-center gap-2 mt-2 text-sm text-orange-400 bg-zinc-800 px-3 py-1 rounded-full">
               <FlameIcon />
@@ -92,20 +96,6 @@ const ProfileView: React.FC<ProfileViewProps> = ({ user, currentUser, isOwnProfi
           </div>
 
           <p className="text-sm text-center text-gray-300 mt-3 max-w-sm">{user.bio}</p>
-        </div>
-
-        {/* XP and Level */}
-        <div className="my-5 px-4">
-          <div className="flex justify-between items-center text-xs font-semibold mb-1 text-gray-300">
-            <div className="flex items-center text-cyan-400">
-              <StarIcon className="w-4 h-4 mr-1"/>
-              <span>LEVEL {user.level}</span>
-            </div>
-            <span>{user.xp} / {xpForNextLevel} XP</span>
-          </div>
-          <div className="w-full bg-zinc-700 rounded-full h-2">
-            <div className="bg-cyan-400 h-2 rounded-full" style={{ width: `${xpProgress}%` }}></div>
-          </div>
         </div>
 
         <div className="flex justify-center space-x-8 my-5">

@@ -70,6 +70,7 @@ export interface LiveStream {
   thumbnailUrl: string;
   viewers: number;
   videoUrl?: string;
+  status?: 'live' | 'ended_by_moderator';
 }
 
 export interface ChatMessage {

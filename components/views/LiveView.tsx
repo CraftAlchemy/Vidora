@@ -6,7 +6,6 @@ import { LiveStream, User, Ad } from '../../types';
 import LiveDiscoveryView from './LiveDiscoveryView';
 import BroadcasterView from './BroadcasterView';
 import GoLiveModal from '../GoLiveModal';
-import { mockLiveStreams } from '../../services/mockApi';
 
 interface LiveViewProps {
   setIsNavVisible: (visible: boolean) => void;
@@ -18,11 +17,13 @@ interface LiveViewProps {
   openGoLiveModal: boolean;
   onModalOpened: () => void;
   bannerAds: Ad[];
+  liveStreams: LiveStream[];
+  onBanStreamer: (streamerId: string) => void;
 }
 
 export type BroadcastSource = 'camera' | 'video' | 'url';
 
-const LiveView: React.FC<LiveViewProps> = ({ setIsNavVisible, currentUser, onToggleFollow, onShareStream, onViewProfile, showSuccessToast, openGoLiveModal, onModalOpened, bannerAds }) => {
+const LiveView: React.FC<LiveViewProps> = ({ setIsNavVisible, currentUser, onToggleFollow, onShareStream, onViewProfile, showSuccessToast, openGoLiveModal, onModalOpened, bannerAds, liveStreams, onBanStreamer }) => {
   const [isBroadcasting, setIsBroadcasting] = useState(false);
   const [myStreamTitle, setMyStreamTitle] = useState('');
   const [myStreamSource, setMyStreamSource] = useState<BroadcastSource>('camera');
@@ -41,9 +42,6 @@ const LiveView: React.FC<LiveViewProps> = ({ setIsNavVisible, currentUser, onTog
         onModalOpened();
     }
   }, [openGoLiveModal, onModalOpened]);
-
-  // In a real app, this data would be fetched from an API.
-  const liveStreams: LiveStream[] = mockLiveStreams;
 
   const handleGoLiveClick = () => {
     setIsGoLiveModalOpen(true);
@@ -85,6 +83,7 @@ const LiveView: React.FC<LiveViewProps> = ({ setIsNavVisible, currentUser, onTog
         onShareStream={onShareStream}
         onViewProfile={onViewProfile}
         bannerAds={bannerAds}
+        onBanStreamer={onBanStreamer}
       />
       {isGoLiveModalOpen && (
         <GoLiveModal 

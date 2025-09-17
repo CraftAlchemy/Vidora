@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 // FIX: Added UploadSource to the import list from types.ts to support different upload methods.
 import { User, Video, LiveStream, WalletTransaction, Conversation, ChatMessage, Comment, PayoutRequest, MonetizationSettings, UploadSource, CreatorApplication, CoinPack, SavedPaymentMethod, DailyRewardSettings, Ad, AdSettings } from './types';
@@ -37,6 +36,7 @@ import PaymentMethodsView from './components/views/PaymentMethodsView';
 import AddPaymentMethodModal from './components/AddPaymentMethodModal';
 import ProfileVideoFeedModal from './components/ProfileVideoFeedModal';
 import ProfileStatsModal from './components/ProfileStatsModal';
+import LevelInfoModal from './components/LevelInfoModal';
 
 export type View = 'feed' | 'live' | 'inbox' | 'profile' | 'wallet' | 'settings' | 'purchase' | 'admin' | 'creatorDashboard' | 'manageAccount' | 'changePassword' | 'helpCenter' | 'termsOfService' | 'becomeCreator' | 'paymentMethods';
 
@@ -101,6 +101,7 @@ const App: React.FC = () => {
     const [currentUser, setCurrentUser] = useState<User | null>(null);
     const [users, setUsers] = useState<User[]>(mockUsers);
     const [videos, setVideos] = useState<Video[]>([]);
+    const [liveStreams, setLiveStreams] = useState<LiveStream[]>(mockLiveStreams);
     const [conversations, setConversations] = useState<Conversation[]>(mockConversations);
     const [payoutRequests, setPayoutRequests] = useState<PayoutRequest[]>(mockPayoutRequests);
     const [creatorApplications, setCreatorApplications] = useState<CreatorApplication[]>(mockCreatorApplications);
@@ -122,6 +123,7 @@ const App: React.FC = () => {
     const [isCommentPrivacyModalOpen, setIsCommentPrivacyModalOpen] = useState(false);
     const [isApplyCreatorModalOpen, setIsApplyCreatorModalOpen] = useState(false);
     const [isAddPaymentMethodModalOpen, setIsAddPaymentMethodModalOpen] = useState(false);
+    const [isLevelInfoModalOpen, setIsLevelInfoModalOpen] = useState(false);
     const [activeVideoForComments, setActiveVideoForComments] = useState<Video | null>(null);
     const [viewedProfileUser, setViewedProfileUser] = useState<User | null>(null);
     const [openGoLiveOnNavigate, setOpenGoLiveOnNavigate] = useState(false);
@@ -521,6 +523,19 @@ const App: React.FC = () => {
         // In a real app, we might update a share count on a stream object
         console.log(`Sharing stream: ${streamId}`);
         showSuccessToast('Live stream link copied to clipboard!');
+    };
+
+    const handleBanStreamer = (streamerId: string) => {
+        const userToBan = users.find(u => u.id === streamerId);
+        if (!userToBan) return;
+
+        setUsers(prev => prev.map(u => u.id === streamerId ? { ...u, status: 'banned' } : u));
+        
+        setLiveStreams(prev => prev.map(s => s.user.id === streamerId ? { ...s, status: 'ended_by_moderator' } : s));
+        
+        sendSystemMessage(streamerId, "Your live stream has been terminated and your account has been banned for violating community guidelines.");
+
+        showSuccessToast(`@${userToBan.username} has been banned.`);
     };
 
     const handleEditProfile = () => {
@@ -927,6 +942,14 @@ const App: React.FC = () => {
     const handleCloseProfileStats = () => {
         setProfileStatsModalState(null);
     };
+    
+    const handleOpenLevelInfoModal = () => {
+        setIsLevelInfoModalOpen(true);
+    };
+    
+    const handleCloseLevelInfoModal = () => {
+        setIsLevelInfoModalOpen(false);
+    };
 
 
     if (!isLoggedIn || !currentUser) {
@@ -980,7 +1003,6 @@ const App: React.FC = () => {
                 return <LiveView 
                     setIsNavVisible={setIsNavVisible} 
                     currentUser={currentUser}
-                    // FIX: Corrected a typo in the onToggleFollow prop, changing it from `onToggleFollow` to the correctly named `handleToggleFollow` function to resolve a "Cannot find name" error.
                     onToggleFollow={handleToggleFollow}
                     onShareStream={handleShareStream}
                     onViewProfile={handleViewProfile}
@@ -988,6 +1010,8 @@ const App: React.FC = () => {
                     openGoLiveModal={openGoLiveOnNavigate}
                     onModalOpened={() => setOpenGoLiveOnNavigate(false)}
                     bannerAds={activeAds.filter(ad => ad.placement === 'live_stream_banner')}
+                    liveStreams={liveStreams}
+                    onBanStreamer={handleBanStreamer}
                 />;
             case 'inbox': {
                 if (selectedConversationId) {
@@ -1024,6 +1048,7 @@ const App: React.FC = () => {
                             onShareProfile={handleShareProfile}
                             onOpenProfileVideoFeed={handleOpenProfileVideoFeed}
                             onOpenProfileStats={handleOpenProfileStats}
+                            onOpenLevelInfo={handleOpenLevelInfoModal}
                         />;
             case 'wallet':
                 return <WalletView user={currentUser} onBack={() => handleNavigate('profile')} onNavigateToPurchase={handleNavigateToPurchase} coinPacks={coinPacks} />;
@@ -1185,6 +1210,12 @@ const App: React.FC = () => {
                             handleCloseProfileStats();
                             handleOpenProfileVideoFeed(videos, startIndex);
                         }}
+                    />
+                )}
+                {isLevelInfoModalOpen && (
+                    <LevelInfoModal
+                        user={currentUser}
+                        onClose={handleCloseLevelInfoModal}
                     />
                 )}
             </div>

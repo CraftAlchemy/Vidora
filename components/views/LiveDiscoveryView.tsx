@@ -13,6 +13,7 @@ interface LiveDiscoveryViewProps {
   onShareStream: (streamId: string) => void;
   onViewProfile: (user: User) => void;
   bannerAds: Ad[];
+  onBanStreamer: (streamerId: string) => void;
 }
 
 const LiveCard: React.FC<{ stream: LiveStream; onClick: () => void }> = ({ stream, onClick }) => {
@@ -80,29 +81,35 @@ const LiveCard: React.FC<{ stream: LiveStream; onClick: () => void }> = ({ strea
   );
 };
 
-const LiveDiscoveryView: React.FC<LiveDiscoveryViewProps> = ({ liveStreams, onGoLive, setIsNavVisible, currentUser, onToggleFollow, onShareStream, onViewProfile, bannerAds }) => {
-  const [selectedStream, setSelectedStream] = useState<LiveStream | null>(null);
+const LiveDiscoveryView: React.FC<LiveDiscoveryViewProps> = ({ liveStreams, onGoLive, setIsNavVisible, currentUser, onToggleFollow, onShareStream, onViewProfile, bannerAds, onBanStreamer }) => {
+  const [selectedStreamId, setSelectedStreamId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     // Hide the nav when a stream is selected, show it when back on the discovery view.
-    setIsNavVisible(selectedStream === null);
-  }, [selectedStream, setIsNavVisible]);
+    setIsNavVisible(selectedStreamId === null);
+  }, [selectedStreamId, setIsNavVisible]);
 
-  const filteredStreams = liveStreams.filter(stream =>
-    stream.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    stream.user.username.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredAndActiveStreams = liveStreams.filter(stream =>
+    stream.status === 'live' &&
+    (stream.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    stream.user.username.toLowerCase().includes(searchQuery.toLowerCase()))
   );
+  
+  const selectedStream = useMemo(() => 
+    liveStreams.find(s => s.id === selectedStreamId), 
+  [liveStreams, selectedStreamId]);
 
   if (selectedStream) {
     return <ViewerLiveView 
             stream={selectedStream} 
-            onBack={() => setSelectedStream(null)} 
+            onBack={() => setSelectedStreamId(null)} 
             currentUser={currentUser}
             onToggleFollow={onToggleFollow}
             onShareStream={onShareStream}
             onViewProfile={onViewProfile}
             bannerAds={bannerAds}
+            onBanStreamer={onBanStreamer}
           />;
   }
 
@@ -136,9 +143,9 @@ const LiveDiscoveryView: React.FC<LiveDiscoveryViewProps> = ({ liveStreams, onGo
         
         {/* Live Stream Grid */}
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-          {filteredStreams.length > 0 ? (
-            filteredStreams.map(stream => (
-              <LiveCard key={stream.id} stream={stream} onClick={() => setSelectedStream(stream)} />
+          {filteredAndActiveStreams.length > 0 ? (
+            filteredAndActiveStreams.map(stream => (
+              <LiveCard key={stream.id} stream={stream} onClick={() => setSelectedStreamId(stream.id)} />
             ))
           ) : (
             <div className="col-span-2 sm:col-span-3 md:col-span-4 text-center text-gray-400 py-10">

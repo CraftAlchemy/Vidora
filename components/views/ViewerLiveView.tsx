@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { LiveStream, ChatMessage, User, Gift, Ad } from '../../types';
-import { CloseIcon, HeartIcon, SendIcon, EmojiIcon, GiftIcon, ShareIcon, CoinIcon, ChevronLeftIcon, PinIcon, PaperclipIcon, VolumeUpIcon, VolumeOffIcon } from '../icons/Icons';
+import { CloseIcon, HeartIcon, SendIcon, EmojiIcon, GiftIcon, ShareIcon, CoinIcon, ChevronLeftIcon, PinIcon, PaperclipIcon, VolumeUpIcon, VolumeOffIcon, ShieldCheckIcon, BanUserIcon } from '../icons/Icons';
 import { mockUser, mockGifts, mockUsers } from '../../services/mockApi';
 import SendGiftModal from '../SendGiftModal';
 import EmojiPicker from '../EmojiPicker';
 import { getYouTubeEmbedUrl } from '../../utils/videoUtils';
 import AdBannerOverlay from '../AdBannerOverlay';
+import ModerationActionConfirmationModal from '../ModerationActionConfirmationModal';
 
 interface ViewerLiveViewProps {
   stream: LiveStream;
@@ -15,6 +16,7 @@ interface ViewerLiveViewProps {
   onShareStream: (streamId: string) => void;
   onViewProfile: (user: User) => void;
   bannerAds: Ad[];
+  onBanStreamer: (streamerId: string) => void;
 }
 
 type TopGifter = {
@@ -40,7 +42,7 @@ const FloatingHeart: React.FC<{ onAnimationEnd: () => void }> = ({ onAnimationEn
     );
 };
 
-const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, currentUser, onToggleFollow, onShareStream, onViewProfile, bannerAds }) => {
+const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, currentUser, onToggleFollow, onShareStream, onViewProfile, bannerAds, onBanStreamer }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([
     { id: '1', senderId: stream.user.id, text: `Welcome to the stream!`, isRead: true, timestamp: '' },
   ]);
@@ -75,9 +77,12 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, current
   const [volume, setVolume] = useState(1);
   const [showVolumeSlider, setShowVolumeSlider] = useState(false);
   const [activeBannerAd, setActiveBannerAd] = useState<Ad | null>(null);
+  const [isModModalOpen, setIsModModalOpen] = useState(false);
 
   const isFollowing = currentUser.followingIds?.includes(stream.user.id);
   const isOwnStream = currentUser.id === stream.user.id;
+  const isModerator = currentUser.role === 'moderator' || currentUser.role === 'admin';
+  const wasBanned = stream.status === 'ended_by_moderator';
   
   const embedUrl = useMemo(() => stream.videoUrl ? getYouTubeEmbedUrl(stream.videoUrl, isMuted) : null, [stream.videoUrl, isMuted]);
 
@@ -347,6 +352,16 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, current
   const handleMouseLeave = () => {
     if (isDragging) handleMouseUp();
   };
+  
+  const handleBanClick = () => {
+    setIsModModalOpen(true);
+  };
+
+  const handleConfirmBan = () => {
+    onBanStreamer(stream.user.id);
+    setIsModModalOpen(false);
+  };
+
 
   const ChatBubble: React.FC<{ message: ChatMessage }> = ({ message }) => {
     const user = mockUsers.find(u => u.id === message.senderId) || stream.user;
@@ -407,6 +422,19 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, current
         </div>
     );
   };
+
+  if (wasBanned) {
+    return (
+        <div className="absolute inset-0 w-full h-full bg-black text-white flex flex-col items-center justify-center gap-4 p-4 animate-fade-in-fast">
+            <div className="text-red-500"><BanUserIcon className="w-16 h-16"/></div>
+            <h2 className="text-xl font-bold">Stream Ended by Moderator</h2>
+            <p className="text-gray-400 text-center">This stream was terminated for violating community guidelines.</p>
+            <button onClick={onBack} className="mt-4 px-6 py-2 bg-pink-600 rounded-lg font-semibold">
+                Back to Discovery
+            </button>
+        </div>
+    );
+  }
 
   return (
     <>
@@ -473,6 +501,11 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, current
               )}
             </button>
             <div className="flex items-center gap-2">
+              {isModerator && !isOwnStream && (
+                <button onClick={handleBanClick} className="p-2 bg-black/40 rounded-full hover:bg-red-600/50 transition-colors" title="Moderate Stream">
+                    <ShieldCheckIcon className="w-5 h-5 text-red-400"/>
+                </button>
+              )}
               <div className="bg-black/40 p-2 rounded-lg text-xs">{stream.viewers.toLocaleString()} watching</div>
               <button onClick={onBack} className="p-2 bg-black/40 rounded-full">
                 <CloseIcon />
@@ -617,6 +650,14 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, current
             />
         )}
       </div>
+
+      {isModModalOpen && (
+        <ModerationActionConfirmationModal
+            username={stream.user.username}
+            onClose={() => setIsModModalOpen(false)}
+            onConfirm={handleConfirmBan}
+        />
+      )}
     </>
   );
 };
