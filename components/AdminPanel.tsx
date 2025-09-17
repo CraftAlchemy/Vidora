@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { User, Video, Report, PayoutRequest, Gift, MonetizationSettings, CreatorApplication, CoinPack, DailyRewardSettings, Ad, AdSettings, Badge } from '../types';
-import { mockUsers, mockVideos, mockReports, mockPayoutRequests, mockGifts, mockAds, mockBadges } from '../services/mockApi';
-import { DashboardIcon, UsersIcon, VideoIcon, ShieldCheckIcon, DollarSignIcon, GiftIcon, RestoreIcon, SettingsIcon, LogOutIcon, ProfileIcon, StarIcon, MegaphoneIcon, BadgeIcon } from './icons/Icons';
+import { User, Video, Report, PayoutRequest, Gift, MonetizationSettings, CreatorApplication, CoinPack, DailyRewardSettings, Ad, AdSettings, Badge, Task, TaskSettings } from '../types';
+import { mockUsers, mockVideos, mockReports, mockPayoutRequests, mockGifts, mockAds, mockBadges, mockTasks } from '../services/mockApi';
+import { DashboardIcon, UsersIcon, VideoIcon, ShieldCheckIcon, DollarSignIcon, GiftIcon, RestoreIcon, SettingsIcon, LogOutIcon, ProfileIcon, StarIcon, MegaphoneIcon, BadgeIcon, TasksIcon } from './icons/Icons';
 import DashboardView from './admin/DashboardView';
 import UserManagementView from './admin/UserManagementView';
 import ContentManagementView from './admin/ContentManagementView';
@@ -14,6 +14,7 @@ import AdminSettingsView from './admin/AdminSettingsView';
 import CreatorApplicationsView from './admin/CreatorApplicationsView';
 import AdManagementView from './admin/AdManagementView';
 import BadgeManagementView from './admin/BadgeManagementView';
+import TaskManagementView from './admin/TaskManagementView';
 
 interface AdminPanelProps {
   user: User;
@@ -33,14 +34,19 @@ interface AdminPanelProps {
   setAds: React.Dispatch<React.SetStateAction<Ad[]>>;
   adSettings: AdSettings;
   setAdSettings: React.Dispatch<React.SetStateAction<AdSettings>>;
+  tasks: Task[];
+  setTasks: React.Dispatch<React.SetStateAction<Task[]>>;
+  taskSettings: TaskSettings;
+  setTaskSettings: React.Dispatch<React.SetStateAction<TaskSettings>>;
 }
 
-type AdminView = 'dashboard' | 'users' | 'content' | 'moderation' | 'financials' | 'gifts' | 'verification' | 'corbeil' | 'settings' | 'creatorApps' | 'ads' | 'badges';
+type AdminView = 'dashboard' | 'users' | 'content' | 'moderation' | 'financials' | 'gifts' | 'verification' | 'corbeil' | 'settings' | 'creatorApps' | 'ads' | 'badges' | 'tasks';
 
 const AdminPanel: React.FC<AdminPanelProps> = ({ 
     user, onExit, onSendSystemMessage, showSuccessToast, monetizationSettings, setMonetizationSettings,
     creatorApplications, onCreatorApplicationDecision, onLogout, coinPacks, setCoinPacks,
-    dailyRewardSettings, setDailyRewardSettings, ads, setAds, adSettings, setAdSettings
+    dailyRewardSettings, setDailyRewardSettings, ads, setAds, adSettings, setAdSettings,
+    tasks, setTasks, taskSettings, setTaskSettings
 }) => {
   const [activeView, setActiveView] = useState<AdminView>('dashboard');
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
@@ -380,11 +386,12 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                                     onBulkResolve={handleBulkResolveReports}
                                     onBulkDismiss={handleBulkDismissReports}
                                 />;
+      case 'creatorApps': return <CreatorApplicationsView applications={creatorApplications} onDecision={onCreatorApplicationDecision} />;
       case 'financials': return <FinancialsView payouts={payouts} users={users} onUpdatePayoutStatus={handleUpdatePayoutStatus} />;
       case 'gifts': return <GiftManagementView gifts={gifts} onAddGift={handleAddGift} onUpdateGift={handleUpdateGift} onDeleteGift={handleDeleteGift} />;
       case 'badges': return <BadgeManagementView badges={badges} setBadges={setBadges} showSuccessToast={showSuccessToast} />;
       case 'ads': return <AdManagementView ads={ads} setAds={setAds} showSuccessToast={showSuccessToast} />;
-      case 'creatorApps': return <CreatorApplicationsView applications={creatorApplications} onDecision={onCreatorApplicationDecision} />;
+      case 'tasks': return <TaskManagementView tasks={tasks} setTasks={setTasks} allAds={ads} showSuccessToast={showSuccessToast} />;
       case 'corbeil': return <CorbeilView 
                                 users={deletedUsers}
                                 onRestoreUser={handleRestoreUser}
@@ -410,6 +417,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                                 onSetDailyRewardSettings={setDailyRewardSettings}
                                 adSettings={adSettings}
                                 onSetAdSettings={setAdSettings}
+                                taskSettings={taskSettings}
+                                onSetTaskSettings={setTaskSettings}
                               />;
       default: return null;
     }
@@ -450,6 +459,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
           <NavItem view="gifts" icon={<GiftIcon />} label="Gifts" />
           <NavItem view="badges" icon={<BadgeIcon />} label="Badges" />
           <NavItem view="ads" icon={<MegaphoneIcon />} label="Ads" />
+          <NavItem view="tasks" icon={<TasksIcon />} label="Tasks" />
           <NavItem view="corbeil" icon={<RestoreIcon />} label="Corbeil" />
         </nav>
         <div className="p-2 lg:p-4 border-t border-zinc-800 shrink-0">

@@ -1,4 +1,4 @@
-import { User, Video, LiveStream, Conversation, Notification, Gift, WalletTransaction, LeaderboardUser, Report, PayoutRequest, CreatorApplication, Ad, Badge } from '../types';
+import { User, Video, LiveStream, Conversation, Notification, Gift, WalletTransaction, LeaderboardUser, Report, PayoutRequest, CreatorApplication, Ad, Badge, Task } from '../types';
 
 export const mockUsers: User[] = [
   {
@@ -38,6 +38,9 @@ export const mockUsers: User[] = [
         { id: 'pm1', type: 'Card', details: 'Visa ending in 4242', isDefault: true },
         { id: 'pm2', type: 'PayPal', details: 'dev@example.com', isDefault: false },
     ],
+    completedTasks: {
+        'task-3': '2024-07-20T10:00:00Z' // example of a completed 'once' task
+    }
   },
   {
     id: 'u2',
@@ -481,4 +484,59 @@ export const mockAds: Ad[] = [
         ctaText: 'Shop Now',
         isActive: true,
     },
+];
+
+export const mockTasks: Task[] = [
+    {
+        id: 'task-1',
+        title: 'Watch & Earn!',
+        description: 'Watch a short ad from our sponsor to earn coins.',
+        type: 'watch_ad',
+        rewardType: 'coins',
+        rewardAmount: 100,
+        frequency: 'daily',
+        adId: 'ad-1', // Link to the V-Bucks Sale video ad
+        isActive: true,
+        adDuration: 15,
+        adsToWatch: 1,
+    },
+    {
+        id: 'task-2',
+        title: 'XP Marathon',
+        description: 'Watch 2 video ads to get a quick XP boost for your account level.',
+        type: 'watch_ad',
+        rewardType: 'xp',
+        rewardAmount: 50,
+        frequency: 'daily',
+        adId: 'ad-1', // Can reuse ads
+        isActive: true,
+        adDuration: 20,
+        adsToWatch: 2,
+    },
+    {
+        id: 'task-3',
+        title: 'Special One-Time Offer',
+        description: 'A special one-time reward for watching this featured ad.',
+        type: 'watch_ad',
+        rewardType: 'coins',
+        rewardAmount: 500,
+        frequency: 'once',
+        adId: 'ad-1',
+        isActive: true,
+        adDuration: 30,
+        adsToWatch: 1,
+    },
+    {
+        id: 'task-4',
+        title: 'Inactive Task Example',
+        description: 'This task is currently not available.',
+        type: 'watch_ad',
+        rewardType: 'coins',
+        rewardAmount: 20,
+        frequency: 'daily',
+        adId: 'ad-1',
+        isActive: false,
+        adDuration: 10,
+        adsToWatch: 1,
+    }
 ];

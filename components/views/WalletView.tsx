@@ -1,11 +1,13 @@
 import React from 'react';
 import { User, WalletTransaction, CoinPack } from '../../types';
-import { ChevronLeftIcon, CoinIcon, PlusCircleIcon, GiftIcon, StarIcon } from '../icons/Icons';
+import { ChevronLeftIcon, CoinIcon, PlusCircleIcon, GiftIcon, StarIcon, TasksIcon, ChevronRightIcon } from '../icons/Icons';
 import { useCurrency } from '../../contexts/CurrencyContext';
+import { View } from '../../App';
 
 interface WalletViewProps {
   user: User;
   onBack: () => void;
+  onNavigate: (view: View) => void;
   onNavigateToPurchase: (pack: CoinPack) => void;
   coinPacks: CoinPack[];
 }
@@ -20,13 +22,15 @@ const TransactionIcon: React.FC<{ type: WalletTransaction['type'] }> = ({ type }
             return <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center text-xl">💸</div>;
         case 'reward':
             return <div className="w-10 h-10 rounded-full bg-yellow-500/20 flex items-center justify-center"><StarIcon className="w-5 h-5 text-yellow-400"/></div>;
+        case 'task':
+            return <div className="w-10 h-10 rounded-full bg-cyan-500/20 flex items-center justify-center"><TasksIcon className="w-5 h-5 text-cyan-400"/></div>;
         default:
             return null;
     }
 };
 
 const TransactionItem: React.FC<{ transaction: WalletTransaction }> = ({ transaction }) => {
-    const isCredit = transaction.type === 'purchase' || transaction.type === 'gift_received' || transaction.type === 'reward';
+    const isCredit = ['purchase', 'gift_received', 'reward', 'task'].includes(transaction.type);
     const amountColor = isCredit ? 'text-green-400' : 'text-red-400';
     const amountPrefix = isCredit ? '+' : '-';
 
@@ -46,7 +50,7 @@ const TransactionItem: React.FC<{ transaction: WalletTransaction }> = ({ transac
     );
 };
 
-const WalletView: React.FC<WalletViewProps> = ({ user, onBack, onNavigateToPurchase, coinPacks }) => {
+const WalletView: React.FC<WalletViewProps> = ({ user, onBack, onNavigateToPurchase, coinPacks, onNavigate }) => {
   const wallet = user.wallet;
   const formatCurrency = useCurrency();
 
@@ -83,6 +87,23 @@ const WalletView: React.FC<WalletViewProps> = ({ user, onBack, onNavigateToPurch
                 <CoinIcon className="w-8 h-8 mr-2" />
                 <h2 className="text-4xl font-bold">{wallet.balance.toLocaleString()}</h2>
             </div>
+        </div>
+        
+        {/* Tasks Section */}
+        <div className="mb-6">
+            <button 
+                onClick={() => onNavigate('tasks')}
+                className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 p-4 rounded-lg flex justify-between items-center hover:opacity-90 transition-opacity"
+            >
+                <div className="flex items-center gap-3">
+                    <TasksIcon className="w-6 h-6" />
+                    <div>
+                        <p className="font-bold text-left">Daily Tasks</p>
+                        <p className="text-xs text-purple-200 text-left">Earn free coins and XP!</p>
+                    </div>
+                </div>
+                <ChevronRightIcon />
+            </button>
         </div>
         
         {/* Buy Coins Section */}

@@ -26,6 +26,7 @@ export interface User {
   deletionDate?: string;
   commentPrivacySetting?: 'everyone' | 'following' | 'nobody';
   savedPaymentMethods?: SavedPaymentMethod[];
+  completedTasks?: { [taskId: string]: string }; // taskId: ISO timestamp of last completion
 }
 
 export interface Badge {
@@ -117,7 +118,7 @@ export interface Gift {
 
 export interface WalletTransaction {
     id: string;
-    type: 'purchase' | 'gift_received' | 'gift_sent' | 'reward' | 'payout';
+    type: 'purchase' | 'gift_received' | 'gift_sent' | 'reward' | 'payout' | 'task';
     amount: number;
     description: string;
     timestamp: string;
@@ -260,4 +261,22 @@ export interface AdSettings {
     isSkippable: boolean;
     skipDelaySeconds: number;
     adMob?: AdMobSettings;
+}
+
+export interface TaskSettings {
+    isEnabled: boolean;
+}
+
+export interface Task {
+  id: string;
+  title: string;
+  description: string;
+  type: 'watch_ad';
+  rewardType: 'coins' | 'xp';
+  rewardAmount: number;
+  frequency: 'daily' | 'once';
+  adId: string; // Link to an Ad
+  isActive: boolean;
+  adDuration: number; // in seconds
+  adsToWatch: number;
 }

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 // FIX: Added UploadSource to the import list from types.ts to support different upload methods.
-import { User, Video, LiveStream, WalletTransaction, Conversation, ChatMessage, Comment, PayoutRequest, MonetizationSettings, UploadSource, CreatorApplication, CoinPack, SavedPaymentMethod, DailyRewardSettings, Ad, AdSettings } from './types';
-import { mockUser, mockUsers, mockVideos, mockLiveStreams, mockConversations, systemUser, mockPayoutRequests, mockCreatorApplications, mockAds } from './services/mockApi';
+import { User, Video, LiveStream, WalletTransaction, Conversation, ChatMessage, Comment, PayoutRequest, MonetizationSettings, UploadSource, CreatorApplication, CoinPack, SavedPaymentMethod, DailyRewardSettings, Ad, AdSettings, Task, TaskSettings } from './types';
+import { mockUser, mockUsers, mockVideos, mockLiveStreams, mockConversations, systemUser, mockPayoutRequests, mockCreatorApplications, mockAds, mockTasks } from './services/mockApi';
 import { getCurrencyInfoForLocale, CurrencyInfo } from './utils/currency';
 import { CurrencyContext } from './contexts/CurrencyContext';
 
@@ -37,8 +37,10 @@ import AddPaymentMethodModal from './components/AddPaymentMethodModal';
 import ProfileVideoFeedModal from './components/ProfileVideoFeedModal';
 import ProfileStatsModal from './components/ProfileStatsModal';
 import LevelInfoModal from './components/LevelInfoModal';
+import TasksView from './components/views/TasksView';
+import WatchAdModal from './components/WatchAdModal';
 
-export type View = 'feed' | 'live' | 'inbox' | 'profile' | 'wallet' | 'settings' | 'purchase' | 'admin' | 'creatorDashboard' | 'manageAccount' | 'changePassword' | 'helpCenter' | 'termsOfService' | 'becomeCreator' | 'paymentMethods';
+export type View = 'feed' | 'live' | 'inbox' | 'profile' | 'wallet' | 'settings' | 'purchase' | 'admin' | 'creatorDashboard' | 'manageAccount' | 'changePassword' | 'helpCenter' | 'termsOfService' | 'becomeCreator' | 'paymentMethods' | 'tasks';
 
 const API_URL = 'https://vidora-3dvn.onrender.com/api/v1';
 
@@ -95,6 +97,10 @@ const defaultAdSettings: AdSettings = {
     }
 };
 
+const defaultTaskSettings: TaskSettings = {
+    isEnabled: true,
+};
+
 
 const App: React.FC = () => {
     const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -124,6 +130,7 @@ const App: React.FC = () => {
     const [isApplyCreatorModalOpen, setIsApplyCreatorModalOpen] = useState(false);
     const [isAddPaymentMethodModalOpen, setIsAddPaymentMethodModalOpen] = useState(false);
     const [isLevelInfoModalOpen, setIsLevelInfoModalOpen] = useState(false);
+    const [taskToWatch, setTaskToWatch] = useState<Task | null>(null);
     const [activeVideoForComments, setActiveVideoForComments] = useState<Video | null>(null);
     const [viewedProfileUser, setViewedProfileUser] = useState<User | null>(null);
     const [openGoLiveOnNavigate, setOpenGoLiveOnNavigate] = useState(false);
@@ -223,6 +230,26 @@ const App: React.FC = () => {
         }
     });
 
+    const [tasks, setTasks] = useState<Task[]>(() => {
+        try {
+            const saved = localStorage.getItem('tasks');
+            return saved ? JSON.parse(saved) : mockTasks;
+        } catch (error) {
+            console.error("Could not parse tasks from localStorage", error);
+            return mockTasks;
+        }
+    });
+
+    const [taskSettings, setTaskSettings] = useState<TaskSettings>(() => {
+        try {
+            const saved = localStorage.getItem('taskSettings');
+            return saved ? { ...defaultTaskSettings, ...JSON.parse(saved) } : defaultTaskSettings;
+        } catch (error) {
+            console.error("Could not parse task settings from localStorage", error);
+            return defaultTaskSettings;
+        }
+    });
+
     useEffect(() => {
         const loggedIn = sessionStorage.getItem('isLoggedIn') === 'true';
         if (loggedIn) {
@@ -286,6 +313,22 @@ const App: React.FC = () => {
             console.error("Could not save ad settings to localStorage", error);
         }
     }, [adSettings]);
+
+    useEffect(() => {
+        try {
+            localStorage.setItem('tasks', JSON.stringify(tasks));
+        } catch (error) {
+            console.error("Could not save tasks to localStorage", error);
+        }
+    }, [tasks]);
+
+    useEffect(() => {
+        try {
+            localStorage.setItem('taskSettings', JSON.stringify(taskSettings));
+        } catch (error) {
+            console.error("Could not save task settings to localStorage", error);
+        }
+    }, [taskSettings]);
 
 
     const handleLogin = () => {
@@ -615,6 +658,47 @@ const App: React.FC = () => {
         handleNavigate('wallet');
     };
 
+    const handleStartTask = (task: Task) => {
+        setTaskToWatch(task);
+    };
+
+    const handleCompleteTask = (task: Task) => {
+        if (!currentUser || !currentUser.wallet) return;
+
+        let updatedUser = { ...currentUser };
+        const rewardAmount = task.rewardAmount;
+
+        if (task.rewardType === 'coins') {
+            const newTransaction: WalletTransaction = {
+                id: `tx-task-${Date.now()}`,
+                type: 'task',
+                amount: rewardAmount,
+                description: `Reward for: ${task.title}`,
+                timestamp: new Date().toISOString(),
+            };
+            updatedUser.wallet = {
+                ...updatedUser.wallet,
+                balance: updatedUser.wallet.balance + rewardAmount,
+                transactions: [newTransaction, ...(updatedUser.wallet.transactions || [])]
+            };
+        } else if (task.rewardType === 'xp') {
+            updatedUser.xp = (updatedUser.xp || 0) + rewardAmount;
+        }
+
+        updatedUser.completedTasks = {
+            ...updatedUser.completedTasks,
+            [task.id]: new Date().toISOString(),
+        };
+
+        setCurrentUser(updatedUser);
+        setTaskToWatch(null);
+        showSuccessToast(`+${rewardAmount} ${task.rewardType} earned!`);
+        
+        // Send a confirmation message to the user's inbox
+        const confirmationMessage = `You completed the task '${task.title}' and earned ${rewardAmount} ${task.rewardType}!`;
+        sendSystemMessage(currentUser.id, confirmationMessage);
+    };
+
     const handleSelectConversation = (conversationId: string) => {
         setSelectedConversationId(conversationId);
     };
@@ -708,10 +792,12 @@ const App: React.FC = () => {
         
         setConversations(prev => {
             let convoExists = false;
+            let targetConvo: Conversation | undefined;
+
             const updatedConvos = prev.map(c => {
                 if (c.user.id === targetUserId) {
                     convoExists = true;
-                    return {
+                    targetConvo = {
                         ...c,
                         messages: [...c.messages, newMessage],
                         lastMessage: {
@@ -721,12 +807,15 @@ const App: React.FC = () => {
                             senderId: newMessage.senderId,
                         }
                     };
+                    return targetConvo;
                 }
                 return c;
             });
 
-            if (convoExists) {
-                return updatedConvos;
+            if (convoExists && targetConvo) {
+                // Move the updated conversation to the top of the list
+                const otherConvos = updatedConvos.filter(c => c.id !== targetConvo!.id);
+                return [targetConvo, ...otherConvos];
             } else {
                 const newConvo: Conversation = {
                     id: `convo-system-${targetUserId}`,
@@ -977,6 +1066,10 @@ const App: React.FC = () => {
                     setAds={setAds}
                     adSettings={adSettings}
                     setAdSettings={setAdSettings}
+                    tasks={tasks}
+                    setTasks={setTasks}
+                    taskSettings={taskSettings}
+                    setTaskSettings={setTaskSettings}
                 />
             </CurrencyContext.Provider>
         );
@@ -1051,7 +1144,7 @@ const App: React.FC = () => {
                             onOpenLevelInfo={handleOpenLevelInfoModal}
                         />;
             case 'wallet':
-                return <WalletView user={currentUser} onBack={() => handleNavigate('profile')} onNavigateToPurchase={handleNavigateToPurchase} coinPacks={coinPacks} />;
+                return <WalletView user={currentUser} onBack={() => handleNavigate('profile')} onNavigateToPurchase={handleNavigateToPurchase} coinPacks={coinPacks} onNavigate={handleNavigate} />;
             case 'settings':
                 return <SettingsView 
                             onBack={() => handleNavigate('profile')} 
@@ -1102,10 +1195,20 @@ const App: React.FC = () => {
                             onAddMethod={() => setIsAddPaymentMethodModalOpen(true)}
                             onRemoveMethod={handleRemovePaymentMethod}
                         />;
+            case 'tasks':
+                return <TasksView 
+                            user={currentUser} 
+                            tasks={tasks} 
+                            taskSettings={taskSettings} 
+                            onBack={() => handleNavigate('wallet')} 
+                            onStartTask={handleStartTask}
+                        />
             default:
                 return <FeedView videos={videos} currentUser={currentUser} onOpenComments={handleOpenComments} setIsNavVisible={setIsNavVisible} onToggleFollow={handleToggleFollow} onShareVideo={handleShareVideo} onViewProfile={handleViewProfile} adSettings={adSettings} interstitialAds={[]} bannerAds={[]} />;
         }
     };
+
+    const adForTask = taskToWatch ? ads.find(ad => ad.id === taskToWatch.adId) : null;
 
     return (
         <CurrencyContext.Provider value={formatWithConversion}>
@@ -1216,6 +1319,14 @@ const App: React.FC = () => {
                     <LevelInfoModal
                         user={currentUser}
                         onClose={handleCloseLevelInfoModal}
+                    />
+                )}
+                {taskToWatch && adForTask && (
+                    <WatchAdModal 
+                        task={taskToWatch}
+                        ad={adForTask}
+                        onClose={() => setTaskToWatch(null)}
+                        onComplete={handleCompleteTask}
                     />
                 )}
             </div>

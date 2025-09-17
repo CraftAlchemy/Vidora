@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MonetizationSettings, PaymentProvider, CoinPack, DailyRewardSettings, AdSettings, AdMobSettings } from '../../types';
+import { MonetizationSettings, PaymentProvider, CoinPack, DailyRewardSettings, AdSettings, AdMobSettings, TaskSettings } from '../../types';
 import { TrashIcon, PlusCircleIcon, PencilIcon, CheckCircleIcon } from '../icons/Icons';
 
 interface NotificationTemplates {
@@ -26,6 +26,8 @@ interface AdminSettingsViewProps {
     onSetDailyRewardSettings: React.Dispatch<React.SetStateAction<DailyRewardSettings>>;
     adSettings: AdSettings;
     onSetAdSettings: React.Dispatch<React.SetStateAction<AdSettings>>;
+    taskSettings: TaskSettings;
+    onSetTaskSettings: React.Dispatch<React.SetStateAction<TaskSettings>>;
 }
 
 
@@ -178,11 +180,13 @@ const AdminSettingsView: React.FC<AdminSettingsViewProps> = ({
     coinPacks, setCoinPacks,
     dailyRewardSettings, onSetDailyRewardSettings,
     adSettings, onSetAdSettings,
+    taskSettings, onSetTaskSettings
  }) => {
 
     const [localMonetizationSettings, setLocalMonetizationSettings] = useState(monetizationSettings);
     const [localDailyRewardSettings, setLocalDailyRewardSettings] = useState(dailyRewardSettings);
     const [localAdSettings, setLocalAdSettings] = useState(adSettings);
+    const [localTaskSettings, setLocalTaskSettings] = useState(taskSettings);
     const [newPaymentProviderName, setNewPaymentProviderName] = useState('');
 
     const handleMonetizationChange = (field: keyof Omit<MonetizationSettings, 'paymentProviders' | 'creatorCriteria'>, value: string | number) => {
@@ -293,6 +297,11 @@ const AdminSettingsView: React.FC<AdminSettingsViewProps> = ({
         showSuccessToast('Advertisement settings saved!');
     };
 
+    const handleSaveTaskSettings = () => {
+        onSetTaskSettings(localTaskSettings);
+        showSuccessToast('Task System settings saved!');
+    };
+
 
     return (
         <div className="space-y-6">
@@ -320,6 +329,29 @@ const AdminSettingsView: React.FC<AdminSettingsViewProps> = ({
                 </div>
             </SettingsCard>
 
+            <SettingsCard
+                title="Task System"
+                description="Manage the user task and reward system."
+            >
+                <div className="space-y-6">
+                    <div className="flex items-center justify-between">
+                        <label htmlFor="enableTasks" className="font-medium">Enable Task System</label>
+                        <ToggleSwitch
+                            isEnabled={localTaskSettings.isEnabled}
+                            onToggle={() => setLocalTaskSettings(prev => ({ ...prev, isEnabled: !prev.isEnabled }))}
+                        />
+                    </div>
+                </div>
+                 <div className="mt-6 flex justify-end">
+                    <button
+                        onClick={handleSaveTaskSettings}
+                        className="px-4 py-2 text-sm font-semibold bg-pink-600 text-white rounded-md hover:bg-pink-700 transition-colors"
+                    >
+                        Save Task Settings
+                    </button>
+                </div>
+            </SettingsCard>
+            
             <SettingsCard
                 title="Advertisement System"
                 description="Manage how ads are displayed across the application."
