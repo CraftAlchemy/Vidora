@@ -254,5 +254,7 @@ export interface AdMobSettings {
 export interface AdSettings {
     isEnabled: boolean;
     interstitialFrequency: number; // Show an ad every N videos
+    isSkippable: boolean;
+    skipDelaySeconds: number;
     adMob?: AdMobSettings;
 }

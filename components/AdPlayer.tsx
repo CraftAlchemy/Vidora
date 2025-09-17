@@ -1,14 +1,17 @@
 
+
 import React, { useRef, useEffect, useState } from 'react';
-import { Ad } from '../types';
+import { Ad, AdSettings } from '../types';
 import { PlayIcon, VolumeUpIcon, VolumeOffIcon, ShareIcon, FullScreenIcon } from './icons/Icons';
 
 interface AdPlayerProps {
     ad: Ad;
     isActive: boolean;
+    adSettings: AdSettings;
+    onSkip: () => void;
 }
 
-const AdPlayer: React.FC<AdPlayerProps> = ({ ad, isActive }) => {
+const AdPlayer: React.FC<AdPlayerProps> = ({ ad, isActive, adSettings, onSkip }) => {
     const videoRef = useRef<HTMLVideoElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const [isPlaying, setIsPlaying] = useState(false);
@@ -18,6 +21,7 @@ const AdPlayer: React.FC<AdPlayerProps> = ({ ad, isActive }) => {
     const volumeSliderTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
     const [isFullScreen, setIsFullScreen] = useState(false);
     const [isSharing, setIsSharing] = useState(false);
+    const [canSkip, setCanSkip] = useState(false);
 
     useEffect(() => {
         if (isActive) {
@@ -48,6 +52,17 @@ const AdPlayer: React.FC<AdPlayerProps> = ({ ad, isActive }) => {
         document.addEventListener('fullscreenchange', handleFullScreenChange);
         return () => document.removeEventListener('fullscreenchange', handleFullScreenChange);
     }, []);
+
+    useEffect(() => {
+        setCanSkip(false);
+        if (isActive && adSettings.isSkippable) {
+            const timer = setTimeout(() => {
+                setCanSkip(true);
+            }, adSettings.skipDelaySeconds * 1000);
+            return () => clearTimeout(timer);
+        }
+    }, [isActive, adSettings.isSkippable, adSettings.skipDelaySeconds, ad.id]);
+
 
     const togglePlay = () => {
         if (videoRef.current) {
@@ -130,7 +145,8 @@ const AdPlayer: React.FC<AdPlayerProps> = ({ ad, isActive }) => {
             <video
                 ref={videoRef}
                 src={ad.content.videoUrl}
-                loop
+                loop={!adSettings.isSkippable}
+                onEnded={onSkip}
                 playsInline
                 className="w-full h-full object-cover"
                 onClick={togglePlay}
@@ -139,6 +155,15 @@ const AdPlayer: React.FC<AdPlayerProps> = ({ ad, isActive }) => {
             <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent pointer-events-none"></div>
 
             <div className="absolute top-4 left-4 bg-black/50 text-white text-xs font-bold px-2 py-1 rounded-md">Sponsored</div>
+            
+            {adSettings.isSkippable && canSkip && (
+                <button
+                    onClick={(e) => { e.stopPropagation(); onSkip(); }}
+                    className="absolute top-16 right-4 bg-black/50 text-white text-sm font-semibold px-4 py-2 rounded-full backdrop-blur-sm animate-fade-in-up pointer-events-auto"
+                >
+                    Skip Ad
+                </button>
+            )}
 
             <div className="absolute right-2 bottom-48 flex items-end space-x-2 text-white pointer-events-auto">
                 {showVolumeSlider && (

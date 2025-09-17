@@ -36,14 +36,14 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ video, isActive, onOpenCommen
   const tapTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastTap = useRef(0);
 
-  const [currentQuality, setCurrentQuality] = useState(video.videoSources[0].quality);
+  const [currentQuality, setCurrentQuality] = useState(video.videoSources[0]?.quality || 'Auto');
   const [isQualityMenuOpen, setIsQualityMenuOpen] = useState(false);
 
   const isFollowing = currentUser.followingIds?.includes(video.user.id);
   const isOwnProfile = currentUser.id === video.user.id;
   
-  const videoUrl = video.videoSources.find(s => s.quality === currentQuality)?.url || video.videoSources[0].url;
-  const embedUrl = useMemo(() => getYouTubeEmbedUrl(videoUrl, isMuted), [videoUrl, isMuted]);
+  const videoUrl = video.videoSources.find(s => s.quality === currentQuality)?.url || video.videoSources[0]?.url;
+  const embedUrl = useMemo(() => videoUrl ? getYouTubeEmbedUrl(videoUrl, isMuted) : null, [videoUrl, isMuted]);
 
   useEffect(() => {
     if (embedUrl) {
@@ -217,25 +217,39 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ video, isActive, onOpenCommen
     if (videoRef.current) {
         const currentTime = videoRef.current.currentTime;
         const wasPlaying = !videoRef.current.paused;
+        const newSource = video.videoSources.find(s => s.quality === quality)?.url;
 
-        videoRef.current.src = video.videoSources.find(s => s.quality === quality)?.url || '';
-        videoRef.current.load();
-
-        const onLoaded = () => {
-            if (videoRef.current) {
-                videoRef.current.currentTime = currentTime;
-                if (wasPlaying) {
-                    videoRef.current.play();
+        if (newSource) {
+            videoRef.current.src = newSource;
+            videoRef.current.load();
+    
+            const onLoaded = () => {
+                if (videoRef.current) {
+                    videoRef.current.currentTime = currentTime;
+                    if (wasPlaying) {
+                        videoRef.current.play();
+                    }
+                    videoRef.current.removeEventListener('loadedmetadata', onLoaded);
                 }
-                videoRef.current.removeEventListener('loadedmetadata', onLoaded);
-            }
-        };
-
-        videoRef.current.addEventListener('loadedmetadata', onLoaded);
+            };
+    
+            videoRef.current.addEventListener('loadedmetadata', onLoaded);
+        }
     }
     setCurrentQuality(quality);
     setIsQualityMenuOpen(false);
   };
+
+  if (!videoUrl) {
+    return (
+        <div className="relative w-full h-full snap-start bg-black flex items-center justify-center text-center p-4" data-video-id={video.id}>
+            <div className="bg-red-900/50 border border-red-500/50 p-4 rounded-lg">
+                <p className="font-bold text-red-400">Video Error</p>
+                <p className="text-sm text-red-300 mt-1">Video source is missing or invalid.</p>
+            </div>
+        </div>
+    );
+  }
 
   return (
     <div ref={containerRef} className="relative w-full h-full snap-start" data-video-id={video.id} onClick={handleClickOnVideo}>

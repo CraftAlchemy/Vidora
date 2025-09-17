@@ -1,4 +1,5 @@
 
+
 import React, { useRef, useEffect, useCallback, useState, useMemo } from 'react';
 import { Video, User, Ad, AdSettings } from '../../types';
 import VideoPlayer from '../VideoPlayer';
@@ -50,6 +51,19 @@ const FeedView: React.FC<FeedViewProps> = ({
   const [fullScreenVideoId, setFullScreenVideoId] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const lastScrollY = useRef(0);
+
+  const handleSkipAd = useCallback(() => {
+    if (!containerRef.current || !activeItemId) return;
+    
+    const currentIndex = feedItems.findIndex(item => item.id === activeItemId);
+    
+    if (currentIndex !== -1 && currentIndex < feedItems.length - 1) {
+      const nextItemElement = containerRef.current.children[currentIndex + 1] as HTMLElement;
+      if (nextItemElement) {
+        nextItemElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+  }, [activeItemId, feedItems]);
   
   useEffect(() => {
     const handleFullScreenChange = () => {
@@ -137,7 +151,13 @@ const FeedView: React.FC<FeedViewProps> = ({
               />
             );
           } else { // It's an Ad
-            return <AdPlayer key={item.id} ad={item} isActive={isActive} />;
+            return <AdPlayer 
+                    key={item.id} 
+                    ad={item} 
+                    isActive={isActive} 
+                    adSettings={adSettings}
+                    onSkip={handleSkipAd}
+                   />;
           }
         })}
       </div>

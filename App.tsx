@@ -85,6 +85,8 @@ const defaultDailyRewardSettings: DailyRewardSettings = {
 const defaultAdSettings: AdSettings = {
     isEnabled: true,
     interstitialFrequency: 5,
+    isSkippable: true,
+    skipDelaySeconds: 5,
     adMob: {
         isEnabled: false,
         appId: '',
@@ -201,7 +203,7 @@ const App: React.FC = () => {
             const saved = localStorage.getItem('adSettings');
             if (saved) {
                 const loaded = JSON.parse(saved);
-                 // Deep merge to ensure adMob property exists if loading from older storage
+                 // Deep merge to ensure all properties exist if loading from older storage
                 return {
                     ...defaultAdSettings,
                     ...loaded,

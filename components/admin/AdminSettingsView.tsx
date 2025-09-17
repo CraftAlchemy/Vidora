@@ -325,24 +325,50 @@ const AdminSettingsView: React.FC<AdminSettingsViewProps> = ({
                 description="Manage how ads are displayed across the application."
             >
                 <div className="space-y-6">
-                    <div className="flex items-center justify-between">
-                        <label htmlFor="enableAds" className="font-medium">Enable Internal Ad System</label>
-                        <ToggleSwitch
-                            isEnabled={localAdSettings.isEnabled}
-                            onToggle={() => handleAdSettingsChange('isEnabled', !localAdSettings.isEnabled)}
-                        />
-                    </div>
                     <div>
-                        <label htmlFor="interstitialFrequency" className="block text-sm font-medium mb-1">Internal Interstitial Ad Frequency</label>
-                        <input
-                            id="interstitialFrequency" type="number"
-                            value={localAdSettings.interstitialFrequency}
-                            onChange={(e) => handleAdSettingsChange('interstitialFrequency', parseInt(e.target.value) || 0)}
-                            className="w-full p-2 bg-gray-200 dark:bg-zinc-700 rounded-md"
-                        />
-                         <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                            Show an internal full-screen video ad in the main feed every N videos.
-                        </p>
+                        <div className="flex items-center justify-between">
+                            <label htmlFor="enableAds" className="font-medium">Enable Internal Ad System</label>
+                            <ToggleSwitch
+                                isEnabled={localAdSettings.isEnabled}
+                                onToggle={() => handleAdSettingsChange('isEnabled', !localAdSettings.isEnabled)}
+                            />
+                        </div>
+                        <div className="mt-4">
+                            <label htmlFor="interstitialFrequency" className="block text-sm font-medium mb-1">Internal Interstitial Ad Frequency</label>
+                            <input
+                                id="interstitialFrequency" type="number"
+                                value={localAdSettings.interstitialFrequency}
+                                onChange={(e) => handleAdSettingsChange('interstitialFrequency', parseInt(e.target.value) || 0)}
+                                className="w-full p-2 bg-gray-200 dark:bg-zinc-700 rounded-md"
+                            />
+                             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                Show an internal full-screen video ad in the main feed every N videos.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="mt-6 pt-6 border-t border-gray-200 dark:border-zinc-700">
+                        <div className="flex items-center justify-between">
+                            <label htmlFor="enableSkippable" className="font-medium">Enable Skippable Interstitial Ads</label>
+                            <ToggleSwitch
+                                isEnabled={localAdSettings.isSkippable}
+                                onToggle={() => handleAdSettingsChange('isSkippable', !localAdSettings.isSkippable)}
+                            />
+                        </div>
+                        {localAdSettings.isSkippable && (
+                            <div className="mt-4 animate-fade-in-up">
+                                <label htmlFor="skipDelay" className="block text-sm font-medium mb-1">Skip Ad Delay (seconds)</label>
+                                <input
+                                    id="skipDelay" type="number"
+                                    value={localAdSettings.skipDelaySeconds}
+                                    onChange={(e) => handleAdSettingsChange('skipDelaySeconds', parseInt(e.target.value) || 0)}
+                                    className="w-full p-2 bg-gray-200 dark:bg-zinc-700 rounded-md"
+                                />
+                                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                    How long a user must watch before the 'Skip' button appears.
+                                </p>
+                            </div>
+                        )}
                     </div>
 
                     <div className="mt-6 pt-6 border-t border-gray-200 dark:border-zinc-700">
