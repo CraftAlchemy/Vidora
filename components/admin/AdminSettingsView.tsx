@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MonetizationSettings, PaymentProvider, CoinPack, DailyRewardSettings, AdSettings } from '../../types';
+import { MonetizationSettings, PaymentProvider, CoinPack, DailyRewardSettings, AdSettings, AdMobSettings } from '../../types';
 import { TrashIcon, PlusCircleIcon, PencilIcon, CheckCircleIcon } from '../icons/Icons';
 
 interface NotificationTemplates {
@@ -273,6 +273,21 @@ const AdminSettingsView: React.FC<AdminSettingsViewProps> = ({
         setLocalAdSettings(prev => ({ ...prev, [field]: value }));
     };
 
+    const handleAdMobSettingsChange = (field: keyof AdMobSettings, value: string | boolean) => {
+        setLocalAdSettings(prev => ({
+            ...prev,
+            adMob: {
+                isEnabled: prev.adMob?.isEnabled ?? false,
+                appId: prev.adMob?.appId ?? '',
+                bannerAdUnitId: prev.adMob?.bannerAdUnitId ?? '',
+                interstitialAdUnitId: prev.adMob?.interstitialAdUnitId ?? '',
+                rewardedAdUnitId: prev.adMob?.rewardedAdUnitId ?? '',
+                ...prev.adMob,
+                [field]: value,
+            }
+        }));
+    };
+
     const handleSaveAdSettings = () => {
         onSetAdSettings(localAdSettings);
         showSuccessToast('Advertisement settings saved!');
@@ -311,14 +326,14 @@ const AdminSettingsView: React.FC<AdminSettingsViewProps> = ({
             >
                 <div className="space-y-6">
                     <div className="flex items-center justify-between">
-                        <label htmlFor="enableAds" className="font-medium">Enable Ad System</label>
+                        <label htmlFor="enableAds" className="font-medium">Enable Internal Ad System</label>
                         <ToggleSwitch
                             isEnabled={localAdSettings.isEnabled}
                             onToggle={() => handleAdSettingsChange('isEnabled', !localAdSettings.isEnabled)}
                         />
                     </div>
                     <div>
-                        <label htmlFor="interstitialFrequency" className="block text-sm font-medium mb-1">Interstitial Ad Frequency</label>
+                        <label htmlFor="interstitialFrequency" className="block text-sm font-medium mb-1">Internal Interstitial Ad Frequency</label>
                         <input
                             id="interstitialFrequency" type="number"
                             value={localAdSettings.interstitialFrequency}
@@ -326,8 +341,66 @@ const AdminSettingsView: React.FC<AdminSettingsViewProps> = ({
                             className="w-full p-2 bg-gray-200 dark:bg-zinc-700 rounded-md"
                         />
                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                            Show a full-screen video ad in the main feed every N videos.
+                            Show an internal full-screen video ad in the main feed every N videos.
                         </p>
+                    </div>
+
+                    <div className="mt-6 pt-6 border-t border-gray-200 dark:border-zinc-700">
+                        <div className="flex items-center justify-between">
+                            <label htmlFor="enableAdMob" className="font-medium">Enable AdMob Integration</label>
+                            <ToggleSwitch
+                                isEnabled={localAdSettings.adMob?.isEnabled ?? false}
+                                onToggle={() => handleAdMobSettingsChange('isEnabled', !localAdSettings.adMob?.isEnabled)}
+                            />
+                        </div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            When enabled, the app will use AdMob instead of the internal ad system.
+                        </p>
+
+                        {localAdSettings.adMob?.isEnabled && (
+                            <div className="mt-4 space-y-4 animate-fade-in-up">
+                                <div>
+                                    <label htmlFor="admobAppId" className="block text-sm font-medium mb-1">AdMob App ID</label>
+                                    <input
+                                        id="admobAppId" type="text"
+                                        value={localAdSettings.adMob?.appId || ''}
+                                        onChange={(e) => handleAdMobSettingsChange('appId', e.target.value)}
+                                        placeholder="ca-app-pub-..."
+                                        className="w-full p-2 bg-gray-200 dark:bg-zinc-700 rounded-md"
+                                    />
+                                </div>
+                                <div>
+                                    <label htmlFor="admobBannerId" className="block text-sm font-medium mb-1">Banner Ad Unit ID</label>
+                                    <input
+                                        id="admobBannerId" type="text"
+                                        value={localAdSettings.adMob?.bannerAdUnitId || ''}
+                                        onChange={(e) => handleAdMobSettingsChange('bannerAdUnitId', e.target.value)}
+                                        placeholder="ca-app-pub-..."
+                                        className="w-full p-2 bg-gray-200 dark:bg-zinc-700 rounded-md"
+                                    />
+                                </div>
+                                <div>
+                                    <label htmlFor="admobInterstitialId" className="block text-sm font-medium mb-1">Interstitial Ad Unit ID</label>
+                                    <input
+                                        id="admobInterstitialId" type="text"
+                                        value={localAdSettings.adMob?.interstitialAdUnitId || ''}
+                                        onChange={(e) => handleAdMobSettingsChange('interstitialAdUnitId', e.target.value)}
+                                        placeholder="ca-app-pub-..."
+                                        className="w-full p-2 bg-gray-200 dark:bg-zinc-700 rounded-md"
+                                    />
+                                </div>
+                                <div>
+                                    <label htmlFor="admobRewardedId" className="block text-sm font-medium mb-1">Rewarded Ad Unit ID</label>
+                                    <input
+                                        id="admobRewardedId" type="text"
+                                        value={localAdSettings.adMob?.rewardedAdUnitId || ''}
+                                        onChange={(e) => handleAdMobSettingsChange('rewardedAdUnitId', e.target.value)}
+                                        placeholder="ca-app-pub-..."
+                                        className="w-full p-2 bg-gray-200 dark:bg-zinc-700 rounded-md"
+                                    />
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
                  <div className="mt-6 flex justify-end">

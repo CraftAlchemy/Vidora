@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { User, Video, Report, PayoutRequest, Gift, MonetizationSettings, CreatorApplication, CoinPack, DailyRewardSettings, Ad, AdSettings } from '../types';
 import { mockUsers, mockVideos, mockReports, mockPayoutRequests, mockGifts, mockAds } from '../services/mockApi';
-import { DashboardIcon, UsersIcon, VideoIcon, ShieldCheckIcon, DollarSignIcon, GiftIcon, RestoreIcon, SettingsIcon, LogOutIcon, SunIcon, MoonIcon, ProfileIcon, StarIcon, MegaphoneIcon } from './icons/Icons';
+import { DashboardIcon, UsersIcon, VideoIcon, ShieldCheckIcon, DollarSignIcon, GiftIcon, RestoreIcon, SettingsIcon, LogOutIcon, ProfileIcon, StarIcon, MegaphoneIcon } from './icons/Icons';
 import DashboardView from './admin/DashboardView';
 import UserManagementView from './admin/UserManagementView';
 import ContentManagementView from './admin/ContentManagementView';
@@ -46,13 +46,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement>(null);
 
-  // Theme State
-  const [isDarkMode, setIsDarkMode] = useState(() => {
-    if (localStorage.theme === 'dark') return true;
-    if (localStorage.theme === 'light') return false;
-    return window.matchMedia('(prefers-color-scheme: dark)').matches;
-  });
-
   // Sidebar Layout State
   const [sidebarPosition, setSidebarPosition] = useState<'left' | 'right'>(() => {
     return (localStorage.getItem('sidebarPosition') as 'left' | 'right') || 'left';
@@ -84,14 +77,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   });
 
   useEffect(() => {
-    if (isDarkMode) {
-      document.documentElement.classList.add('dark');
-      localStorage.theme = 'dark';
-    } else {
-      document.documentElement.classList.remove('dark');
-      localStorage.theme = 'light';
-    }
-  }, [isDarkMode]);
+    document.documentElement.classList.add('dark');
+  }, []);
   
   useEffect(() => {
     localStorage.setItem('sidebarPosition', sidebarPosition);
@@ -416,7 +403,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   const animationClass = isAnimating ? 'animate-fade-out-fast' : 'animate-fade-in-fast';
 
   return (
-    <div className={`flex h-screen bg-gray-100 dark:bg-zinc-900 text-gray-800 dark:text-white ${isDarkMode ? 'dark' : ''} ${sidebarPosition === 'right' ? 'flex-row-reverse' : ''}`}>
+    <div className={`flex h-screen bg-gray-100 dark:bg-zinc-900 text-gray-800 dark:text-white dark ${sidebarPosition === 'right' ? 'flex-row-reverse' : ''}`}>
       {/* Sidebar */}
       <aside className={`bg-gray-800 dark:bg-black text-white flex flex-col transition-all duration-300 ${sidebarLayout === 'responsive' ? 'w-20 lg:w-64' : 'w-64'} shrink-0 ${animationClass}`}>
         <div className="flex items-center justify-center h-16 border-b border-zinc-800 shrink-0">
@@ -446,14 +433,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
             <LogOutIcon />
             <span className={`ml-3 ${sidebarLayout === 'responsive' ? 'hidden lg:inline' : ''}`}>Exit</span>
           </button>
-           <button 
-            onClick={() => setIsDarkMode(!isDarkMode)} 
-            title="Toggle Theme"
-            className="flex items-center justify-center lg:justify-start w-full p-3 my-1 rounded-lg transition-colors text-sm text-gray-300 hover:bg-zinc-700"
-           >
-                {isDarkMode ? <SunIcon /> : <MoonIcon />}
-                <span className={`ml-3 ${sidebarLayout === 'responsive' ? 'hidden lg:inline' : ''}`}>{isDarkMode ? 'Light Mode' : 'Dark Mode'}</span>
-            </button>
         </div>
       </aside>
 

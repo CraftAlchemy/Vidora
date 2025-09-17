@@ -1,6 +1,7 @@
 
 
 
+
 import React, { useState, useEffect } from 'react';
 // FIX: Added UploadSource to the import list from types.ts to support different upload methods.
 import { User, Video, LiveStream, WalletTransaction, Conversation, ChatMessage, Comment, PayoutRequest, MonetizationSettings, UploadSource, CreatorApplication, CoinPack, SavedPaymentMethod, DailyRewardSettings, Ad, AdSettings } from './types';
@@ -84,6 +85,13 @@ const defaultDailyRewardSettings: DailyRewardSettings = {
 const defaultAdSettings: AdSettings = {
     isEnabled: true,
     interstitialFrequency: 5,
+    adMob: {
+        isEnabled: false,
+        appId: '',
+        bannerAdUnitId: '',
+        interstitialAdUnitId: '',
+        rewardedAdUnitId: '',
+    }
 };
 
 
@@ -191,7 +199,19 @@ const App: React.FC = () => {
     const [adSettings, setAdSettings] = useState<AdSettings>(() => {
         try {
             const saved = localStorage.getItem('adSettings');
-            return saved ? JSON.parse(saved) : defaultAdSettings;
+            if (saved) {
+                const loaded = JSON.parse(saved);
+                 // Deep merge to ensure adMob property exists if loading from older storage
+                return {
+                    ...defaultAdSettings,
+                    ...loaded,
+                    adMob: {
+                        ...defaultAdSettings.adMob,
+                        ...(loaded.adMob || {}),
+                    }
+                };
+            }
+            return defaultAdSettings;
         } catch (error) {
             console.error("Could not parse ad settings from localStorage", error);
             return defaultAdSettings;
@@ -932,7 +952,7 @@ const App: React.FC = () => {
                     showSuccessToast={showSuccessToast}
                     openGoLiveModal={openGoLiveOnNavigate}
                     onModalOpened={() => setOpenGoLiveOnNavigate(false)}
-                    bannerAds={activeAds.filter(ad => ad.placement === 'live_stream_overlay')}
+                    bannerAds={activeAds.filter(ad => ad.placement === 'live_stream_banner')}
                 />;
             case 'inbox': {
                 if (selectedConversationId) {
@@ -954,6 +974,7 @@ const App: React.FC = () => {
             }
             case 'profile':
                 const userForProfile = viewedProfileUser || currentUser;
+                const profileBannerAd = activeAds.find(ad => ad.placement === 'profile_banner');
                 return <ProfileView 
                             user={userForProfile}
                             currentUser={currentUser}
@@ -964,6 +985,7 @@ const App: React.FC = () => {
                             onBack={viewedProfileUser ? handleBack : undefined}
                             onToggleFollow={handleToggleFollow}
                             onGoLive={handleGoLive}
+                            bannerAd={profileBannerAd}
                         />;
             case 'wallet':
                 return <WalletView user={currentUser} onBack={() => handleNavigate('profile')} onNavigateToPurchase={handleNavigateToPurchase} coinPacks={coinPacks} />;

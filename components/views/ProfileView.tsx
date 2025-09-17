@@ -1,7 +1,9 @@
 
 
+
+
 import React, { useState } from 'react';
-import { User, Video } from '../../types';
+import { User, Video, Ad } from '../../types';
 import { View } from '../../App';
 import { SettingsIcon, GridIcon, CoinIcon, FlameIcon, StarIcon, BadgeIcon, AdminPanelIcon, ChevronLeftIcon, CreatorDashboardIcon, LiveIcon } from '../icons/Icons';
 import { useCurrency } from '../../contexts/CurrencyContext';
@@ -16,6 +18,7 @@ interface ProfileViewProps {
   onBack?: () => void;
   onToggleFollow: (userId: string) => void;
   onGoLive: () => void;
+  bannerAd?: Ad;
 }
 
 const StatItem: React.FC<{ value: string; label: string }> = ({ value, label }) => (
@@ -25,7 +28,25 @@ const StatItem: React.FC<{ value: string; label: string }> = ({ value, label }) 
   </div>
 );
 
-const ProfileView: React.FC<ProfileViewProps> = ({ user, currentUser, isOwnProfile, videos, onNavigate, onEditProfile, onBack, onToggleFollow, onGoLive }) => {
+const ProfileAdBanner: React.FC<{ ad: Ad }> = ({ ad }) => (
+  <a
+    href={ad.content.linkUrl}
+    target="_blank"
+    rel="noopener noreferrer"
+    className="bg-zinc-800 rounded-lg p-3 shadow-lg flex items-center gap-4 relative cursor-pointer hover:bg-zinc-700 transition-colors w-full"
+  >
+    <img src={ad.content.imageUrl!} alt={ad.name} className="w-16 h-16 object-cover rounded-md" />
+    <div className="flex-1 overflow-hidden">
+        <p className="text-xs text-yellow-400">Sponsored</p>
+        <p className="text-sm font-semibold text-white truncate">{ad.name}</p>
+    </div>
+    <span className="bg-pink-600 text-white text-xs font-bold px-3 py-1.5 rounded-md hover:bg-pink-700 transition-colors shrink-0">
+        {ad.ctaText}
+    </span>
+  </a>
+);
+
+const ProfileView: React.FC<ProfileViewProps> = ({ user, currentUser, isOwnProfile, videos, onNavigate, onEditProfile, onBack, onToggleFollow, onGoLive, bannerAd }) => {
   const [activeTab, setActiveTab] = useState<'videos' | 'badges'>('videos');
   const formatCurrency = useCurrency();
   const userVideos = videos.filter(v => v.user.id === user.id);
@@ -117,6 +138,12 @@ const ProfileView: React.FC<ProfileViewProps> = ({ user, currentUser, isOwnProfi
             </>
           )}
         </div>
+
+        {bannerAd && (
+            <div className="px-4 mt-4">
+                <ProfileAdBanner ad={bannerAd} />
+            </div>
+        )}
 
         {isOwnProfile && (user.role === 'creator' || user.role === 'admin') && (
           <div className="px-4 mt-4 grid grid-cols-2 gap-2">

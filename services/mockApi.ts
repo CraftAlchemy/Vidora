@@ -430,7 +430,7 @@ export const mockAds: Ad[] = [
         id: 'ad-3',
         name: 'Vidora Pro Subscription',
         type: 'banner',
-        placement: 'live_stream_overlay',
+        placement: 'live_stream_banner',
         content: {
             imageUrl: 'https://images.pexels.com/photos/3184431/pexels-photo-3184431.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2',
             linkUrl: 'https://example.com/pro',
@@ -449,5 +449,17 @@ export const mockAds: Ad[] = [
         },
         ctaText: 'Shop Now',
         isActive: false,
+    },
+    {
+        id: 'ad-5',
+        name: 'Tech Deals Weekly',
+        type: 'banner',
+        placement: 'profile_banner',
+        content: {
+            imageUrl: 'https://images.pexels.com/photos/1779487/pexels-photo-1779487.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2',
+            linkUrl: 'https://example.com/tech-deals',
+        },
+        ctaText: 'Shop Now',
+        isActive: true,
     },
 ];

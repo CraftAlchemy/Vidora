@@ -233,7 +233,7 @@ export interface Ad {
   id: string;
   name: string;
   type: 'banner' | 'video';
-  placement: 'feed_video_overlay' | 'live_stream_overlay' | 'feed_interstitial';
+  placement: 'feed_video_overlay' | 'live_stream_banner' | 'feed_interstitial' | 'profile_banner';
   content: {
     imageUrl?: string;
     videoUrl?: string;
@@ -243,7 +243,16 @@ export interface Ad {
   isActive: boolean;
 }
 
+export interface AdMobSettings {
+    isEnabled: boolean;
+    appId: string;
+    bannerAdUnitId: string;
+    interstitialAdUnitId: string;
+    rewardedAdUnitId: string;
+}
+
 export interface AdSettings {
     isEnabled: boolean;
     interstitialFrequency: number; // Show an ad every N videos
+    adMob?: AdMobSettings;
 }

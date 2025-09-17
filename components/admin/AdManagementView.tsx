@@ -49,8 +49,10 @@ const AdModal: React.FC<{
         onSave(savedAd);
     };
     
+    // FIX: Corrected the `placementOptions` for banner ads to match the Ad type.
+    // Changed 'live_stream_overlay' to 'live_stream_banner' and added 'profile_banner'.
     const placementOptions: Ad['placement'][] = type === 'banner' 
-        ? ['feed_video_overlay', 'live_stream_overlay'] 
+        ? ['feed_video_overlay', 'live_stream_banner', 'profile_banner']
         : ['feed_interstitial'];
         
     useEffect(() => {
