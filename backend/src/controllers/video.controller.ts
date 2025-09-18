@@ -1,10 +1,12 @@
 // FIX: Imported Request and Response directly from express to resolve type conflicts.
 // FIX: Changed to a default express import to use explicit express.Request/Response types, fixing property access errors.
-import express from 'express';
+// FIX: Explicitly import Request and Response types from express to resolve type conflicts.
+import { Request, Response } from 'express';
 import prisma from '../lib/prisma';
 
 // FIX: Use express.Request and express.Response types to resolve type conflicts.
-export const getFeed = async (req: express.Request, res: express.Response) => {
+// FIX: Use explicit Request and Response types from express.
+export const getFeed = async (req: Request, res: Response) => {
     try {
         const videos = await prisma.video.findMany({
             where: { status: 'approved' },
@@ -19,7 +21,8 @@ export const getFeed = async (req: express.Request, res: express.Response) => {
 };
 
 // FIX: Use express.Request and express.Response types to resolve type conflicts.
-export const uploadVideo = async (req: express.Request, res: express.Response) => {
+// FIX: Use explicit Request and Response types from express.
+export const uploadVideo = async (req: Request, res: Response) => {
     // The frontend sends the URLs after uploading to Cloudinary
     const { description, videoUrl, thumbnailUrl } = req.body;
     // const userId = req.user.id; // From auth middleware
@@ -51,7 +54,8 @@ export const uploadVideo = async (req: express.Request, res: express.Response) =
 };
 
 // FIX: Use express.Request and express.Response types to resolve type conflicts.
-export const addComment = async (req: express.Request, res: express.Response) => {
+// FIX: Use explicit Request and Response types from express.
+export const addComment = async (req: Request, res: Response) => {
     const { videoId } = req.params;
     const { text, userId } = req.body;
 

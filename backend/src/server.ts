@@ -1,7 +1,8 @@
 // FIX: Changed to default express import and used explicit express.Request/Response types to avoid type conflicts with global types.
 // FIX: Imported Request and Response directly from express to resolve type conflicts.
 // FIX: Changed to default express import to resolve type conflicts and errors with app.use and res.send.
-import express from 'express';
+// FIX: Explicitly import Request and Response types from express to resolve type conflicts.
+import express, { Request, Response } from 'express';
 import cors from 'cors';
 import authRoutes from './routes/auth.routes';
 import userRoutes from './routes/user.routes';
@@ -29,7 +30,8 @@ app.use('/api/v1/livestreams', livestreamRoutes);
 app.use('/api/v1/uploads', uploadRoutes);
 
 // FIX: Use express.Request and express.Response types to resolve type conflicts.
-app.get('/', (req: express.Request, res: express.Response) => {
+// FIX: Use explicit Request and Response types from express.
+app.get('/', (req: Request, res: Response) => {
     res.send('BuzzCast API is running');
 });
 

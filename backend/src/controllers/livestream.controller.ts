@@ -1,10 +1,12 @@
 // FIX: Imported Request and Response directly from express to resolve type conflicts.
 // FIX: Changed to a default express import to use explicit express.Request/Response types, fixing property access errors.
-import express from 'express';
+// FIX: Explicitly import Request and Response types from express to resolve type conflicts.
+import { Request, Response } from 'express';
 import prisma from '../lib/prisma';
 
 // FIX: Use express.Request and express.Response types to resolve type conflicts.
-export const getLiveStreams = async (req: express.Request, res: express.Response) => {
+// FIX: Use explicit Request and Response types from express.
+export const getLiveStreams = async (req: Request, res: Response) => {
     try {
         const streams = await prisma.liveStream.findMany({
             where: { status: 'live' },
@@ -18,7 +20,8 @@ export const getLiveStreams = async (req: express.Request, res: express.Response
 };
 
 // FIX: Use express.Request and express.Response types to resolve type conflicts.
-export const startLiveStream = async (req: express.Request, res: express.Response) => {
+// FIX: Use explicit Request and Response types from express.
+export const startLiveStream = async (req: Request, res: Response) => {
     const { title } = req.body;
     // const userId = req.user.id; // From auth middleware
     const userId = 'u1'; // Mocking user for now

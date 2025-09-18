@@ -1,10 +1,12 @@
 // FIX: Imported Request and Response directly from express to resolve type conflicts.
 // FIX: Changed to a default express import to use explicit express.Request/Response types, fixing property access errors.
-import express from 'express';
+// FIX: Explicitly import Request and Response types from express to resolve type conflicts.
+import { Request, Response } from 'express';
 import prisma from '../lib/prisma';
 
 // FIX: Use express.Request and express.Response types to resolve type conflicts.
-export const getMe = async (req: express.Request, res: express.Response) => {
+// FIX: Use explicit Request and Response types from express.
+export const getMe = async (req: Request, res: Response) => {
   // In a real app, the user ID would come from the decoded JWT token in authMiddleware
   // const userId = req.user.id;
   const userId = 'u1'; // Mocking authenticated user for now
@@ -22,7 +24,8 @@ export const getMe = async (req: express.Request, res: express.Response) => {
 };
 
 // FIX: Use express.Request and express.Response types to resolve type conflicts.
-export const updateMe = async (req: express.Request, res: express.Response) => {
+// FIX: Use explicit Request and Response types from express.
+export const updateMe = async (req: Request, res: Response) => {
   const { username, bio, avatarUrl } = req.body;
   // const userId = req.user.id;
   const userId = 'u1'; // Mocking authenticated user
@@ -45,7 +48,8 @@ export const updateMe = async (req: express.Request, res: express.Response) => {
 };
 
 // FIX: Use express.Request and express.Response types to resolve type conflicts.
-export const getUserProfile = async (req: express.Request, res: express.Response) => {
+// FIX: Use explicit Request and Response types from express.
+export const getUserProfile = async (req: Request, res: Response) => {
   const { username } = req.params;
   
   try {

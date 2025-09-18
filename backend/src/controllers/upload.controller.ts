@@ -1,8 +1,9 @@
 // FIX: Changed to a default express import to use explicit express.Request/Response types, fixing property access errors.
-import express from 'express';
+// FIX: Explicitly import Request and Response types from express to resolve type conflicts.
+import { Request, Response } from 'express';
 import cloudinary from '../lib/cloudinary';
 
-export const getUploadSignature = (req: express.Request, res: express.Response) => {
+export const getUploadSignature = (req: Request, res: Response) => {
     try {
         const timestamp = Math.round((new Date).getTime() / 1000);
 
