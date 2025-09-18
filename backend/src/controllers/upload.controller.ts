@@ -1,6 +1,7 @@
 
+
 // FIX: Explicitly import Request and Response types from express to resolve type conflicts.
-import { Request, Response } from 'express';
+import type { Request, Response } from 'express';
 import cloudinary from '../lib/cloudinary';
 
 export const getUploadSignature = (req: Request, res: Response) => {

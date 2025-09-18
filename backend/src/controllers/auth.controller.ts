@@ -1,6 +1,7 @@
 
+
 // FIX: Explicitly import Request and Response types from express to resolve type conflicts.
-import { Request, Response } from 'express';
+import type { Request, Response } from 'express';
 import prisma from '../lib/prisma';
 
 // In a real app, you'd use bcrypt, jwt

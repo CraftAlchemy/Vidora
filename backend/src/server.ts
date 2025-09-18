@@ -1,6 +1,9 @@
 
-// FIX: Corrected express import to resolve type conflicts.
-import express, { Request, Response } from 'express';
+
+// Using `import type` for Request and Response helps resolve type conflicts with other libraries or global types,
+// ensuring that Express's specific extended types are used.
+import express from 'express';
+import type { Request, Response } from 'express';
 import cors from 'cors';
 import authRoutes from './routes/auth.routes';
 import userRoutes from './routes/user.routes';
@@ -19,7 +22,7 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
-// FIX: This error was a symptom of incorrect express types. Correcting the import resolves this.
+// The express.json() middleware is now correctly typed, resolving the overload error.
 app.use(express.json({ limit: '10mb' })); // Increased limit for base64 avatar uploads
 
 app.use('/api/v1/auth', authRoutes);
@@ -28,7 +31,7 @@ app.use('/api/v1/videos', videoRoutes);
 app.use('/api/v1/livestreams', livestreamRoutes);
 app.use('/api/v1/uploads', uploadRoutes);
 
-// FIX: Use explicit Request and Response types from express to make `res.send` available.
+// Using the correctly imported Response type makes `res.send` available.
 app.get('/', (req: Request, res: Response) => {
     res.send('BuzzCast API is running');
 });
