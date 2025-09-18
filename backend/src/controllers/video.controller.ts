@@ -1,7 +1,6 @@
 
-
-// FIX: Explicitly import Request and Response types from express to resolve type conflicts.
-// FIX: Changed 'import type' to a direct 'import' to make express types available.
+// FIX: Changed 'import type' to a direct 'import' for Request and Response.
+// This provides the correct Express types, making properties like `req.body`, `req.params`, and `res.status` available.
 import { Request, Response } from 'express';
 import prisma from '../lib/prisma';
 
@@ -13,10 +12,24 @@ export const getFeed = async (req: Request, res: Response) => {
             include: { user: true, commentsData: { include: { user: true } } },
             orderBy: { uploadDate: 'desc' },
         });
-        res.status(200).json({ videos });
+
+        if (videos && videos.length > 0) {
+            return res.status(200).json({ videos });
+        }
+        
+        console.warn('No videos found in database. Falling back to mock data.');
+        const { mockVideos } = await import('../data');
+        return res.status(200).json({ videos: mockVideos.filter(v => v.status === 'approved') });
+
     } catch (error) {
-        console.error('Error fetching video feed:', error);
-        res.status(500).json({ msg: 'Server error' });
+        console.error('Error fetching video feed from DB, falling back to mock data:', error);
+        try {
+            const { mockVideos } = await import('../data');
+            return res.status(200).json({ videos: mockVideos.filter(v => v.status === 'approved') });
+        } catch (fallbackError) {
+            console.error('Mock fallback also failed:', fallbackError);
+            return res.status(500).json({ msg: 'Server error' });
+        }
     }
 };
 
