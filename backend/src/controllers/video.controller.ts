@@ -1,6 +1,5 @@
-
-
-// FIX: Import express and use express.Request/Response to avoid type conflicts.
+// FIX: Imported Request and Response directly from express to resolve type conflicts.
+// FIX: Changed to a default express import to use explicit express.Request/Response types, fixing property access errors.
 import express from 'express';
 import prisma from '../lib/prisma';
 
@@ -21,13 +20,13 @@ export const getFeed = async (req: express.Request, res: express.Response) => {
 
 // FIX: Use express.Request and express.Response types to resolve type conflicts.
 export const uploadVideo = async (req: express.Request, res: express.Response) => {
-    const { description } = req.body;
-    // const videoFile = req.file; // In a real app, from multer middleware
+    // The frontend sends the URLs after uploading to Cloudinary
+    const { description, videoUrl, thumbnailUrl } = req.body;
     // const userId = req.user.id; // From auth middleware
     const userId = 'u1'; // Mock user for demonstration
 
-    if (!description) {
-        return res.status(400).json({ msg: 'Description is required' });
+    if (!description || !videoUrl) {
+        return res.status(400).json({ msg: 'Missing required video data from upload.' });
     }
 
     try {
@@ -35,21 +34,18 @@ export const uploadVideo = async (req: express.Request, res: express.Response) =
             data: {
                 description,
                 userId,
-                thumbnailUrl: 'https://i.ytimg.com/vi/otNh9bTjX1k/maxresdefault.jpg', // Placeholder
+                thumbnailUrl: thumbnailUrl || 'https://via.placeholder.com/400x600.png?text=Processing',
                 uploadDate: new Date().toISOString(),
                 status: 'approved', // Or 'pending' for moderation
                 videoSources: {
-                    create: [{ 
-                        quality: 'Auto', 
-                        url: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4' 
-                    }]
+                    create: [{ quality: 'Auto', url: videoUrl }]
                 },
             },
             include: { user: true, commentsData: true },
         });
         res.status(201).json(newVideo);
     } catch (error) {
-        console.error('Error uploading video:', error);
+        console.error('Error creating video record:', error);
         res.status(500).json({ msg: 'Server error' });
     }
 };

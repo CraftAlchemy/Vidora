@@ -1,6 +1,5 @@
-
-
-// FIX: Import express and use express.Request/Response to avoid type conflicts.
+// FIX: Imported Request and Response directly from express to resolve type conflicts.
+// FIX: Changed to a default express import to use explicit express.Request/Response types, fixing property access errors.
 import express from 'express';
 import prisma from '../lib/prisma';
 

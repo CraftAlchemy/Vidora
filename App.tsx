@@ -1,6 +1,3 @@
-
-
-
 import React, { useState, useEffect, useMemo } from 'react';
 // FIX: Added UploadSource to the import list from types.ts to support different upload methods.
 import { User, Video, LiveStream, WalletTransaction, Conversation, ChatMessage, Comment, PayoutRequest, MonetizationSettings, UploadSource, CreatorApplication, CoinPack, SavedPaymentMethod, DailyRewardSettings, Ad, AdSettings, Task, TaskSettings } from './types';
@@ -485,41 +482,14 @@ const App: React.FC = () => {
         setIsUploadViewOpen(false);
     };
 
-    // FIX: Updated handleUpload to accept an `UploadSource` object to support both file uploads and URL embedding from the UploadView component.
     const handleUpload = async (source: UploadSource, description: string) => {
         if (!currentUser) return;
-
         handleCloseUpload();
-
-        if (source.type === 'file') {
-            showSuccessToast('Uploading your video...');
-            const formData = new FormData();
-            formData.append('video', source.data);
-            formData.append('description', description);
-
-            try {
-                const response = await fetch(`${API_BASE_URL}/videos/upload`, {
-                    method: 'POST',
-                    body: formData,
-                });
-
-                if (!response.ok) {
-                    throw new Error('Upload failed');
-                }
-
-                const newVideo: Video = await response.json();
-                setVideos(prev => [newVideo, ...prev]);
-                showSuccessToast('Video uploaded successfully!');
-            } catch (error) {
-                console.error('Error uploading video:', error);
-                showSuccessToast('Error: Could not upload video.');
-            }
-        } else { // source.type === 'url'
+    
+        // This 'url' part can be extended later to fetch and process the URL on the backend
+        if (source.type === 'url') {
             showSuccessToast('Embedding your video...');
-            // In a real app, you would send the URL to the backend to process.
-            // Here, we'll simulate it.
             setTimeout(() => {
-// FIX: Changed `videoUrl` to `videoSources` to maintain consistency with the Video type and other components.
                 const newVideo: Video = {
                     id: `v-url-${Date.now()}`,
                     videoSources: [{ quality: 'Auto', url: source.data as string }],
@@ -533,6 +503,61 @@ const App: React.FC = () => {
                 setVideos(prev => [newVideo, ...prev]);
                 showSuccessToast('Video embedded successfully!');
             }, 1500);
+            return;
+        }
+    
+        // New direct-to-Cloudinary flow for file uploads
+        showSuccessToast('Preparing your upload...');
+        try {
+            // 1. Get signature from our backend
+            const sigResponse = await fetch(`${API_BASE_URL}/uploads/signature`);
+            if (!sigResponse.ok) throw new Error('Could not get upload signature.');
+            const { signature, timestamp, api_key, cloud_name } = await sigResponse.json();
+    
+            // 2. Upload directly to Cloudinary
+            const formData = new FormData();
+            formData.append('file', source.data);
+            formData.append('api_key', api_key);
+            formData.append('timestamp', timestamp);
+            formData.append('signature', signature);
+            formData.append('folder', 'vidora-videos');
+    
+            showSuccessToast('Uploading...');
+            const cloudinaryUrl = `https://api.cloudinary.com/v1_1/${cloud_name}/video/upload`;
+            const cloudinaryResponse = await fetch(cloudinaryUrl, {
+                method: 'POST',
+                body: formData,
+            });
+    
+            if (!cloudinaryResponse.ok) {
+                const errorData = await cloudinaryResponse.json();
+                throw new Error(`Cloudinary upload failed: ${errorData.error.message}`);
+            }
+            const cloudinaryData = await cloudinaryResponse.json();
+    
+            // 3. Save the URL and metadata to our backend
+            const thumbnailUrl = cloudinaryData.secure_url.replace(/\.mp4$/, '.jpg');
+            const videoData = {
+                description,
+                videoUrl: cloudinaryData.secure_url,
+                thumbnailUrl,
+            };
+    
+            const saveResponse = await fetch(`${API_BASE_URL}/videos/upload`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(videoData),
+            });
+    
+            if (!saveResponse.ok) throw new Error('Failed to save video to server.');
+    
+            const newVideo: Video = await saveResponse.json();
+            setVideos(prev => [newVideo, ...prev]);
+            showSuccessToast('Video uploaded successfully!');
+    
+        } catch (error: any) {
+            console.error('Error during upload process:', error);
+            showSuccessToast(`Error: ${error.message}`);
         }
     };
     
@@ -678,10 +703,68 @@ const App: React.FC = () => {
         setIsEditProfileOpen(true);
     };
 
-    const handleSaveProfile = (updatedUser: User) => {
-        setCurrentUser(updatedUser);
+    const handleSaveProfile = async (updatedUser: User) => {
+        if (!currentUser) return;
         setIsEditProfileOpen(false);
-        showSuccessToast('Profile updated!');
+    
+        try {
+            let finalUser = { ...updatedUser };
+    
+            // Check if avatar is a new base64 upload
+            if (finalUser.avatarUrl.startsWith('data:image')) {
+                showSuccessToast('Uploading new avatar...');
+    
+                // 1. Get signature from our backend
+                const sigResponse = await fetch(`${API_BASE_URL}/uploads/signature`);
+                if (!sigResponse.ok) throw new Error('Could not get upload signature.');
+                const { signature, timestamp, api_key, cloud_name } = await sigResponse.json();
+    
+                // 2. Upload to Cloudinary. The API can accept a base64 data URI directly.
+                const formData = new FormData();
+                formData.append('file', finalUser.avatarUrl);
+                formData.append('api_key', api_key);
+                formData.append('timestamp', timestamp);
+                formData.append('signature', signature);
+                formData.append('folder', 'vidora-avatars');
+    
+                const cloudinaryUrl = `https://api.cloudinary.com/v1_1/${cloud_name}/image/upload`;
+                const cloudinaryResponse = await fetch(cloudinaryUrl, {
+                    method: 'POST',
+                    body: formData,
+                });
+    
+                if (!cloudinaryResponse.ok) {
+                    const errorData = await cloudinaryResponse.json();
+                    throw new Error(`Cloudinary upload failed: ${errorData.error.message}`);
+                }
+                const cloudinaryData = await cloudinaryResponse.json();
+    
+                // Update user object with the new Cloudinary URL
+                finalUser.avatarUrl = cloudinaryData.secure_url;
+            }
+    
+            // 3. Save updated profile to our backend
+            showSuccessToast('Saving profile...');
+            const response = await fetch(`${API_BASE_URL}/users/me`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    username: finalUser.username,
+                    bio: finalUser.bio,
+                    avatarUrl: finalUser.avatarUrl,
+                }),
+            });
+    
+            if (!response.ok) throw new Error('Failed to update profile.');
+    
+            const savedUser: User = await response.json();
+            setCurrentUser(savedUser);
+            showSuccessToast('Profile updated!');
+    
+        } catch (error: any) {
+            console.error('Error saving profile:', error);
+            showSuccessToast(`Error: ${error.message}`);
+        }
     };
     
     const handleClaimReward = () => {

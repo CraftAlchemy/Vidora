@@ -2,7 +2,6 @@
 import { Router } from 'express';
 import { getFeed, uploadVideo, addComment } from '../controllers/video.controller';
 // import { authMiddleware } from '../middleware/auth';
-// import { upload } from '../middleware/upload'; // Middleware for handling file uploads
 
 const router = Router();
 
@@ -12,9 +11,9 @@ const router = Router();
 router.get('/feed', /* authMiddleware, */ getFeed);
 
 // @route   POST api/v1/videos/upload
-// @desc    Upload a video
+// @desc    Saves video metadata after direct upload to cloud storage
 // @access  Private
-router.post('/upload', /* authMiddleware, upload.single('video'), */ uploadVideo);
+router.post('/upload', /* authMiddleware, */ uploadVideo);
 
 // @route   POST api/v1/videos/:videoId/comments
 // @desc    Add a comment to a video

@@ -15,7 +15,8 @@
     "express": "^5.1.0",
     "cors": "^2.8.5",
     "dotenv": "^17.2.2",
-    "@prisma/client": "^6.16.2"
+    "@prisma/client": "^6.16.2",
+    "cloudinary": "^2.7.0"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",
