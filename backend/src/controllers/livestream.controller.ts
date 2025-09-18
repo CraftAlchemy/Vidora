@@ -1,36 +1,51 @@
 
-import { Request, Response } from 'express';
 
-// Placeholder: Get all active livestreams
-// FIX: Use Request and Response types directly from express to resolve type conflicts.
-export const getLiveStreams = async (req: Request, res: Response) => {
-    console.log('Fetching active livestreams');
-    const mockStreams = [
-        { id: 'ls1', title: 'Live Q&A', user: { username: 'dev_user' }, viewers: 1200 },
-        { id: 'ls2', title: 'Gaming Session', user: { username: 'gamer_girl' }, viewers: 15000 },
-    ];
-    res.status(200).json({ streams: mockStreams });
+// FIX: Import express and use express.Request/Response to avoid type conflicts.
+import express from 'express';
+import prisma from '../lib/prisma';
+
+// FIX: Use express.Request and express.Response types to resolve type conflicts.
+export const getLiveStreams = async (req: express.Request, res: express.Response) => {
+    try {
+        const streams = await prisma.liveStream.findMany({
+            where: { status: 'live' },
+            include: { user: true },
+        });
+        res.status(200).json({ streams });
+    } catch (error) {
+        console.error('Error fetching live streams:', error);
+        res.status(500).json({ msg: 'Server error' });
+    }
 };
 
-// Placeholder: Start a new livestream
-// FIX: Use Request and Response types directly from express to resolve type conflicts.
-export const startLiveStream = async (req: Request, res: Response) => {
+// FIX: Use express.Request and express.Response types to resolve type conflicts.
+export const startLiveStream = async (req: express.Request, res: express.Response) => {
     const { title } = req.body;
     // const userId = req.user.id; // From auth middleware
+    const userId = 'u1'; // Mocking user for now
 
     if (!title) {
         return res.status(400).json({ msg: 'Title is required for the livestream' });
     }
 
-    console.log(`Starting livestream with title: ${title}`);
-    
-    res.status(201).json({
-        message: 'Livestream started successfully (simulated)',
-        stream: {
-            id: 'new_stream_id',
-            title,
-            // authorId: userId,
-            streamKey: 'mock_stream_key'
-        }
-    });
+    try {
+        const newStream = await prisma.liveStream.create({
+            data: {
+                title,
+                userId,
+                thumbnailUrl: `https://picsum.photos/seed/${Date.now()}/400/600`, // Placeholder
+                status: 'live',
+                // videoUrl can be updated later by the streaming service
+            },
+            include: { user: true },
+        });
+
+        res.status(201).json({
+            message: 'Livestream started successfully',
+            stream: newStream,
+        });
+    } catch (error) {
+        console.error('Error starting live stream:', error);
+        res.status(500).json({ msg: 'Server error' });
+    }
 };

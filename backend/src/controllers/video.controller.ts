@@ -1,19 +1,26 @@
 
-import { Request, Response } from 'express';
-import { mockVideos, mockUsers } from '../data';
-import { Video, Comment } from '../types';
 
-// Placeholder: Get video feed
-// FIX: Use Request and Response types directly from express to resolve type conflicts.
-export const getFeed = async (req: Request, res: Response) => {
-    console.log('Fetching video feed');
-    // We return the current state of our in-memory data store
-    res.status(200).json({ videos: mockVideos });
+// FIX: Import express and use express.Request/Response to avoid type conflicts.
+import express from 'express';
+import prisma from '../lib/prisma';
+
+// FIX: Use express.Request and express.Response types to resolve type conflicts.
+export const getFeed = async (req: express.Request, res: express.Response) => {
+    try {
+        const videos = await prisma.video.findMany({
+            where: { status: 'approved' },
+            include: { user: true, commentsData: { include: { user: true } } },
+            orderBy: { uploadDate: 'desc' },
+        });
+        res.status(200).json({ videos });
+    } catch (error) {
+        console.error('Error fetching video feed:', error);
+        res.status(500).json({ msg: 'Server error' });
+    }
 };
 
-// Functional mock: Upload a video
-// FIX: Use Request and Response types directly from express to resolve type conflicts.
-export const uploadVideo = async (req: Request, res: Response) => {
+// FIX: Use express.Request and express.Response types to resolve type conflicts.
+export const uploadVideo = async (req: express.Request, res: express.Response) => {
     const { description } = req.body;
     // const videoFile = req.file; // In a real app, from multer middleware
     // const userId = req.user.id; // From auth middleware
@@ -23,66 +30,63 @@ export const uploadVideo = async (req: Request, res: Response) => {
         return res.status(400).json({ msg: 'Description is required' });
     }
 
-    const currentUser = mockUsers.find(u => u.id === userId);
-    if (!currentUser) {
-        return res.status(404).json({ msg: 'User not found' });
+    try {
+        const newVideo = await prisma.video.create({
+            data: {
+                description,
+                userId,
+                thumbnailUrl: 'https://i.ytimg.com/vi/otNh9bTjX1k/maxresdefault.jpg', // Placeholder
+                uploadDate: new Date().toISOString(),
+                status: 'approved', // Or 'pending' for moderation
+                videoSources: {
+                    create: [{ 
+                        quality: 'Auto', 
+                        url: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4' 
+                    }]
+                },
+            },
+            include: { user: true, commentsData: true },
+        });
+        res.status(201).json(newVideo);
+    } catch (error) {
+        console.error('Error uploading video:', error);
+        res.status(500).json({ msg: 'Server error' });
     }
-
-    const newVideo: Video = {
-        id: `v${Date.now()}`,
-        // In a real app, this URL would come from a cloud storage service
-        videoSources: [{ quality: 'Auto', url: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4' }],
-        thumbnailUrl: 'https://i.ytimg.com/vi/otNh9bTjX1k/maxresdefault.jpg',
-        description,
-        user: currentUser,
-        likes: 0,
-        comments: 0,
-        shares: 0,
-        views: 0,
-        commentsData: [],
-        status: 'approved',
-        uploadDate: new Date().toISOString(),
-    };
-
-    mockVideos.unshift(newVideo); // Add to the start of the array to simulate a feed
-
-    console.log('Video uploaded, new video count:', mockVideos.length);
-    
-    res.status(201).json(newVideo);
 };
 
-// Functional mock: Add a comment to a video
-// FIX: Use Request and Response types directly from express to resolve type conflicts.
-export const addComment = async (req: Request, res: Response) => {
+// FIX: Use express.Request and express.Response types to resolve type conflicts.
+export const addComment = async (req: express.Request, res: express.Response) => {
     const { videoId } = req.params;
-    const { text, userId } = req.body; // Use userId from request body
+    const { text, userId } = req.body;
 
-    // Validate that both text and userId were provided
     if (!text || !userId) {
         return res.status(400).json({ msg: 'Comment text and userId are required' });
     }
 
-    const video = mockVideos.find(v => v.id === videoId);
-    if (!video) {
-        return res.status(404).json({ msg: 'Video not found' });
+    try {
+        // Use a transaction to ensure both comment creation and video count update succeed or fail together
+        const [newComment] = await prisma.$transaction([
+            prisma.comment.create({
+                data: {
+                    text,
+                    userId,
+                    videoId,
+                },
+                include: { user: true }, // Include user data in the returned comment
+            }),
+            prisma.video.update({
+                where: { id: videoId },
+                data: { comments: { increment: 1 } },
+            }),
+        ]);
+
+        res.status(201).json(newComment);
+    } catch (error) {
+        console.error(`Error adding comment to video ${videoId}:`, error);
+        // Check for specific error, e.g., video not found
+        if ((error as any).code === 'P2025') {
+            return res.status(404).json({ msg: 'Video not found' });
+        }
+        res.status(500).json({ msg: 'Server error' });
     }
-
-    const user = mockUsers.find(u => u.id === userId);
-    if (!user) {
-        return res.status(404).json({ msg: 'User not found' });
-    }
-
-    const newComment: Comment = {
-        id: `c${Date.now()}`,
-        user: user,
-        text,
-        timestamp: new Date().toISOString(),
-    };
-
-    video.commentsData.unshift(newComment);
-    video.comments += 1;
-
-    console.log(`Comment added to video ${videoId}. Total comments: ${video.comments}`);
-
-    res.status(201).json(newComment);
 };

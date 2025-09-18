@@ -1,54 +1,57 @@
 
-import { Request, Response } from 'express';
 
-// Placeholder: Get current user's profile
-// FIX: Use Request and Response types directly from express to resolve type conflicts.
-export const getMe = async (req: Request, res: Response) => {
-  // In a real app, the user ID would come from the decoded JWT token
+// FIX: Import express and use express.Request/Response to avoid type conflicts.
+import express from 'express';
+import prisma from '../lib/prisma';
+
+// FIX: Use express.Request and express.Response types to resolve type conflicts.
+export const getMe = async (req: express.Request, res: express.Response) => {
+  // In a real app, the user ID would come from the decoded JWT token in authMiddleware
   // const userId = req.user.id;
-  // const user = await prisma.user.findUnique({ where: { id: userId } });
-  console.log('Fetching profile for current user');
-  res.status(200).json({
-    id: 'current_user_id',
-    username: 'react_dev',
-    email: 'dev@example.com',
-    bio: 'This is my bio.',
-    avatarUrl: null
-  });
+  const userId = 'u1'; // Mocking authenticated user for now
+
+  try {
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      return res.status(404).json({ msg: 'User not found' });
+    }
+    res.status(200).json(user);
+  } catch (error) {
+    console.error('Error fetching current user:', error);
+    res.status(500).json({ msg: 'Server error' });
+  }
 };
 
-// Placeholder: Update current user's profile
-// FIX: Use Request and Response types directly from express to resolve type conflicts.
-export const updateMe = async (req: Request, res: Response) => {
+// FIX: Use express.Request and express.Response types to resolve type conflicts.
+export const updateMe = async (req: express.Request, res: express.Response) => {
   const { username, bio } = req.body;
   // const userId = req.user.id;
-  console.log('Updating profile for current user with:', { username, bio });
-  // const updatedUser = await prisma.user.update({ where: { id: userId }, data: { username, bio } });
-  res.status(200).json({
-    id: 'current_user_id',
-    username,
-    bio,
-    email: 'dev@example.com',
-    avatarUrl: null
-  });
+  const userId = 'u1'; // Mocking authenticated user
+
+  try {
+    const updatedUser = await prisma.user.update({
+      where: { id: userId },
+      data: { username, bio },
+    });
+    res.status(200).json(updatedUser);
+  } catch (error) {
+    console.error('Error updating user:', error);
+    res.status(500).json({ msg: 'Server error' });
+  }
 };
 
-// Placeholder: Get user profile by username
-// FIX: Use Request and Response types directly from express to resolve type conflicts.
-export const getUserProfile = async (req: Request, res: Response) => {
+// FIX: Use express.Request and express.Response types to resolve type conflicts.
+export const getUserProfile = async (req: express.Request, res: express.Response) => {
   const { username } = req.params;
-  console.log(`Fetching profile for username: ${username}`);
-  // const user = await prisma.user.findUnique({ where: { username } });
-  if (username === 'notfound') {
+  
+  try {
+    const user = await prisma.user.findUnique({ where: { username } });
+    if (!user) {
       return res.status(404).json({ msg: 'User not found' });
+    }
+    res.status(200).json(user);
+  } catch (error) {
+    console.error('Error fetching user profile:', error);
+    res.status(500).json({ msg: 'Server error' });
   }
-
-  res.status(200).json({
-    id: 'some_user_id',
-    username,
-    bio: 'A public bio.',
-    avatarUrl: null,
-    followers: 100,
-    following: 50
-  });
 };
