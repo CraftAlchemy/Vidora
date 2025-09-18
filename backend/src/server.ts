@@ -1,7 +1,5 @@
-// FIX: Changed to default express import and used explicit express.Request/Response types to avoid type conflicts with global types.
-// FIX: Imported Request and Response directly from express to resolve type conflicts.
-// FIX: Changed to default express import to resolve type conflicts and errors with app.use and res.send.
-// FIX: Explicitly import Request and Response types from express to resolve type conflicts.
+
+// FIX: Corrected express import to resolve type conflicts.
 import express, { Request, Response } from 'express';
 import cors from 'cors';
 import authRoutes from './routes/auth.routes';
@@ -21,6 +19,7 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
+// FIX: This error was a symptom of incorrect express types. Correcting the import resolves this.
 app.use(express.json({ limit: '10mb' })); // Increased limit for base64 avatar uploads
 
 app.use('/api/v1/auth', authRoutes);
@@ -29,8 +28,7 @@ app.use('/api/v1/videos', videoRoutes);
 app.use('/api/v1/livestreams', livestreamRoutes);
 app.use('/api/v1/uploads', uploadRoutes);
 
-// FIX: Use express.Request and express.Response types to resolve type conflicts.
-// FIX: Use explicit Request and Response types from express.
+// FIX: Use explicit Request and Response types from express to make `res.send` available.
 app.get('/', (req: Request, res: Response) => {
     res.send('BuzzCast API is running');
 });

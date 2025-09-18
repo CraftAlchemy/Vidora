@@ -1,4 +1,4 @@
-// FIX: Changed to a default express import to use explicit express.Request/Response types, fixing property access errors.
+
 // FIX: Explicitly import Request and Response types from express to resolve type conflicts.
 import { Request, Response } from 'express';
 import cloudinary from '../lib/cloudinary';
