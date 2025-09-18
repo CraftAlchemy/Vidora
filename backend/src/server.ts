@@ -2,8 +2,8 @@
 
 // Using `import type` for Request and Response helps resolve type conflicts with other libraries or global types,
 // ensuring that Express's specific extended types are used.
-import express from 'express';
-import type { Request, Response } from 'express';
+// FIX: Changed to a direct import to resolve type issues with express.json and res.send.
+import express, { Request, Response } from 'express';
 import cors from 'cors';
 import authRoutes from './routes/auth.routes';
 import userRoutes from './routes/user.routes';

@@ -1,7 +1,8 @@
 
 
 // FIX: Explicitly import Request and Response types from express to resolve type conflicts.
-import type { Request, Response } from 'express';
+// FIX: Changed 'import type' to a direct 'import' to make express types available.
+import { Request, Response } from 'express';
 import prisma from '../lib/prisma';
 
 // FIX: Use explicit Request and Response types from express to make `res.status` available.
