@@ -64,7 +64,7 @@ export const addComment = async (req: Request, res: Response) => {
     try {
         // Use a transaction to ensure both comment creation and video count update succeed or fail together
         const [newComment] = await prisma.$transaction([
-            prisma.comment.create({
+            prisma.videoComment.create({
                 data: {
                     text,
                     userId,
