@@ -5,12 +5,11 @@
 import { Request, Response } from 'express';
 import prisma from '../lib/prisma';
 
-// FIX: Use explicit Request and Response types from express to make `res.status` available.
 export const getFeed = async (req: Request, res: Response) => {
     try {
         const videos = await prisma.video.findMany({
             where: { status: 'approved' },
-            include: { user: true, commentsData: { include: { user: true } } },
+            include: { author: true, comments: { include: { author: true } } },
             orderBy: { uploadDate: 'desc' },
         });
         res.status(200).json({ videos });
@@ -20,12 +19,9 @@ export const getFeed = async (req: Request, res: Response) => {
     }
 };
 
-// FIX: Use explicit Request and Response types from express to make `req.body` and `res.status` available.
 export const uploadVideo = async (req: Request, res: Response) => {
-    // The frontend sends the URLs after uploading to Cloudinary
     const { description, videoUrl, thumbnailUrl } = req.body;
-    // const userId = req.user.id; // From auth middleware
-    const userId = 'u1'; // Mock user for demonstration
+    const authorId = req.user.id; // From auth middleware
 
     if (!description || !videoUrl) {
         return res.status(400).json({ msg: 'Missing required video data from upload.' });
@@ -35,15 +31,14 @@ export const uploadVideo = async (req: Request, res: Response) => {
         const newVideo = await prisma.video.create({
             data: {
                 description,
-                userId,
+                authorId,
                 thumbnailUrl: thumbnailUrl || 'https://via.placeholder.com/400x600.png?text=Processing',
-                uploadDate: new Date().toISOString(),
                 status: 'approved', // Or 'pending' for moderation
                 videoSources: {
                     create: [{ quality: 'Auto', url: videoUrl }]
                 },
             },
-            include: { user: true, commentsData: true },
+            include: { author: true, comments: true },
         });
         res.status(201).json(newVideo);
     } catch (error) {
@@ -52,36 +47,28 @@ export const uploadVideo = async (req: Request, res: Response) => {
     }
 };
 
-// FIX: Use explicit Request and Response types from express to make `req.params`, `req.body` and `res.status` available.
 export const addComment = async (req: Request, res: Response) => {
     const { videoId } = req.params;
-    const { text, userId } = req.body;
+    const { text } = req.body;
+    const authorId = req.user.id;
 
-    if (!text || !userId) {
-        return res.status(400).json({ msg: 'Comment text and userId are required' });
+    if (!text) {
+        return res.status(400).json({ msg: 'Comment text is required' });
     }
 
     try {
-        // Use a transaction to ensure both comment creation and video count update succeed or fail together
-        const [newComment] = await prisma.$transaction([
-            prisma.comment.create({
-                data: {
-                    text,
-                    userId,
-                    videoId,
-                },
-                include: { user: true }, // Include user data in the returned comment
-            }),
-            prisma.video.update({
-                where: { id: videoId },
-                data: { comments: { increment: 1 } },
-            }),
-        ]);
+        const newComment = await prisma.comment.create({
+            data: {
+                text,
+                authorId: authorId,
+                videoId,
+            },
+            include: { author: true }, // Include user data in the returned comment
+        });
 
         res.status(201).json(newComment);
     } catch (error) {
         console.error(`Error adding comment to video ${videoId}:`, error);
-        // Check for specific error, e.g., video not found
         if ((error as any).code === 'P2025') {
             return res.status(404).json({ msg: 'Video not found' });
         }

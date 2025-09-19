@@ -4,16 +4,13 @@
 // FIX: Changed 'import type' to a direct 'import' to make express types available.
 import { Request, Response } from 'express';
 import prisma from '../lib/prisma';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 
-// In a real app, you'd use bcrypt, jwt
-// import bcrypt from 'bcryptjs';
-// import jwt from 'jsonwebtoken';
-
-// FIX: Use explicit Request and Response types from express to make `req.body` and `res.status` available.
 export const register = async (req: Request, res: Response) => {
-  const { email, username, password } = req.body;
+  const { email, username, password, name } = req.body;
 
-  if (!email || !username || !password) {
+  if (!email || !username || !password || !name) {
     return res.status(400).json({ msg: 'Please enter all fields' });
   }
 
@@ -25,29 +22,33 @@ export const register = async (req: Request, res: Response) => {
     if (existingUser) {
       return res.status(400).json({ msg: 'User with this email or username already exists' });
     }
-    
-    // In a real app, hash password here with bcrypt
-    // const salt = await bcrypt.genSalt(10);
-    // const hashedPassword = await bcrypt.hash(password, salt);
+
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
 
     const user = await prisma.user.create({
       data: {
         email,
         username,
-        // password: hashedPassword, // Use hashed password in production
+        name,
+        password: hashedPassword,
         avatarUrl: `https://i.pravatar.cc/150?u=${Date.now()}`,
-        role: 'user',
-        status: 'active',
-        isVerified: false,
-        joinDate: new Date().toISOString(),
-        lastLogin: new Date().toISOString(),
       },
     });
 
-    // In a real app, generate JWT here
+    const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET!, {
+      expiresIn: '1d',
+    });
+
     res.status(201).json({
-      token: 'mock_jwt_token_on_register',
-      user,
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        username: user.username,
+        name: user.name,
+        avatarUrl: user.avatarUrl,
+      },
     });
   } catch (error) {
     console.error('Registration error:', error);
@@ -55,30 +56,37 @@ export const register = async (req: Request, res: Response) => {
   }
 };
 
-// FIX: Use explicit Request and Response types from express to make `req.body` and `res.status` available.
 export const login = async (req: Request, res: Response) => {
   const { email, password } = req.body;
 
   if (!email || !password) {
     return res.status(400).json({ msg: 'Please enter all fields' });
   }
-  
+
   try {
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user) {
       return res.status(401).json({ msg: 'Invalid credentials' });
     }
 
-    // In a real app, compare hashed password
-    // const isMatch = await bcrypt.compare(password, user.password);
-    // if (!isMatch) {
-    //   return res.status(401).json({ msg: 'Invalid credentials' });
-    // }
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(401).json({ msg: 'Invalid credentials' });
+    }
 
-    // In a real app, generate JWT here
+    const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET!, {
+      expiresIn: '1d',
+    });
+
     res.status(200).json({
-      token: 'mock_jwt_token_on_login',
-      user,
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        username: user.username,
+        name: user.name,
+        avatarUrl: user.avatarUrl,
+      },
     });
   } catch (error) {
     console.error('Login error:', error);
