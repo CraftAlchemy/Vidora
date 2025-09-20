@@ -1,6 +1,7 @@
 
-// FIX: Changed 'import type' to a direct 'import' for Request and Response.
-// This provides the correct Express types, making properties like `req.body`, `req.params`, and `res.status` available.
+
+// FIX: Explicitly import Request and Response types from express to resolve type conflicts.
+// FIX: Changed 'import type' to a direct 'import' to make express types available.
 import { Request, Response } from 'express';
 import prisma from '../lib/prisma';
 
@@ -11,24 +12,10 @@ export const getFeed = async (req: Request, res: Response) => {
             include: { author: true, comments: { include: { author: true } } },
             orderBy: { uploadDate: 'desc' },
         });
-
-        if (videos && videos.length > 0) {
-            return res.status(200).json({ videos });
-        }
-        
-        console.warn('No videos found in database. Falling back to mock data.');
-        const { mockVideos } = await import('../data');
-        return res.status(200).json({ videos: mockVideos.filter(v => v.status === 'approved') });
-
+        res.status(200).json({ videos });
     } catch (error) {
-        console.error('Error fetching video feed from DB, falling back to mock data:', error);
-        try {
-            const { mockVideos } = await import('../data');
-            return res.status(200).json({ videos: mockVideos.filter(v => v.status === 'approved') });
-        } catch (fallbackError) {
-            console.error('Mock fallback also failed:', fallbackError);
-            return res.status(500).json({ msg: 'Server error' });
-        }
+        console.error('Error fetching video feed:', error);
+        res.status(500).json({ msg: 'Server error' });
     }
 };
 
@@ -70,21 +57,14 @@ export const addComment = async (req: Request, res: Response) => {
     }
 
     try {
-        // Use a transaction to ensure both comment creation and video count update succeed or fail together
-        const [newComment] = await prisma.$transaction([
-            prisma.videoComment.create({
-                data: {
-                    text,
-                    userId,
-                    videoId,
-                },
-                include: { user: true }, // Include user data in the returned comment
-            }),
-            prisma.video.update({
-                where: { id: videoId },
-                data: { comments: { increment: 1 } },
-            }),
-        ]);
+        const newComment = await prisma.comment.create({
+            data: {
+                text,
+                authorId: authorId,
+                videoId,
+            },
+            include: { author: true }, // Include user data in the returned comment
+        });
 
         res.status(201).json(newComment);
     } catch (error) {
