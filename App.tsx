@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
-// FIX: Added UploadSource to the import list from types.ts to support different upload methods.
 import { User, Video, LiveStream, WalletTransaction, Conversation, ChatMessage, Comment, PayoutRequest, MonetizationSettings, UploadSource, CreatorApplication, CoinPack, SavedPaymentMethod, DailyRewardSettings, Ad, AdSettings, Task, TaskSettings } from './types';
-// Refactored to remove mock data for users, videos, and streams. Others are kept as they don't have backend endpoints yet.
 import { mockConversations, systemUser, mockPayoutRequests, mockCreatorApplications, mockAds, mockTasks } from './services/mockApi';
 import { getCurrencyInfoForLocale, CurrencyInfo } from './utils/currency';
 import { CurrencyContext } from './contexts/CurrencyContext';
+import api from './services/api';
 
 import AuthView from './components/views/AuthView';
 import FeedView from './components/views/FeedView';
@@ -15,7 +14,6 @@ import SettingsView from './components/views/SettingsView';
 import PurchaseCoinsView from './components/views/PurchaseCoinsView';
 import ChatInboxView from './components/views/ChatInboxView';
 import ChatWindowView from './components/views/ChatWindowView';
-// FIX: The file 'components/AdminPanel.tsx' was not a module. This is now fixed by providing a proper component implementation.
 import AdminPanel from './components/AdminPanel';
 import BottomNav from './components/BottomNav';
 import UploadView from './components/views/UploadView';
@@ -43,12 +41,8 @@ import WatchAdModal from './components/WatchAdModal';
 
 export type View = 'feed' | 'live' | 'inbox' | 'profile' | 'wallet' | 'settings' | 'purchase' | 'admin' | 'creatorDashboard' | 'manageAccount' | 'changePassword' | 'helpCenter' | 'termsOfService' | 'becomeCreator' | 'paymentMethods' | 'tasks';
 
-// Use environment variable for API base URL with a fallback for development.
-// FIX: Hardcoded the API_BASE_URL to resolve a runtime error where import.meta.env was undefined.
-const API_BASE_URL = 'https://vidora-3dvn.onrender.com/api/v1';
-
 const defaultMonetizationSettings: MonetizationSettings = {
-    currencySymbol: '$',
+    currencySymbol: ',',
     processingFeePercent: 5,
     minPayoutAmount: 50,
     paymentProviders: [
@@ -260,18 +254,14 @@ const App: React.FC = () => {
         }
     });
     
-    // Initial effect to check session storage for login status
+    // Initial effect to check for token in local storage
     useEffect(() => {
-        const checkLoginStatus = () => {
-            const loggedIn = sessionStorage.getItem('isLoggedIn') === 'true';
-            if (loggedIn) {
-                setIsLoggedIn(true);
-            } else {
-                setIsLoading(false); // If not logged in, we're done loading.
-            }
-        };
-
-        checkLoginStatus();
+        const token = localStorage.getItem('token');
+        if (token) {
+            setIsLoggedIn(true);
+        } else {
+            setIsLoading(false);
+        }
         
         // Detect user locale and set currency info
         const info = getCurrencyInfoForLocale(navigator.language);
@@ -286,21 +276,15 @@ const App: React.FC = () => {
             setIsLoading(true);
             setError(null);
             try {
-                // In a real app with auth, a token would be sent in the headers.
                 const [meRes, videosRes, streamsRes] = await Promise.all([
-                    fetch(`${API_BASE_URL}/users/me`),
-                    fetch(`${API_BASE_URL}/videos/feed`),
-                    fetch(`${API_BASE_URL}/livestreams`),
+                    api.get('/users/me'),
+                    api.get('/videos/feed'),
+                    api.get('/livestreams'),
                 ]);
 
-                if (!meRes.ok || !videosRes.ok || !streamsRes.ok) {
-                    const errorData = await meRes.json().catch(() => ({ msg: 'Failed to fetch initial data.' }));
-                    throw new Error(errorData.msg || 'An unknown error occurred.');
-                }
-                
-                const meData: User = await meRes.json();
-                const videosData: { videos: Video[] } = await videosRes.json();
-                const streamsData: { streams: LiveStream[] } = await streamsRes.json();
+                const meData: User = meRes.data;
+                const videosData: { videos: Video[] } = videosRes.data;
+                const streamsData: { streams: LiveStream[] } = streamsRes.data;
 
                 setCurrentUser(meData);
                 setVideos(videosData.videos);
@@ -309,11 +293,11 @@ const App: React.FC = () => {
                 // Populate a comprehensive user list from all fetched data sources
                 const allUserObjects = new Map<string, User>();
                 allUserObjects.set(meData.id, meData);
-                videosData.videos.forEach(video => allUserObjects.set(video.user.id, video.user));
+                videosData.videos.forEach(video => allUserObjects.set(video.author.id, video.author));
                 streamsData.streams.forEach(stream => allUserObjects.set(stream.user.id, stream.user));
                 videosData.videos.forEach(video => {
-                    video.commentsData.forEach(comment => {
-                        allUserObjects.set(comment.user.id, comment.user);
+                    video.comments.forEach(comment => {
+                        allUserObjects.set(comment.author.id, comment.author);
                     });
                 });
                 setUsers(Array.from(allUserObjects.values()));
@@ -326,8 +310,11 @@ const App: React.FC = () => {
                 }
 
             } catch (err: any) {
-                setError(err.message || 'An unexpected error occurred.');
+                setError(err.response?.data?.msg || 'An unexpected error occurred.');
                 console.error('Data fetching error:', err);
+                if (err.response?.status === 401) {
+                    handleLogout(); // If token is invalid, log out the user
+                }
             } finally {
                 setIsLoading(false);
             }
@@ -423,14 +410,14 @@ const App: React.FC = () => {
         );
     }, [currentUser, tasks, taskSettings]);
 
-    const handleLogin = () => {
-        sessionStorage.setItem('isLoggedIn', 'true');
+    const handleLogin = (token: string) => {
+        localStorage.setItem('token', token);
         setIsLoggedIn(true);
         setActiveView('feed');
     };
 
     const handleLogout = () => {
-        sessionStorage.removeItem('isLoggedIn');
+        localStorage.removeItem('token');
         setCurrentUser(null);
         setIsLoggedIn(false);
     };
@@ -510,9 +497,8 @@ const App: React.FC = () => {
         showSuccessToast('Preparing your upload...');
         try {
             // 1. Get signature from our backend
-            const sigResponse = await fetch(`${API_BASE_URL}/uploads/signature`);
-            if (!sigResponse.ok) throw new Error('Could not get upload signature.');
-            const { signature, timestamp, api_key, cloud_name } = await sigResponse.json();
+            const sigResponse = await api.get('/uploads/signature');
+            const { signature, timestamp, api_key, cloud_name } = sigResponse.data;
     
             // 2. Upload directly to Cloudinary
             const formData = new FormData();
@@ -543,15 +529,9 @@ const App: React.FC = () => {
                 thumbnailUrl,
             };
     
-            const saveResponse = await fetch(`${API_BASE_URL}/videos/upload`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(videoData),
-            });
+            const saveResponse = await api.post('/videos/upload', videoData);
     
-            if (!saveResponse.ok) throw new Error('Failed to save video to server.');
-    
-            const newVideo: Video = await saveResponse.json();
+            const newVideo: Video = saveResponse.data;
             setVideos(prev => [newVideo, ...prev]);
             showSuccessToast('Video uploaded successfully!');
     
@@ -577,15 +557,9 @@ const App: React.FC = () => {
         const videoId = activeVideoForComments.id;
 
         try {
-            const response = await fetch(`${API_BASE_URL}/videos/${videoId}/comments`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ text: commentText, userId: currentUser.id }),
-            });
-
-            if (!response.ok) throw new Error('Failed to post comment');
+            const response = await api.post(`/videos/${videoId}/comments`, { text: commentText });
             
-            const newComment: Comment = await response.json();
+            const newComment: Comment = response.data;
             
             const updatedVideos = videos.map(v => {
                 if (v.id === videoId) {
@@ -715,9 +689,8 @@ const App: React.FC = () => {
                 showSuccessToast('Uploading new avatar...');
     
                 // 1. Get signature from our backend
-                const sigResponse = await fetch(`${API_BASE_URL}/uploads/signature`);
-                if (!sigResponse.ok) throw new Error('Could not get upload signature.');
-                const { signature, timestamp, api_key, cloud_name } = await sigResponse.json();
+                const sigResponse = await api.get('/uploads/signature');
+                const { signature, timestamp, api_key, cloud_name } = sigResponse.data;
     
                 // 2. Upload to Cloudinary. The API can accept a base64 data URI directly.
                 const formData = new FormData();
@@ -745,19 +718,13 @@ const App: React.FC = () => {
     
             // 3. Save updated profile to our backend
             showSuccessToast('Saving profile...');
-            const response = await fetch(`${API_BASE_URL}/users/me`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    username: finalUser.username,
-                    bio: finalUser.bio,
-                    avatarUrl: finalUser.avatarUrl,
-                }),
+            const response = await api.put('/users/me', {
+                username: finalUser.username,
+                bio: finalUser.bio,
+                avatarUrl: finalUser.avatarUrl,
             });
     
-            if (!response.ok) throw new Error('Failed to update profile.');
-    
-            const savedUser: User = await response.json();
+            const savedUser: User = response.data;
             setCurrentUser(savedUser);
             showSuccessToast('Profile updated!');
     
