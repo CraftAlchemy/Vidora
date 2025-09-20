@@ -16,7 +16,6 @@
   },
   "dependencies": {
     "@prisma/client": "^6.16.2",
-    
     "bcryptjs": "^2.4.3",
     "cloudinary": "^2.2.0",
     "cors": "^2.8.5",
@@ -25,7 +24,8 @@
     "jsonwebtoken": "^9.0.2",
     "stripe": "^16.2.0",
     "ts-node": "^10.9.2",
-    "typescript": "^5.3.3"
+    "typescript": "^5.3.3",
+    "vidora---social-video-platform": "file:.."
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
