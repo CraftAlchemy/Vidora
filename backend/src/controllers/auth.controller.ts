@@ -1,7 +1,7 @@
 
 
-// FIX: Explicitly import Request and Response types from express to resolve type conflicts.
-// FIX: Changed 'import type' to a direct 'import' to make express types available.
+// FIX: Changed 'import type' to a direct 'import' for Request and Response.
+// This provides the correct Express types, making properties like `req.body` and `res.status` available.
 import { Request, Response } from 'express';
 import prisma from '../lib/prisma';
 import bcrypt from 'bcryptjs';
