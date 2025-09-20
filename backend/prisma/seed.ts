@@ -35,6 +35,7 @@ async function main() {
         followers: userData.followers,
         following: userData.following,
         totalLikes: userData.totalLikes,
+        password: "password123",
       },
     });
     createdUsers.push({ ...user, mockId: userData.id });
