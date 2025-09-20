@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useStripe, useElements, CardElement } from '@stripe/react-stripe-js';
-import api from '../services/api';
+import api from '@/services/api';
 
 interface CheckoutFormProps {
   pack: { amount: number; price: number; description: string };
