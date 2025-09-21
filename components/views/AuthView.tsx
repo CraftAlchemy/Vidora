@@ -43,7 +43,6 @@ const AuthView: React.FC<AuthViewProps> = ({ onLoginSuccess }) => {
 
       <div className="w-full mt-6 space-y-4">
         <button
-          onClick={onLoginSuccess}
           className="w-full py-3 font-semibold rounded-lg bg-gradient-to-r from-pink-500 to-red-500 text-white shadow-lg transform hover:scale-105 transition-transform"
         >
           {isLogin ? 'Log In' : 'Sign Up'}
