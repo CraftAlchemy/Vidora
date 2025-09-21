@@ -13,7 +13,7 @@ const PORT = process.env.PORT || 5000
 
 // CORS config
 app.use(cors({
-  origin: '*',
+  origin: 'https://vidora-alpha.vercel.app',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 }))
