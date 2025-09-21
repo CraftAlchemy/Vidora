@@ -26,6 +26,7 @@ export const register = async (req: Request, res: Response) => {
       data: {
         email,
         username,
+        name: username, // Add the required 'name' field
         password: hashedPassword,
         // Add other default fields as per your schema
         role: 'user',

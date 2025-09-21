@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 // FIX: Added UploadSource to the import list from types.ts to support different upload methods.
+import { apiFetch } from './services/api';
 import { User, Video, LiveStream, WalletTransaction, Conversation, ChatMessage, Comment, PayoutRequest, MonetizationSettings, UploadSource, CreatorApplication, CoinPack, SavedPaymentMethod, DailyRewardSettings, Ad, AdSettings, Task, TaskSettings } from './types';
 import { mockUser, mockUsers, mockVideos, mockLiveStreams, mockConversations, systemUser, mockPayoutRequests, mockCreatorApplications, mockAds, mockTasks } from './services/mockApi';
 import { getCurrencyInfoForLocale, CurrencyInfo } from './utils/currency';
@@ -264,23 +265,18 @@ const App: React.FC = () => {
             setIsLoading(true);
             setError(null);
             try {
-                const headers: HeadersInit = {};
-                if (token) {
-                    headers['Authorization'] = `Bearer ${token}`;
-                }
-
                 // Fetch public data
                 const publicDataPromises = [
-                    fetch(`${API_URL}/videos/feed`, { headers }),
-                    fetch(`${API_URL}/livestreams`, { headers }),
+                    apiFetch('/videos/feed'),
+                    apiFetch('/livestreams'),
                 ];
 
                 // If token exists, fetch user-specific data
                 if (token) {
-                    const mePromise = fetch(`${API_URL}/users/me`, { headers });
+                    const mePromise = apiFetch('/users/me');
                     const [meResponse, videosResponse, streamsResponse] = await Promise.all([mePromise, ...publicDataPromises]);
 
-                    if (!meResponse.ok) {
+                    if (!meResponse) { // apiFetch throws on non-ok, so this check is for type safety
                         // Token might be expired/invalid
                         localStorage.removeItem('authToken');
                         throw new Error('Session expired. Please log in again.');
@@ -290,9 +286,9 @@ const App: React.FC = () => {
                     const videosData = await videosResponse.json();
                     const streamsData = await streamsResponse.json();
 
-                    setCurrentUser(meData.user);
-                    setVideos(videosData.videos || []);
-                    setLiveStreams(streamsData.streams || []);
+                    setCurrentUser(meResponse.user);
+                    setVideos(videosResponse.videos || []);
+                    setLiveStreams(streamsResponse.streams || []);
                     setIsLoggedIn(true);
 
                     const lastClaimed = localStorage.getItem('lastRewardClaim');
@@ -303,14 +299,9 @@ const App: React.FC = () => {
                 } else {
                     // Fetch only public data if not logged in
                     const [videosResponse, streamsResponse] = await Promise.all(publicDataPromises);
-                    if (!videosResponse.ok || !streamsResponse.ok) {
-                        throw new Error('Failed to fetch initial data.');
-                    }
-                    const videosData = await videosResponse.json();
-                    const streamsData = await streamsResponse.json();
 
-                    setVideos(videosData.videos || []);
-                    setLiveStreams(streamsData.streams || []);
+                    setVideos(videosResponse.videos || []);
+                    setLiveStreams(streamsResponse.streams || []);
                 }
             } catch (err: any) {
                 setError(err.message || 'An error occurred while loading the app.');
@@ -484,16 +475,11 @@ const App: React.FC = () => {
             formData.append('description', description);
 
             try {
-                const response = await fetch(`${API_URL}/videos/upload`, {
+                const newVideo: Video = await apiFetch('/videos/upload', {
                     method: 'POST',
                     body: formData,
                 });
 
-                if (!response.ok) {
-                    throw new Error('Upload failed');
-                }
-
-                const newVideo: Video = await response.json();
                 setVideos(prev => [newVideo, ...prev]);
                 showSuccessToast('Video uploaded successfully!');
             } catch (error) {
@@ -538,15 +524,10 @@ const App: React.FC = () => {
         const videoId = activeVideoForComments.id;
 
         try {
-            const response = await fetch(`${API_URL}/videos/${videoId}/comments`, {
+            const newComment: Comment = await apiFetch(`/videos/${videoId}/comments`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ text: commentText, userId: currentUser.id }),
+                body: { text: commentText }, // userId is now taken from the token on the backend
             });
-
-            if (!response.ok) throw new Error('Failed to post comment');
-            
-            const newComment: Comment = await response.json();
             
             const updatedVideos = videos.map(v => {
                 if (v.id === videoId) {
