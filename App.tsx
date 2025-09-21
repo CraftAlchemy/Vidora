@@ -42,7 +42,7 @@ import WatchAdModal from './components/WatchAdModal';
 
 export type View = 'feed' | 'live' | 'inbox' | 'profile' | 'wallet' | 'settings' | 'purchase' | 'admin' | 'creatorDashboard' | 'manageAccount' | 'changePassword' | 'helpCenter' | 'termsOfService' | 'becomeCreator' | 'paymentMethods' | 'tasks';
 
-const API_URL = 'https://vidora-3dvn.onrender.com/api/v1';
+const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001/api/v1';
 
 const defaultMonetizationSettings: MonetizationSettings = {
     currencySymbol: '$',
@@ -104,12 +104,15 @@ const defaultTaskSettings: TaskSettings = {
 
 const App: React.FC = () => {
     const [isLoggedIn, setIsLoggedIn] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
     const [currentUser, setCurrentUser] = useState<User | null>(null);
-    const [users, setUsers] = useState<User[]>(mockUsers);
+    const [users, setUsers] = useState<User[]>([]);
     const [videos, setVideos] = useState<Video[]>([]);
-    const [liveStreams, setLiveStreams] = useState<LiveStream[]>(mockLiveStreams);
-    const [conversations, setConversations] = useState<Conversation[]>(mockConversations);
-    const [payoutRequests, setPayoutRequests] = useState<PayoutRequest[]>(mockPayoutRequests);
+    const [liveStreams, setLiveStreams] = useState<LiveStream[]>([]);
+    const [conversations, setConversations] = useState<Conversation[]>([]);
+    const [payoutRequests, setPayoutRequests] = useState<PayoutRequest[]>([]);
     const [creatorApplications, setCreatorApplications] = useState<CreatorApplication[]>(mockCreatorApplications);
     
     const [activeView, setActiveView] = useState<View>('feed');
@@ -251,23 +254,73 @@ const App: React.FC = () => {
     });
 
     useEffect(() => {
-        const loggedIn = sessionStorage.getItem('isLoggedIn') === 'true';
-        if (loggedIn) {
-            setCurrentUser(mockUser);
-            setVideos(mockVideos);
-            setIsLoggedIn(true);
-
-            const lastClaimed = localStorage.getItem('lastRewardClaim');
-            const today = new Date().toISOString().split('T')[0];
-            if (dailyRewardSettings.isEnabled && lastClaimed !== today) {
-                setTimeout(() => setIsDailyRewardOpen(true), 1000);
-            }
-        }
-        
         // Detect user locale and set currency info
         const info = getCurrencyInfoForLocale(navigator.language);
         setCurrencyInfo(info);
 
+        const token = localStorage.getItem('authToken');
+
+        const fetchData = async () => {
+            setIsLoading(true);
+            setError(null);
+            try {
+                const headers: HeadersInit = {};
+                if (token) {
+                    headers['Authorization'] = `Bearer ${token}`;
+                }
+
+                // Fetch public data
+                const publicDataPromises = [
+                    fetch(`${API_URL}/videos/feed`, { headers }),
+                    fetch(`${API_URL}/livestreams`, { headers }),
+                ];
+
+                // If token exists, fetch user-specific data
+                if (token) {
+                    const mePromise = fetch(`${API_URL}/users/me`, { headers });
+                    const [meResponse, videosResponse, streamsResponse] = await Promise.all([mePromise, ...publicDataPromises]);
+
+                    if (!meResponse.ok) {
+                        // Token might be expired/invalid
+                        localStorage.removeItem('authToken');
+                        throw new Error('Session expired. Please log in again.');
+                    }
+
+                    const meData = await meResponse.json();
+                    const videosData = await videosResponse.json();
+                    const streamsData = await streamsResponse.json();
+
+                    setCurrentUser(meData.user);
+                    setVideos(videosData.videos || []);
+                    setLiveStreams(streamsData.streams || []);
+                    setIsLoggedIn(true);
+
+                    const lastClaimed = localStorage.getItem('lastRewardClaim');
+                    const today = new Date().toISOString().split('T')[0];
+                    if (dailyRewardSettings.isEnabled && lastClaimed !== today) {
+                        setTimeout(() => setIsDailyRewardOpen(true), 1000);
+                    }
+                } else {
+                    // Fetch only public data if not logged in
+                    const [videosResponse, streamsResponse] = await Promise.all(publicDataPromises);
+                    if (!videosResponse.ok || !streamsResponse.ok) {
+                        throw new Error('Failed to fetch initial data.');
+                    }
+                    const videosData = await videosResponse.json();
+                    const streamsData = await streamsResponse.json();
+
+                    setVideos(videosData.videos || []);
+                    setLiveStreams(streamsData.streams || []);
+                }
+            } catch (err: any) {
+                setError(err.message || 'An error occurred while loading the app.');
+                console.error(err);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchData();
     }, []);
 
     useEffect(() => {
@@ -356,16 +409,17 @@ const App: React.FC = () => {
         );
     }, [currentUser, tasks, taskSettings]);
 
-    const handleLogin = () => {
-        sessionStorage.setItem('isLoggedIn', 'true');
-        setCurrentUser(mockUser);
-        setVideos(mockVideos);
+    const handleLogin = (data: { user: User, token: string }) => {
+        localStorage.setItem('authToken', data.token);
+        setCurrentUser(data.user);
         setIsLoggedIn(true);
+        setIsLoading(false);
         setActiveView('feed');
     };
 
     const handleLogout = () => {
-        sessionStorage.removeItem('isLoggedIn');
+        localStorage.removeItem('authToken');
+        sessionStorage.removeItem('isLoggedIn'); // Keep for legacy checks if needed, but remove
         setCurrentUser(null);
         setIsLoggedIn(false);
     };
@@ -1071,7 +1125,27 @@ const App: React.FC = () => {
 
 
     if (!isLoggedIn || !currentUser) {
-        return <AuthView onLoginSuccess={handleLogin} />;
+        return <AuthView 
+                    onLoginSuccess={handleLogin} 
+                    apiUrl={API_URL} 
+                    showSuccessToast={showSuccessToast}
+                />;
+    }
+
+    if (isLoading) {
+        return (
+            <div className="h-full w-full flex items-center justify-center bg-black text-white">
+                <p>Loading Vidora...</p>
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="h-full w-full flex items-center justify-center bg-black text-red-500 p-4 text-center">
+                <p>Error: {error}<br/>Please try refreshing the page.</p>
+            </div>
+        );
     }
 
     if (activeView === 'admin') {

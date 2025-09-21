@@ -1,56 +1,78 @@
 
 import { Request, Response } from 'express';
-// In a real app, you'd use bcrypt, jwt, and your Prisma client
-// import bcrypt from 'bcryptjs';
-// import jwt from 'jsonwebtoken';
-// import { PrismaClient } from '@prisma/client';
-// const prisma = new PrismaClient();
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+import { PrismaClient } from '@prisma/client';
 
-// Placeholder register function
-// FIX: Use Request and Response types directly from express to resolve type conflicts.
+const prisma = new PrismaClient();
+
 export const register = async (req: Request, res: Response) => {
   const { email, username, password } = req.body;
 
-  // Basic validation
   if (!email || !username || !password) {
     return res.status(400).json({ msg: 'Please enter all fields' });
   }
 
-  // In a real app:
-  // 1. Check if user already exists
-  // 2. Hash the password
-  // 3. Create user in the database
-  // 4. Generate a JWT
+  try {
+    const existingUser = await prisma.user.findUnique({ where: { email } });
+    if (existingUser) {
+      return res.status(400).json({ msg: 'User with this email already exists' });
+    }
 
-  console.log('Registering user:', { email, username });
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
 
-  // Mock response
-  res.status(201).json({
-    token: 'mock_jwt_token_on_register',
-    user: { id: 'new_user_id', email, username },
-  });
+    const newUser = await prisma.user.create({
+      data: {
+        email,
+        username,
+        password: hashedPassword,
+        // Add other default fields as per your schema
+        role: 'user',
+        status: 'active',
+      },
+    });
+
+    const payload = { user: { id: newUser.id } };
+    const token = jwt.sign(payload, process.env.JWT_SECRET || 'your_default_secret', { expiresIn: '1h' });
+
+    res.status(201).json({
+      token,
+      user: { id: newUser.id, email: newUser.email, username: newUser.username, role: newUser.role },
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ msg: 'Server error during registration' });
+  }
 };
 
-// Placeholder login function
-// FIX: Use Request and Response types directly from express to resolve type conflicts.
 export const login = async (req: Request, res: Response) => {
   const { email, password } = req.body;
 
-  // Basic validation
   if (!email || !password) {
     return res.status(400).json({ msg: 'Please enter all fields' });
   }
-  
-  // In a real app:
-  // 1. Find user by email
-  // 2. Compare passwords
-  // 3. Generate a JWT
 
-  console.log('Logging in user:', { email });
+  try {
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user) {
+      return res.status(400).json({ msg: 'Invalid credentials' });
+    }
 
-  // Mock response
-  res.status(200).json({
-    token: 'mock_jwt_token_on_login',
-    user: { id: 'existing_user_id', email, username: 'mockuser' },
-  });
+    const isMatch = await bcrypt.compare(password, user.password || '');
+    if (!isMatch) {
+      return res.status(400).json({ msg: 'Invalid credentials' });
+    }
+
+    const payload = { user: { id: user.id } };
+    const token = jwt.sign(payload, process.env.JWT_SECRET || 'your_default_secret', { expiresIn: '1h' });
+
+    res.status(200).json({
+      token,
+      user: { id: user.id, email: user.email, username: user.username, role: user.role },
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ msg: 'Server error during login' });
+  }
 };
