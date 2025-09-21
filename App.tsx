@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
 // FIX: Added UploadSource to the import list from types.ts to support different upload methods.
-import { apiFetch } from './services/api';
 import { User, Video, LiveStream, WalletTransaction, Conversation, ChatMessage, Comment, PayoutRequest, MonetizationSettings, UploadSource, CreatorApplication, CoinPack, SavedPaymentMethod, DailyRewardSettings, Ad, AdSettings, Task, TaskSettings } from './types';
 import { mockUser, mockUsers, mockVideos, mockLiveStreams, mockConversations, systemUser, mockPayoutRequests, mockCreatorApplications, mockAds, mockTasks } from './services/mockApi';
 import { getCurrencyInfoForLocale, CurrencyInfo } from './utils/currency';
@@ -43,7 +42,7 @@ import WatchAdModal from './components/WatchAdModal';
 
 export type View = 'feed' | 'live' | 'inbox' | 'profile' | 'wallet' | 'settings' | 'purchase' | 'admin' | 'creatorDashboard' | 'manageAccount' | 'changePassword' | 'helpCenter' | 'termsOfService' | 'becomeCreator' | 'paymentMethods' | 'tasks';
 
-const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001/api/v1';
+const API_URL = 'https://vidora-3dvn.onrender.com/api/v1';
 
 const defaultMonetizationSettings: MonetizationSettings = {
     currencySymbol: '$',
@@ -105,15 +104,12 @@ const defaultTaskSettings: TaskSettings = {
 
 const App: React.FC = () => {
     const [isLoggedIn, setIsLoggedIn] = useState(false);
-    const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-
     const [currentUser, setCurrentUser] = useState<User | null>(null);
-    const [users, setUsers] = useState<User[]>([]);
+    const [users, setUsers] = useState<User[]>(mockUsers);
     const [videos, setVideos] = useState<Video[]>([]);
-    const [liveStreams, setLiveStreams] = useState<LiveStream[]>([]);
-    const [conversations, setConversations] = useState<Conversation[]>([]);
-    const [payoutRequests, setPayoutRequests] = useState<PayoutRequest[]>([]);
+    const [liveStreams, setLiveStreams] = useState<LiveStream[]>(mockLiveStreams);
+    const [conversations, setConversations] = useState<Conversation[]>(mockConversations);
+    const [payoutRequests, setPayoutRequests] = useState<PayoutRequest[]>(mockPayoutRequests);
     const [creatorApplications, setCreatorApplications] = useState<CreatorApplication[]>(mockCreatorApplications);
     
     const [activeView, setActiveView] = useState<View>('feed');
@@ -255,63 +251,23 @@ const App: React.FC = () => {
     });
 
     useEffect(() => {
+        const loggedIn = sessionStorage.getItem('isLoggedIn') === 'true';
+        if (loggedIn) {
+            setCurrentUser(mockUser);
+            setVideos(mockVideos);
+            setIsLoggedIn(true);
+
+            const lastClaimed = localStorage.getItem('lastRewardClaim');
+            const today = new Date().toISOString().split('T')[0];
+            if (dailyRewardSettings.isEnabled && lastClaimed !== today) {
+                setTimeout(() => setIsDailyRewardOpen(true), 1000);
+            }
+        }
+        
         // Detect user locale and set currency info
         const info = getCurrencyInfoForLocale(navigator.language);
         setCurrencyInfo(info);
 
-        const token = localStorage.getItem('authToken');
-
-        const fetchData = async () => {
-            setIsLoading(true);
-            setError(null);
-            try {
-                // Fetch public data
-                const publicDataPromises = [
-                    apiFetch('/videos/feed'),
-                    apiFetch('/livestreams'),
-                ];
-
-                // If token exists, fetch user-specific data
-                if (token) {
-                    const mePromise = apiFetch('/users/me');
-                    const [meResponse, videosResponse, streamsResponse] = await Promise.all([mePromise, ...publicDataPromises]);
-
-                    if (!meResponse) { // apiFetch throws on non-ok, so this check is for type safety
-                        // Token might be expired/invalid
-                        localStorage.removeItem('authToken');
-                        throw new Error('Session expired. Please log in again.');
-                    }
-
-                    const meData = await meResponse.json();
-                    const videosData = await videosResponse.json();
-                    const streamsData = await streamsResponse.json();
-
-                    setCurrentUser(meResponse.user);
-                    setVideos(videosResponse.videos || []);
-                    setLiveStreams(streamsResponse.streams || []);
-                    setIsLoggedIn(true);
-
-                    const lastClaimed = localStorage.getItem('lastRewardClaim');
-                    const today = new Date().toISOString().split('T')[0];
-                    if (dailyRewardSettings.isEnabled && lastClaimed !== today) {
-                        setTimeout(() => setIsDailyRewardOpen(true), 1000);
-                    }
-                } else {
-                    // Fetch only public data if not logged in
-                    const [videosResponse, streamsResponse] = await Promise.all(publicDataPromises);
-
-                    setVideos(videosResponse.videos || []);
-                    setLiveStreams(streamsResponse.streams || []);
-                }
-            } catch (err: any) {
-                setError(err.message || 'An error occurred while loading the app.');
-                console.error(err);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
-        fetchData();
     }, []);
 
     useEffect(() => {
@@ -400,17 +356,16 @@ const App: React.FC = () => {
         );
     }, [currentUser, tasks, taskSettings]);
 
-    const handleLogin = (data: { user: User, token: string }) => {
-        localStorage.setItem('authToken', data.token);
-        setCurrentUser(data.user);
+    const handleLogin = () => {
+        sessionStorage.setItem('isLoggedIn', 'true');
+        setCurrentUser(mockUser);
+        setVideos(mockVideos);
         setIsLoggedIn(true);
-        setIsLoading(false);
         setActiveView('feed');
     };
 
     const handleLogout = () => {
-        localStorage.removeItem('authToken');
-        sessionStorage.removeItem('isLoggedIn'); // Keep for legacy checks if needed, but remove
+        sessionStorage.removeItem('isLoggedIn');
         setCurrentUser(null);
         setIsLoggedIn(false);
     };
@@ -475,11 +430,16 @@ const App: React.FC = () => {
             formData.append('description', description);
 
             try {
-                const newVideo: Video = await apiFetch('/videos/upload', {
+                const response = await fetch(`${API_URL}/videos/upload`, {
                     method: 'POST',
                     body: formData,
                 });
 
+                if (!response.ok) {
+                    throw new Error('Upload failed');
+                }
+
+                const newVideo: Video = await response.json();
                 setVideos(prev => [newVideo, ...prev]);
                 showSuccessToast('Video uploaded successfully!');
             } catch (error) {
@@ -524,10 +484,15 @@ const App: React.FC = () => {
         const videoId = activeVideoForComments.id;
 
         try {
-            const newComment: Comment = await apiFetch(`/videos/${videoId}/comments`, {
+            const response = await fetch(`${API_URL}/videos/${videoId}/comments`, {
                 method: 'POST',
-                body: { text: commentText }, // userId is now taken from the token on the backend
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text: commentText, userId: currentUser.id }),
             });
+
+            if (!response.ok) throw new Error('Failed to post comment');
+            
+            const newComment: Comment = await response.json();
             
             const updatedVideos = videos.map(v => {
                 if (v.id === videoId) {
@@ -1106,27 +1071,7 @@ const App: React.FC = () => {
 
 
     if (!isLoggedIn || !currentUser) {
-        return <AuthView 
-                    onLoginSuccess={handleLogin} 
-                    apiUrl={API_URL} 
-                    showSuccessToast={showSuccessToast}
-                />;
-    }
-
-    if (isLoading) {
-        return (
-            <div className="h-full w-full flex items-center justify-center bg-black text-white">
-                <p>Loading Vidora...</p>
-            </div>
-        );
-    }
-
-    if (error) {
-        return (
-            <div className="h-full w-full flex items-center justify-center bg-black text-red-500 p-4 text-center">
-                <p>Error: {error}<br/>Please try refreshing the page.</p>
-            </div>
-        );
+        return <AuthView onLoginSuccess={handleLogin} />;
     }
 
     if (activeView === 'admin') {
