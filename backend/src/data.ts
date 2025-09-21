@@ -1,4 +1,4 @@
-import { User, Video, Comment, LiveStream } from './types';
+import { User, Video, Comment } from './types';
 
 // This data is a copy from the frontend's mockApi to simulate a backend database.
 
@@ -173,11 +173,4 @@ export const mockVideos: Video[] = [
     status: 'removed',
     uploadDate: '2024-05-15',
   },
-];
-
-export const mockLiveStreams: LiveStream[] = [
-  { id: 'ls1', title: 'Live Gaming Session', user: mockUsers[2], thumbnailUrl: 'https://images.pexels.com/photos/7915228/pexels-photo-7915228.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2', viewers: 15200, videoUrl: 'https://www.youtube.com/watch?v=LXb3EKWsInQ', status: 'live' },
-  { id: 'ls2', title: 'Q&A with a Dev', user: mockUsers[0], thumbnailUrl: 'https://images.pexels.com/photos/546819/pexels-photo-546819.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2', viewers: 3400, videoUrl: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4', status: 'live' },
-  { id: 'ls3', title: 'Art Creation Stream', user: mockUsers[1], thumbnailUrl: 'https://images.pexels.com/photos/1198507/pexels-photo-1198507.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2', viewers: 8900, videoUrl: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4', status: 'live' },
-  { id: 'ls4', title: 'Cooking Live', user: mockUsers[3], thumbnailUrl: 'https://images.pexels.com/photos/5639414/pexels-photo-5639414.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2', viewers: 1200, videoUrl: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4', status: 'live' },
 ];

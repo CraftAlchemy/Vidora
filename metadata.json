@@ -1,5 +1,5 @@
 {
-  "name": "Vidora - Social Video Platform",
+  "name": "VidoRa  - Social Video Platform",
   "description": "A frontend prototype for a social video platform similar to BuzzCast. This application simulates features like a video feed, live streaming, user profiles, and an admin dashboard. All data is mocked and for demonstration purposes only.",
   "requestFramePermissions": [
     "camera",

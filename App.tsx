@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
+// FIX: Added UploadSource to the import list from types.ts to support different upload methods.
 import { User, Video, LiveStream, WalletTransaction, Conversation, ChatMessage, Comment, PayoutRequest, MonetizationSettings, UploadSource, CreatorApplication, CoinPack, SavedPaymentMethod, DailyRewardSettings, Ad, AdSettings, Task, TaskSettings } from './types';
-import { mockConversations, systemUser, mockPayoutRequests, mockCreatorApplications, mockAds, mockTasks } from './services/mockApi';
+import { mockUser, mockUsers, mockVideos, mockLiveStreams, mockConversations, systemUser, mockPayoutRequests, mockCreatorApplications, mockAds, mockTasks } from './services/mockApi';
 import { getCurrencyInfoForLocale, CurrencyInfo } from './utils/currency';
 import { CurrencyContext } from './contexts/CurrencyContext';
-import api from './services/api';
 
 import AuthView from './components/views/AuthView';
 import FeedView from './components/views/FeedView';
@@ -14,6 +14,7 @@ import SettingsView from './components/views/SettingsView';
 import PurchaseCoinsView from './components/views/PurchaseCoinsView';
 import ChatInboxView from './components/views/ChatInboxView';
 import ChatWindowView from './components/views/ChatWindowView';
+// FIX: The file 'components/AdminPanel.tsx' was not a module. This is now fixed by providing a proper component implementation.
 import AdminPanel from './components/AdminPanel';
 import BottomNav from './components/BottomNav';
 import UploadView from './components/views/UploadView';
@@ -41,10 +42,12 @@ import WatchAdModal from './components/WatchAdModal';
 
 export type View = 'feed' | 'live' | 'inbox' | 'profile' | 'wallet' | 'settings' | 'purchase' | 'admin' | 'creatorDashboard' | 'manageAccount' | 'changePassword' | 'helpCenter' | 'termsOfService' | 'becomeCreator' | 'paymentMethods' | 'tasks';
 
+const API_URL = 'https://vidora-3dvn.onrender.com/api/v1';
+
 const defaultMonetizationSettings: MonetizationSettings = {
     currencySymbol: '$',
-    minPayoutAmount: 50,
     processingFeePercent: 5,
+    minPayoutAmount: 50,
     paymentProviders: [
         { id: 'stripe', name: 'Card', isEnabled: true },
         { id: 'paypal', name: 'PayPal', isEnabled: true },
@@ -100,18 +103,11 @@ const defaultTaskSettings: TaskSettings = {
 
 
 const App: React.FC = () => {
-    // Core state
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [currentUser, setCurrentUser] = useState<User | null>(null);
-    const [users, setUsers] = useState<User[]>([]);
+    const [users, setUsers] = useState<User[]>(mockUsers);
     const [videos, setVideos] = useState<Video[]>([]);
-    const [liveStreams, setLiveStreams] = useState<LiveStream[]>([]);
-    
-    // API call states
-    const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-
-    // State still using mock data due to lack of backend endpoints
+    const [liveStreams, setLiveStreams] = useState<LiveStream[]>(mockLiveStreams);
     const [conversations, setConversations] = useState<Conversation[]>(mockConversations);
     const [payoutRequests, setPayoutRequests] = useState<PayoutRequest[]>(mockPayoutRequests);
     const [creatorApplications, setCreatorApplications] = useState<CreatorApplication[]>(mockCreatorApplications);
@@ -253,76 +249,26 @@ const App: React.FC = () => {
             return defaultTaskSettings;
         }
     });
-    
-    // Initial effect to check for token in local storage
+
     useEffect(() => {
-        const token = localStorage.getItem('token');
-        if (token) {
+        const loggedIn = sessionStorage.getItem('isLoggedIn') === 'true';
+        if (loggedIn) {
+            setCurrentUser(mockUser);
+            setVideos(mockVideos);
             setIsLoggedIn(true);
-        } else {
-            setIsLoading(false);
+
+            const lastClaimed = localStorage.getItem('lastRewardClaim');
+            const today = new Date().toISOString().split('T')[0];
+            if (dailyRewardSettings.isEnabled && lastClaimed !== today) {
+                setTimeout(() => setIsDailyRewardOpen(true), 1000);
+            }
         }
         
         // Detect user locale and set currency info
         const info = getCurrencyInfoForLocale(navigator.language);
         setCurrencyInfo(info);
+
     }, []);
-
-    // Effect to fetch all core data once the user is logged in
-    useEffect(() => {
-        if (!isLoggedIn) return;
-
-        const fetchData = async () => {
-            setIsLoading(true);
-            setError(null);
-            try {
-                const [meRes, videosRes, streamsRes] = await Promise.all([
-                    api.get('/users/me'),
-                    api.get('/videos/feed'),
-                    api.get('/livestreams'),
-                ]);
-
-                const meData: User = meRes.data;
-                const videosData: { videos: Video[] } = videosRes.data;
-                const streamsData: { streams: LiveStream[] } = streamsRes.data;
-
-                setCurrentUser(meData);
-                setVideos(videosData.videos);
-                setLiveStreams(streamsData.streams);
-
-                // Populate a comprehensive user list from all fetched data sources
-                const allUserObjects = new Map<string, User>();
-                allUserObjects.set(meData.id, meData);
-                videosData.videos.forEach(video => allUserObjects.set(video.author.id, video.author));
-                streamsData.streams.forEach(stream => allUserObjects.set(stream.user.id, stream.user));
-                videosData.videos.forEach(video => {
-                    video.comments.forEach(comment => {
-                        allUserObjects.set(comment.author.id, comment.author);
-                    });
-                });
-                setUsers(Array.from(allUserObjects.values()));
-
-                // Daily reward logic
-                const lastClaimed = localStorage.getItem('lastRewardClaim');
-                const today = new Date().toISOString().split('T')[0];
-                if (dailyRewardSettings.isEnabled && lastClaimed !== today) {
-                    setTimeout(() => setIsDailyRewardOpen(true), 1000);
-                }
-
-            } catch (err: any) {
-                setError(err.response?.data?.msg || 'An unexpected error occurred.');
-                console.error('Data fetching error:', err);
-                if (err.response?.status === 401) {
-                    handleLogout(); // If token is invalid, log out the user
-                }
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
-        fetchData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isLoggedIn]);
 
     useEffect(() => {
         setIsNavVisible(true);
@@ -410,14 +356,16 @@ const App: React.FC = () => {
         );
     }, [currentUser, tasks, taskSettings]);
 
-    const handleLogin = (token: string) => {
-        localStorage.setItem('token', token);
+    const handleLogin = () => {
+        sessionStorage.setItem('isLoggedIn', 'true');
+        setCurrentUser(mockUser);
+        setVideos(mockVideos);
         setIsLoggedIn(true);
         setActiveView('feed');
     };
 
     const handleLogout = () => {
-        localStorage.removeItem('token');
+        sessionStorage.removeItem('isLoggedIn');
         setCurrentUser(null);
         setIsLoggedIn(false);
     };
@@ -469,14 +417,41 @@ const App: React.FC = () => {
         setIsUploadViewOpen(false);
     };
 
+    // FIX: Updated handleUpload to accept an `UploadSource` object to support both file uploads and URL embedding from the UploadView component.
     const handleUpload = async (source: UploadSource, description: string) => {
         if (!currentUser) return;
+
         handleCloseUpload();
-    
-        // This 'url' part can be extended later to fetch and process the URL on the backend
-        if (source.type === 'url') {
+
+        if (source.type === 'file') {
+            showSuccessToast('Uploading your video...');
+            const formData = new FormData();
+            formData.append('video', source.data);
+            formData.append('description', description);
+
+            try {
+                const response = await fetch(`${API_URL}/videos/upload`, {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                if (!response.ok) {
+                    throw new Error('Upload failed');
+                }
+
+                const newVideo: Video = await response.json();
+                setVideos(prev => [newVideo, ...prev]);
+                showSuccessToast('Video uploaded successfully!');
+            } catch (error) {
+                console.error('Error uploading video:', error);
+                showSuccessToast('Error: Could not upload video.');
+            }
+        } else { // source.type === 'url'
             showSuccessToast('Embedding your video...');
+            // In a real app, you would send the URL to the backend to process.
+            // Here, we'll simulate it.
             setTimeout(() => {
+// FIX: Changed `videoUrl` to `videoSources` to maintain consistency with the Video type and other components.
                 const newVideo: Video = {
                     id: `v-url-${Date.now()}`,
                     videoSources: [{ quality: 'Auto', url: source.data as string }],
@@ -490,54 +465,6 @@ const App: React.FC = () => {
                 setVideos(prev => [newVideo, ...prev]);
                 showSuccessToast('Video embedded successfully!');
             }, 1500);
-            return;
-        }
-    
-        // New direct-to-Cloudinary flow for file uploads
-        showSuccessToast('Preparing your upload...');
-        try {
-            // 1. Get signature from our backend
-            const sigResponse = await api.get('/uploads/signature');
-            const { signature, timestamp, api_key, cloud_name } = sigResponse.data;
-    
-            // 2. Upload directly to Cloudinary
-            const formData = new FormData();
-            formData.append('file', source.data);
-            formData.append('api_key', api_key);
-            formData.append('timestamp', timestamp);
-            formData.append('signature', signature);
-            formData.append('folder', 'vidora-videos');
-    
-            showSuccessToast('Uploading...');
-            const cloudinaryUrl = `https://api.cloudinary.com/v1_1/${cloud_name}/video/upload`;
-            const cloudinaryResponse = await fetch(cloudinaryUrl, {
-                method: 'POST',
-                body: formData,
-            });
-    
-            if (!cloudinaryResponse.ok) {
-                const errorData = await cloudinaryResponse.json();
-                throw new Error(`Cloudinary upload failed: ${errorData.error.message}`);
-            }
-            const cloudinaryData = await cloudinaryResponse.json();
-    
-            // 3. Save the URL and metadata to our backend
-            const thumbnailUrl = cloudinaryData.secure_url.replace(/\.mp4$/, '.jpg');
-            const videoData = {
-                description,
-                videoUrl: cloudinaryData.secure_url,
-                thumbnailUrl,
-            };
-    
-            const saveResponse = await api.post('/videos/upload', videoData);
-    
-            const newVideo: Video = saveResponse.data;
-            setVideos(prev => [newVideo, ...prev]);
-            showSuccessToast('Video uploaded successfully!');
-    
-        } catch (error: any) {
-            console.error('Error during upload process:', error);
-            showSuccessToast(`Error: ${error.message}`);
         }
     };
     
@@ -557,9 +484,15 @@ const App: React.FC = () => {
         const videoId = activeVideoForComments.id;
 
         try {
-            const response = await api.post(`/videos/${videoId}/comments`, { text: commentText });
+            const response = await fetch(`${API_URL}/videos/${videoId}/comments`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text: commentText, userId: currentUser.id }),
+            });
+
+            if (!response.ok) throw new Error('Failed to post comment');
             
-            const newComment: Comment = response.data;
+            const newComment: Comment = await response.json();
             
             const updatedVideos = videos.map(v => {
                 if (v.id === videoId) {
@@ -677,61 +610,10 @@ const App: React.FC = () => {
         setIsEditProfileOpen(true);
     };
 
-    const handleSaveProfile = async (updatedUser: User) => {
-        if (!currentUser) return;
+    const handleSaveProfile = (updatedUser: User) => {
+        setCurrentUser(updatedUser);
         setIsEditProfileOpen(false);
-    
-        try {
-            let finalUser = { ...updatedUser };
-    
-            // Check if avatar is a new base64 upload
-            if (finalUser.avatarUrl.startsWith('data:image')) {
-                showSuccessToast('Uploading new avatar...');
-    
-                // 1. Get signature from our backend
-                const sigResponse = await api.get('/uploads/signature');
-                const { signature, timestamp, api_key, cloud_name } = sigResponse.data;
-    
-                // 2. Upload to Cloudinary. The API can accept a base64 data URI directly.
-                const formData = new FormData();
-                formData.append('file', finalUser.avatarUrl);
-                formData.append('api_key', api_key);
-                formData.append('timestamp', timestamp);
-                formData.append('signature', signature);
-                formData.append('folder', 'vidora-avatars');
-    
-                const cloudinaryUrl = `https://api.cloudinary.com/v1_1/${cloud_name}/image/upload`;
-                const cloudinaryResponse = await fetch(cloudinaryUrl, {
-                    method: 'POST',
-                    body: formData,
-                });
-    
-                if (!cloudinaryResponse.ok) {
-                    const errorData = await cloudinaryResponse.json();
-                    throw new Error(`Cloudinary upload failed: ${errorData.error.message}`);
-                }
-                const cloudinaryData = await cloudinaryResponse.json();
-    
-                // Update user object with the new Cloudinary URL
-                finalUser.avatarUrl = cloudinaryData.secure_url;
-            }
-    
-            // 3. Save updated profile to our backend
-            showSuccessToast('Saving profile...');
-            const response = await api.put('/users/me', {
-                username: finalUser.username,
-                bio: finalUser.bio,
-                avatarUrl: finalUser.avatarUrl,
-            });
-    
-            const savedUser: User = response.data;
-            setCurrentUser(savedUser);
-            showSuccessToast('Profile updated!');
-    
-        } catch (error: any) {
-            console.error('Error saving profile:', error);
-            showSuccessToast(`Error: ${error.message}`);
-        }
+        showSuccessToast('Profile updated!');
     };
     
     const handleClaimReward = () => {
@@ -986,56 +868,79 @@ const App: React.FC = () => {
             id: `p${Date.now()}`,
             user: currentUser,
             amount,
-            status: 'pending',
             method,
             payoutInfo,
+            status: 'pending',
             requestDate: new Date().toISOString().split('T')[0],
         };
         setPayoutRequests(prev => [newRequest, ...prev]);
         
-        // Deduct from earnings balance
         const updatedUser = {
             ...currentUser,
             creatorStats: {
-                ...currentUser.creatorStats!,
+                ...(currentUser.creatorStats!),
                 totalEarnings: (currentUser.creatorStats?.totalEarnings ?? 0) - amount,
             }
         };
         setCurrentUser(updatedUser);
-        
+        // Also update the main users list for the admin panel
+        setUsers(prev => prev.map(u => u.id === currentUser.id ? updatedUser : u));
+
         setIsRequestPayoutModalOpen(false);
         showSuccessToast('Payout request submitted!');
     };
     
     const handleDeleteAccount = () => {
-        // In a real app, this would make an API call and then log the user out
+        // In a real app, this would be an API call.
+        // For this mock app, we'll log the user out.
+        showSuccessToast("Account deleted successfully.");
         setIsDeleteAccountModalOpen(false);
-        showSuccessToast('Account scheduled for deletion.');
-        handleLogout();
+        // A short delay to let the user see the toast before being logged out.
+        setTimeout(() => {
+            handleLogout();
+        }, 1500);
     };
-    
+
     const handleChangePassword = (currentPassword: string, newPassword: string): boolean => {
-        // In a real app, this would be an API call
-        if (currentPassword === 'password123') { // Mock check
-            showSuccessToast('Password changed successfully!');
-            handleNavigate('manageAccount'); // Go back
-            return true;
-        } else {
-            showSuccessToast('Incorrect current password.');
-            return false;
+        // In a real app, this would be an API call.
+        // For this mock app, we'll simulate the logic.
+        if (currentPassword !== 'password123') { // Mocking the current password
+          showSuccessToast("Error: Current password is incorrect.");
+          // In a real app, the ChangePasswordView would handle this error state.
+          // For simplicity, we just show a toast here.
+          return false; // Indicate failure
         }
+        
+        // Here you would send the new password to the backend.
+        console.log('Password successfully changed.');
+        showSuccessToast('Password updated successfully!');
+        // A short delay to let the user see the toast before navigating
+        setTimeout(() => {
+            handleNavigate('manageAccount');
+        }, 1500);
+    
+        return true; // Indicate success
     };
     
-    const handleSaveCommentPrivacy = (setting: 'everyone' | 'following' | 'nobody') => {
+    const handleSetCommentPrivacySetting = (setting: 'everyone' | 'following' | 'nobody') => {
         if (!currentUser) return;
-        const updatedUser = { ...currentUser, commentPrivacySetting: setting };
+        const updatedUser = {
+            ...currentUser,
+            commentPrivacySetting: setting,
+        };
         setCurrentUser(updatedUser);
+        // Also update the mock users array so other users see the new setting
+        setUsers(users.map(u => u.id === currentUser.id ? updatedUser : u));
+        setVideos(videos.map(v => v.user.id === currentUser.id ? { ...v, user: updatedUser } : v));
         setIsCommentPrivacyModalOpen(false);
         showSuccessToast('Comment privacy updated!');
     };
 
-    const handleApplyCreator = (message: string) => {
+    const handleApplyForCreator = (message: string) => {
         if (!currentUser) return;
+        const userVideos = videos.filter(v => v.user.id === currentUser.id);
+        const totalViews = userVideos.reduce((sum, video) => sum + video.views, 0);
+
         const newApplication: CreatorApplication = {
             id: `ca-${Date.now()}`,
             user: currentUser,
@@ -1044,147 +949,418 @@ const App: React.FC = () => {
             message,
             statsSnapshot: {
                 followers: currentUser.followers || 0,
-                views: videos.filter(v => v.user.id === currentUser.id).reduce((sum, v) => sum + v.views, 0),
-                videos: videos.filter(v => v.user.id === currentUser.id).length,
+                views: totalViews,
+                videos: userVideos.length,
             }
         };
+
         setCreatorApplications(prev => [newApplication, ...prev]);
         setIsApplyCreatorModalOpen(false);
-        showSuccessToast('Application submitted for review!');
+        showSuccessToast('Application submitted!');
     };
     
     const handleCreatorApplicationDecision = (applicationId: string, status: 'approved' | 'rejected') => {
-        const application = creatorApplications.find(a => a.id === applicationId);
+        const application = creatorApplications.find(app => app.id === applicationId);
         if (!application) return;
 
-        setCreatorApplications(prev => prev.map(a => a.id === applicationId ? { ...a, status } : a));
+        setCreatorApplications(prev => prev.map(app => 
+            app.id === applicationId ? { ...app, status } : app
+        ));
 
         if (status === 'approved') {
-            setUsers(prev => prev.map(u => u.id === application.user.id ? { ...u, role: 'creator' } : u));
-            sendSystemMessage(application.user.id, "Congratulations! Your creator application has been approved. You now have access to monetization features.");
+            const userToUpdate = users.find(u => u.id === application.user.id);
+            if (userToUpdate) {
+                const updatedUser = { ...userToUpdate, role: 'creator' as const };
+                setUsers(users.map(u => u.id === userToUpdate.id ? updatedUser : u));
+                // If the approved user is the current user, update their state too
+                if (currentUser && currentUser.id === userToUpdate.id) {
+                    setCurrentUser(updatedUser);
+                }
+                sendSystemMessage(userToUpdate.id, "Congratulations! Your application to become a creator has been approved. The Creator Dashboard is now available on your profile.");
+                showSuccessToast(`Application for @${userToUpdate.username} approved.`);
+            }
         } else {
-            sendSystemMessage(application.user.id, "We've reviewed your creator application. Unfortunately, you don't meet the criteria at this time. Keep growing your channel and apply again later!");
+             sendSystemMessage(application.user.id, "We have reviewed your creator application. Unfortunately, you do not meet the criteria at this time. Please continue to grow your channel and apply again later.");
+             showSuccessToast(`Application for @${application.user.username} rejected.`);
         }
     };
 
     const handleAddPaymentMethod = (method: Omit<SavedPaymentMethod, 'id'>) => {
         if (!currentUser) return;
-        const newMethod: SavedPaymentMethod = {
-            id: `pm-${Date.now()}`,
-            ...method,
-        };
-        const updatedUser = {
-            ...currentUser,
-            savedPaymentMethods: [...(currentUser.savedPaymentMethods || []), newMethod],
-        };
+        const newMethod = { ...method, id: `pm-${Date.now()}` };
+
+        // If setting new method as default, unset other defaults
+        let updatedMethods = (currentUser.savedPaymentMethods || []).map(m =>
+            newMethod.isDefault ? { ...m, isDefault: false } : m
+        );
+        updatedMethods.push(newMethod);
+
+        const updatedUser = { ...currentUser, savedPaymentMethods: updatedMethods };
         setCurrentUser(updatedUser);
+        setUsers(users.map(u => u.id === currentUser.id ? updatedUser : u));
         setIsAddPaymentMethodModalOpen(false);
         showSuccessToast('Payment method added!');
     };
     
     const handleRemovePaymentMethod = (methodId: string) => {
         if (!currentUser) return;
-        const updatedUser = {
-            ...currentUser,
-            savedPaymentMethods: currentUser.savedPaymentMethods?.filter(m => m.id !== methodId),
-        };
+        const updatedMethods = (currentUser.savedPaymentMethods || []).filter(m => m.id !== methodId);
+        
+        // If the removed method was the default, and there are others, make the first one the new default
+// FIX: Property 'isDefault' does not exist on type '{ id: string; }'. This is fixed by correcting the `SavedPaymentMethod` type definition in `types.ts`.
+        if (updatedMethods.length > 0 && !updatedMethods.some(m => m.isDefault)) {
+            updatedMethods[0].isDefault = true;
+        }
+
+        const updatedUser = { ...currentUser, savedPaymentMethods: updatedMethods };
         setCurrentUser(updatedUser);
+        setUsers(users.map(u => u.id === currentUser.id ? updatedUser : u));
         showSuccessToast('Payment method removed.');
     };
 
     const showSuccessToast = (message: string) => {
         setSuccessMessage(message);
-        setTimeout(() => {
-            setSuccessMessage('');
-        }, 3000);
+        setTimeout(() => setSuccessMessage(''), 3000);
     };
-    
-    const currencyFormatter = useMemo(() => {
-        return (amount: number) => new Intl.NumberFormat(currencyInfo.locale, {
+
+    const formatWithConversion = (amount: number): string => {
+        // Assume base currency is USD since symbol is '$'
+        const baseCurrency = 'USD';
+        
+        const baseFormatted = new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency: baseCurrency,
+        }).format(amount);
+
+        if (currencyInfo.currency === baseCurrency) {
+            return baseFormatted;
+        }
+
+        const convertedAmount = amount * currencyInfo.rate;
+        const convertedFormatted = new Intl.NumberFormat(currencyInfo.locale, {
             style: 'currency',
             currency: currencyInfo.currency,
-        }).format(amount);
-    }, [currencyInfo]);
+        }).format(convertedAmount);
+        
+        return `${baseFormatted} (≈ ${convertedFormatted})`;
+    };
 
-    if (!isLoggedIn) {
+    const handleOpenProfileVideoFeed = (videos: Video[], startIndex: number) => {
+        setProfileFeedState({ videos, startIndex });
+    };
+    
+    const handleCloseProfileVideoFeed = () => {
+        setProfileFeedState(null);
+    };
+
+    const handleOpenProfileStats = (user: User, initialTab: 'following' | 'followers' | 'likes') => {
+        setProfileStatsModalState({ user, initialTab });
+    };
+
+    const handleCloseProfileStats = () => {
+        setProfileStatsModalState(null);
+    };
+    
+    const handleOpenLevelInfoModal = () => {
+        setIsLevelInfoModalOpen(true);
+    };
+    
+    const handleCloseLevelInfoModal = () => {
+        setIsLevelInfoModalOpen(false);
+    };
+
+
+    if (!isLoggedIn || !currentUser) {
         return <AuthView onLoginSuccess={handleLogin} />;
     }
 
-    if (isLoading) {
+    if (activeView === 'admin') {
         return (
-            <div className="h-screen w-screen flex flex-col justify-center items-center bg-zinc-900 text-white">
-                <h1 className="text-4xl font-bold bg-gradient-to-r from-pink-500 to-red-500 text-transparent bg-clip-text">VIDORA</h1>
-                <p className="mt-4">Loading your experience...</p>
-                {error && <p className="mt-2 text-red-500">{error}</p>}
-            </div>
-        );
-    }
-    
-    if (!currentUser) {
-        return (
-             <div className="h-screen w-screen flex flex-col justify-center items-center bg-zinc-900 text-white">
-                <p className="text-red-500">Error: Could not load user profile. Please try logging in again.</p>
-                <button onClick={handleLogout} className="mt-4 px-4 py-2 bg-pink-600 rounded-md">Log Out</button>
-            </div>
+            <CurrencyContext.Provider value={formatWithConversion}>
+                <AdminPanel 
+                    user={currentUser} 
+                    onExit={() => handleNavigate('profile')} 
+                    onSendSystemMessage={sendSystemMessage}
+                    showSuccessToast={showSuccessToast} 
+                    monetizationSettings={monetizationSettings}
+                    setMonetizationSettings={setMonetizationSettings}
+                    creatorApplications={creatorApplications}
+                    onCreatorApplicationDecision={handleCreatorApplicationDecision}
+                    onLogout={handleLogout}
+                    coinPacks={coinPacks}
+                    setCoinPacks={setCoinPacks}
+                    dailyRewardSettings={dailyRewardSettings}
+                    setDailyRewardSettings={setDailyRewardSettings}
+                    ads={ads}
+                    setAds={setAds}
+                    adSettings={adSettings}
+                    setAdSettings={setAdSettings}
+                    tasks={tasks}
+                    setTasks={setTasks}
+                    taskSettings={taskSettings}
+                    setTaskSettings={setTaskSettings}
+                />
+            </CurrencyContext.Provider>
         );
     }
 
-    const interstitialAds = ads.filter(ad => ad.isActive && ad.placement === 'feed_interstitial');
-    const bannerAds = ads.filter(ad => ad.isActive && ad.placement === 'feed_video_overlay');
-    const liveBannerAds = ads.filter(ad => ad.isActive && ad.placement === 'live_stream_banner');
-    const profileBannerAd = ads.find(ad => ad.isActive && ad.placement === 'profile_banner');
+    const renderView = () => {
+        const activeAds = ads.filter(ad => ad.isActive);
+
+        switch (activeView) {
+            case 'feed':
+                return <FeedView 
+                            videos={videos} 
+                            currentUser={currentUser} 
+                            onOpenComments={handleOpenComments} 
+                            setIsNavVisible={setIsNavVisible} 
+                            onToggleFollow={handleToggleFollow} 
+                            onShareVideo={handleShareVideo} 
+                            onViewProfile={handleViewProfile}
+                            adSettings={adSettings}
+                            interstitialAds={activeAds.filter(ad => ad.placement === 'feed_interstitial')}
+                            bannerAds={activeAds.filter(ad => ad.placement === 'feed_video_overlay')}
+                        />;
+            case 'live':
+                return <LiveView 
+                    setIsNavVisible={setIsNavVisible} 
+                    currentUser={currentUser}
+                    onToggleFollow={handleToggleFollow}
+                    onShareStream={handleShareStream}
+                    onViewProfile={handleViewProfile}
+                    showSuccessToast={showSuccessToast}
+                    openGoLiveModal={openGoLiveOnNavigate}
+                    onModalOpened={() => setOpenGoLiveOnNavigate(false)}
+                    bannerAds={activeAds.filter(ad => ad.placement === 'live_stream_banner')}
+                    liveStreams={liveStreams}
+                    onBanStreamer={handleBanStreamer}
+                    hasIncompleteDailyTasks={hasIncompleteDailyTasks}
+                    onNavigate={handleNavigate}
+                />;
+            case 'inbox': {
+                if (selectedConversationId) {
+                    const conversation = conversations.find(c => c.id === selectedConversationId);
+                    if (conversation) {
+                        return <ChatWindowView 
+                                    conversation={conversation} 
+                                    onBack={handleBackToInbox} 
+                                    onSendMessage={(text, imageFile) => handleSendMessage(conversation.id, text, imageFile)}
+                                    onViewProfile={handleViewProfile}
+                                />;
+                    }
+                }
+                return <ChatInboxView 
+                            conversations={conversations} 
+                            onSelectChat={handleSelectConversation} 
+                            onViewProfile={handleViewProfile}
+                        />;
+            }
+            case 'profile':
+                const userForProfile = viewedProfileUser || currentUser;
+                const profileBannerAd = activeAds.find(ad => ad.placement === 'profile_banner');
+                return <ProfileView 
+                            user={userForProfile}
+                            currentUser={currentUser}
+                            isOwnProfile={userForProfile.id === currentUser.id}
+                            videos={videos} 
+                            onNavigate={handleNavigate} 
+                            onEditProfile={handleEditProfile}
+                            onBack={viewedProfileUser ? handleBack : undefined}
+                            onToggleFollow={handleToggleFollow}
+                            onGoLive={handleGoLive}
+                            bannerAd={profileBannerAd}
+                            onShareProfile={handleShareProfile}
+                            onOpenProfileVideoFeed={handleOpenProfileVideoFeed}
+                            onOpenProfileStats={handleOpenProfileStats}
+                            onOpenLevelInfo={handleOpenLevelInfoModal}
+                            hasIncompleteDailyTasks={hasIncompleteDailyTasks}
+                        />;
+            case 'wallet':
+                return <WalletView user={currentUser} onBack={() => handleNavigate('profile')} onNavigateToPurchase={handleNavigateToPurchase} coinPacks={coinPacks} onNavigate={handleNavigate} />;
+            case 'settings':
+                return <SettingsView 
+                            onBack={() => handleNavigate('profile')} 
+                            onLogout={handleLogout} 
+                            onNavigate={handleNavigate}
+                            commentPrivacySetting={currentUser.commentPrivacySetting || 'everyone'}
+                            onOpenCommentPrivacyModal={() => setIsCommentPrivacyModalOpen(true)}
+                            currentUser={currentUser}
+                        />;
+            case 'purchase':
+                return selectedCoinPack ? <PurchaseCoinsView pack={selectedCoinPack} onBack={() => handleNavigate('wallet')} onPurchaseComplete={handlePurchaseComplete} availableMethods={monetizationSettings.paymentProviders.filter(m => m.isEnabled)} /> : null;
+            case 'creatorDashboard':
+                 return <CreatorDashboardView 
+                            user={currentUser} 
+                            payouts={payoutRequests.filter(p => p.user.id === currentUser.id)}
+                            onBack={() => handleNavigate('profile')} 
+                            onOpenRequestPayout={() => setIsRequestPayoutModalOpen(true)}
+                        />;
+            case 'manageAccount':
+                return <ManageAccountView 
+                            user={currentUser}
+                            onBack={() => handleNavigate('settings')}
+                            onOpenDeleteModal={() => setIsDeleteAccountModalOpen(true)}
+                            onNavigate={handleNavigate}
+                        />;
+            case 'changePassword':
+                return <ChangePasswordView
+                            onBack={() => handleNavigate('manageAccount')}
+                            onChangePassword={handleChangePassword}
+                        />;
+            case 'helpCenter':
+                return <HelpCenterView onBack={() => handleNavigate('settings')} onNavigate={handleNavigate} />;
+            case 'termsOfService':
+                return <TermsOfServiceView onBack={() => handleNavigate('settings')} />;
+            case 'becomeCreator':
+                 return <BecomeCreatorView
+                            user={currentUser}
+                            videos={videos.filter(v => v.user.id === currentUser.id)}
+                            onBack={() => handleNavigate('settings')}
+                            onApply={() => setIsApplyCreatorModalOpen(true)}
+                            criteria={monetizationSettings.creatorCriteria}
+                            hasPendingApplication={creatorApplications.some(app => app.user.id === currentUser.id && app.status === 'pending')}
+                        />;
+            case 'paymentMethods':
+                return <PaymentMethodsView
+                            user={currentUser}
+                            onBack={() => handleNavigate('settings')}
+                            onAddMethod={() => setIsAddPaymentMethodModalOpen(true)}
+                            onRemoveMethod={handleRemovePaymentMethod}
+                        />;
+            case 'tasks':
+                return <TasksView 
+                            user={currentUser} 
+                            tasks={tasks} 
+                            taskSettings={taskSettings} 
+                            onBack={() => handleNavigate('wallet')} 
+                            onStartTask={handleStartTask}
+                        />
+            default:
+                return <FeedView videos={videos} currentUser={currentUser} onOpenComments={handleOpenComments} setIsNavVisible={setIsNavVisible} onToggleFollow={handleToggleFollow} onShareVideo={handleShareVideo} onViewProfile={handleViewProfile} adSettings={adSettings} interstitialAds={[]} bannerAds={[]} />;
+        }
+    };
+
+    const adForTask = taskToWatch ? ads.find(ad => ad.id === taskToWatch.adId) : null;
 
     return (
-        <CurrencyContext.Provider value={currencyFormatter}>
-            <div className="h-screen w-screen bg-black text-white font-sans overflow-hidden">
-                <main className="h-full w-full">
-                    {activeView === 'feed' && <FeedView videos={videos} currentUser={currentUser} onOpenComments={handleOpenComments} setIsNavVisible={setIsNavVisible} onToggleFollow={handleToggleFollow} onShareVideo={handleShareVideo} onViewProfile={handleViewProfile} adSettings={adSettings} interstitialAds={interstitialAds} bannerAds={bannerAds} />}
-                    {activeView === 'live' && <LiveView setIsNavVisible={setIsNavVisible} currentUser={currentUser} onToggleFollow={handleToggleFollow} onShareStream={handleShareStream} onViewProfile={handleViewProfile} showSuccessToast={showSuccessToast} openGoLiveModal={openGoLiveOnNavigate} onModalOpened={() => setOpenGoLiveOnNavigate(false)} bannerAds={liveBannerAds} liveStreams={liveStreams} onBanStreamer={handleBanStreamer} hasIncompleteDailyTasks={hasIncompleteDailyTasks} onNavigate={handleNavigate} />}
-                    {activeView === 'inbox' && (
-                        selectedConversationId ? (
-                            <ChatWindowView 
-                                conversation={conversations.find(c => c.id === selectedConversationId)!} 
-                                onBack={handleBackToInbox} 
-                                onSendMessage={(text, imageFile) => handleSendMessage(selectedConversationId, text, imageFile)}
-                                onViewProfile={handleViewProfile}
-                            />
-                        ) : (
-                            <ChatInboxView conversations={conversations} onSelectChat={handleSelectConversation} onViewProfile={handleViewProfile} />
-                        )
-                    )}
-                    {activeView === 'profile' && <ProfileView user={viewedProfileUser || currentUser} currentUser={currentUser} isOwnProfile={!viewedProfileUser} videos={videos} onNavigate={handleNavigate} onEditProfile={handleEditProfile} onBack={handleBack} onToggleFollow={handleToggleFollow} onGoLive={handleGoLive} bannerAd={profileBannerAd} onShareProfile={handleShareProfile} onOpenProfileVideoFeed={(videos, startIndex) => setProfileFeedState({ videos, startIndex })} onOpenProfileStats={(user, initialTab) => setProfileStatsModalState({ user, initialTab })} onOpenLevelInfo={() => setIsLevelInfoModalOpen(true)} hasIncompleteDailyTasks={hasIncompleteDailyTasks}/>}
-                    {activeView === 'wallet' && <WalletView user={currentUser} onBack={handleBack} onNavigateToPurchase={handleNavigateToPurchase} coinPacks={coinPacks} onNavigate={handleNavigate}/>}
-                    {activeView === 'settings' && <SettingsView onBack={handleBack} onLogout={handleLogout} onNavigate={handleNavigate} commentPrivacySetting={currentUser.commentPrivacySetting || 'everyone'} onOpenCommentPrivacyModal={() => setIsCommentPrivacyModalOpen(true)} currentUser={currentUser} />}
-                    {activeView === 'purchase' && selectedCoinPack && <PurchaseCoinsView pack={selectedCoinPack} onBack={handleBack} onPurchaseComplete={handlePurchaseComplete} availableMethods={monetizationSettings.paymentProviders.filter(p => p.isEnabled)} />}
-                    {activeView === 'admin' && <AdminPanel user={currentUser} onExit={() => handleNavigate('profile')} onSendSystemMessage={sendSystemMessage} showSuccessToast={showSuccessToast} monetizationSettings={monetizationSettings} setMonetizationSettings={setMonetizationSettings} creatorApplications={creatorApplications} onCreatorApplicationDecision={handleCreatorApplicationDecision} onLogout={handleLogout} coinPacks={coinPacks} setCoinPacks={setCoinPacks} dailyRewardSettings={dailyRewardSettings} setDailyRewardSettings={setDailyRewardSettings} ads={ads} setAds={setAds} adSettings={adSettings} setAdSettings={setAdSettings} tasks={tasks} setTasks={setTasks} taskSettings={taskSettings} setTaskSettings={setTaskSettings} />}
-                    {activeView === 'creatorDashboard' && <CreatorDashboardView user={currentUser} payouts={payoutRequests.filter(p => p.user.id === currentUser.id)} onBack={handleBack} onOpenRequestPayout={() => setIsRequestPayoutModalOpen(true)} />}
-                    {activeView === 'manageAccount' && <ManageAccountView user={currentUser} onBack={handleBack} onOpenDeleteModal={() => setIsDeleteAccountModalOpen(true)} onNavigate={handleNavigate} />}
-                    {activeView === 'changePassword' && <ChangePasswordView onBack={handleBack} onChangePassword={handleChangePassword} />}
-                    {activeView === 'helpCenter' && <HelpCenterView onBack={handleBack} onNavigate={handleNavigate} />}
-                    {activeView === 'termsOfService' && <TermsOfServiceView onBack={handleBack} />}
-                    {activeView === 'becomeCreator' && <BecomeCreatorView user={currentUser} videos={videos.filter(v => v.user.id === currentUser.id)} onBack={handleBack} onApply={() => setIsApplyCreatorModalOpen(true)} criteria={monetizationSettings.creatorCriteria} hasPendingApplication={creatorApplications.some(a => a.user.id === currentUser.id && a.status === 'pending')} />}
-                    {activeView === 'paymentMethods' && <PaymentMethodsView user={currentUser} onBack={handleBack} onAddMethod={() => setIsAddPaymentMethodModalOpen(true)} onRemoveMethod={handleRemovePaymentMethod} />}
-                    {activeView === 'tasks' && <TasksView user={currentUser} tasks={tasks} taskSettings={taskSettings} onBack={handleBack} onStartTask={handleStartTask} />}
+        <CurrencyContext.Provider value={formatWithConversion}>
+            <div className="h-[100dvh] w-full max-w-lg mx-auto bg-black font-sans shadow-2xl overflow-hidden relative">
+                {successMessage && <SuccessToast message={successMessage} />}
 
+                <main className="h-full w-full">
+                    {renderView()}
                 </main>
 
-                <BottomNav activeView={activeView} onNavigate={handleNavigate} onNavigateToUpload={handleNavigateToUpload} isVisible={isNavVisible} />
+                {['feed', 'live', 'inbox', 'profile', 'wallet', 'creatorDashboard'].includes(activeView) && (
+                    <BottomNav
+                        activeView={activeView}
+                        onNavigate={handleNavigate}
+                        onNavigateToUpload={handleNavigateToUpload}
+                        isVisible={isNavVisible}
+                    />
+                )}
 
                 {isUploadViewOpen && <UploadView onUpload={handleUpload} onClose={handleCloseUpload} />}
                 {isEditProfileOpen && <EditProfileModal user={currentUser} onSave={handleSaveProfile} onClose={() => setIsEditProfileOpen(false)} />}
-                {isDailyRewardOpen && <DailyRewardModal streakCount={currentUser.streakCount || 0} onClaim={handleClaimReward} onClose={() => setIsDailyRewardOpen(false)} dailyRewardSettings={dailyRewardSettings} />}
-                {isCommentsModalOpen && activeVideoForComments && <CommentsModal video={activeVideoForComments} currentUser={currentUser} onClose={handleCloseComments} onAddComment={handleAddComment} onViewProfile={handleViewProfile} />}
-                {isRequestPayoutModalOpen && <RequestPayoutModal user={currentUser} onClose={() => setIsRequestPayoutModalOpen(false)} onSubmit={handleRequestPayout} availableMethods={monetizationSettings.paymentProviders.filter(p => p.isEnabled)} />}
-                {isDeleteAccountModalOpen && <DeleteAccountModal user={currentUser} onClose={() => setIsDeleteAccountModalOpen(false)} onConfirmDelete={handleDeleteAccount} />}
-                {isCommentPrivacyModalOpen && <CommentPrivacyModal currentSetting={currentUser.commentPrivacySetting || 'everyone'} onClose={() => setIsCommentPrivacyModalOpen(false)} onSave={handleSaveCommentPrivacy} />}
-                {isApplyCreatorModalOpen && <ApplyCreatorModal onClose={() => setIsApplyCreatorModalOpen(false)} onSubmit={handleApplyCreator} />}
-                {isAddPaymentMethodModalOpen && <AddPaymentMethodModal onClose={() => setIsAddPaymentMethodModalOpen(false)} onAddMethod={handleAddPaymentMethod} availableMethods={monetizationSettings.paymentProviders.filter(p => p.isEnabled)} />}
-                {profileFeedState && <ProfileVideoFeedModal videos={profileFeedState.videos} startIndex={profileFeedState.startIndex} currentUser={currentUser} onClose={() => setProfileFeedState(null)} onOpenComments={handleOpenComments} onToggleFollow={handleToggleFollow} onShareVideo={handleShareVideo} onViewProfile={handleViewProfile} />}
-                {profileStatsModalState && <ProfileStatsModal user={profileStatsModalState.user} initialTab={profileStatsModalState.initialTab} currentUser={currentUser} allUsers={users} allVideos={videos} onClose={() => setProfileStatsModalState(null)} onToggleFollow={handleToggleFollow} onViewProfile={handleViewProfile} onOpenProfileVideoFeed={(videos, startIndex) => setProfileFeedState({ videos, startIndex })} />}
-                {isLevelInfoModalOpen && <LevelInfoModal user={currentUser} onClose={() => setIsLevelInfoModalOpen(false)} />}
-                {taskToWatch && <WatchAdModal task={taskToWatch} ad={ads.find(ad => ad.id === taskToWatch.adId)!} onClose={() => setTaskToWatch(null)} onComplete={handleCompleteTask} />}
-
-                {successMessage && <SuccessToast message={successMessage} />}
+                {isDailyRewardOpen && <DailyRewardModal 
+                    streakCount={currentUser.streakCount || 0} 
+                    onClaim={handleClaimReward} 
+                    onClose={() => setIsDailyRewardOpen(false)} 
+                    dailyRewardSettings={dailyRewardSettings}
+                />}
+                {isCommentsModalOpen && activeVideoForComments && (
+                    <CommentsModal 
+                        video={activeVideoForComments}
+                        currentUser={currentUser}
+                        onClose={handleCloseComments}
+                        onAddComment={handleAddComment}
+                        onViewProfile={handleViewProfile}
+                    />
+                )}
+                {isRequestPayoutModalOpen && (
+                    <RequestPayoutModal
+                        user={currentUser}
+                        onClose={() => setIsRequestPayoutModalOpen(false)}
+                        onSubmit={handleRequestPayout}
+                        availableMethods={monetizationSettings.paymentProviders.filter(m => m.isEnabled)}
+                    />
+                )}
+                {isDeleteAccountModalOpen && (
+                    <DeleteAccountModal 
+                        user={currentUser}
+                        onClose={() => setIsDeleteAccountModalOpen(false)}
+                        onConfirmDelete={handleDeleteAccount}
+                    />
+                )}
+                {isCommentPrivacyModalOpen && (
+                    <CommentPrivacyModal
+                        currentSetting={currentUser.commentPrivacySetting || 'everyone'}
+                        onClose={() => setIsCommentPrivacyModalOpen(false)}
+                        onSave={handleSetCommentPrivacySetting}
+                    />
+                )}
+                {isApplyCreatorModalOpen && (
+                    <ApplyCreatorModal
+                        onClose={() => setIsApplyCreatorModalOpen(false)}
+                        onSubmit={handleApplyForCreator}
+                    />
+                )}
+                {isAddPaymentMethodModalOpen && (
+                    <AddPaymentMethodModal
+                        onClose={() => setIsAddPaymentMethodModalOpen(false)}
+                        onAddMethod={handleAddPaymentMethod}
+                        availableMethods={monetizationSettings.paymentProviders.filter(p => p.isEnabled)}
+                    />
+                )}
+                {profileFeedState && (
+                    <ProfileVideoFeedModal
+                        videos={profileFeedState.videos}
+                        startIndex={profileFeedState.startIndex}
+                        currentUser={currentUser}
+                        onClose={handleCloseProfileVideoFeed}
+                        onOpenComments={handleOpenComments}
+                        onToggleFollow={handleToggleFollow}
+                        onShareVideo={handleShareVideo}
+                        onViewProfile={(userToView) => {
+                            // When viewing a profile from the modal, close the modal first.
+                            handleCloseProfileVideoFeed();
+                            handleViewProfile(userToView);
+                        }}
+                    />
+                )}
+                {profileStatsModalState && (
+                    <ProfileStatsModal
+                        user={profileStatsModalState.user}
+                        initialTab={profileStatsModalState.initialTab}
+                        currentUser={currentUser}
+                        allUsers={users}
+                        allVideos={videos}
+                        onClose={handleCloseProfileStats}
+                        onToggleFollow={handleToggleFollow}
+                        onViewProfile={(userToView) => {
+                            handleCloseProfileStats();
+                            handleViewProfile(userToView);
+                        }}
+                        onOpenProfileVideoFeed={(videos, startIndex) => {
+                            handleCloseProfileStats();
+                            handleOpenProfileVideoFeed(videos, startIndex);
+                        }}
+                    />
+                )}
+                {isLevelInfoModalOpen && (
+                    <LevelInfoModal
+                        user={currentUser}
+                        onClose={handleCloseLevelInfoModal}
+                    />
+                )}
+                {taskToWatch && adForTask && (
+                    <WatchAdModal 
+                        task={taskToWatch}
+                        ad={adForTask}
+                        onClose={() => setTaskToWatch(null)}
+                        onComplete={handleCompleteTask}
+                    />
+                )}
             </div>
         </CurrencyContext.Provider>
     );

@@ -1,5 +1,5 @@
 {
-  "name": "vidora---social-video-platform",
+  "name": "vidora----social-video-platform",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -9,25 +9,16 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@prisma/client": "^6.16.2",
-    "@stripe/react-stripe-js": "^4.0.2",
-    "@stripe/stripe-js": "^7.9.0",
-    "axios": "^1.12.2",
-    "cloudinary": "^2.7.0",
-    "cors": "^2.8.5",
-    "dotenv": "^17.2.2",
-    "express": "^5.1.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
-    "recharts": "^3.1.2"
+    "recharts": "^3.1.2",
+    "express": "^5.1.0",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.2"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4.1.13",
     "@types/node": "^22.14.0",
     "@vitejs/plugin-react": "^5.0.0",
-    "autoprefixer": "^10.4.21",
-    "postcss": "^8.5.6",
-    "tailwindcss": "^4.1.13",
     "typescript": "~5.8.2",
     "vite": "^6.2.0"
   }
