@@ -42,9 +42,9 @@ import WatchAdModal from './components/WatchAdModal';
 export type View = 'feed' | 'live' | 'inbox' | 'profile' | 'wallet' | 'settings' | 'purchase' | 'admin' | 'creatorDashboard' | 'manageAccount' | 'changePassword' | 'helpCenter' | 'termsOfService' | 'becomeCreator' | 'paymentMethods' | 'tasks';
 
 const defaultMonetizationSettings: MonetizationSettings = {
-    currencySymbol: ',',
-    processingFeePercent: 5,
+    currencySymbol: '$',
     minPayoutAmount: 50,
+    processingFeePercent: 5,
     paymentProviders: [
         { id: 'stripe', name: 'Card', isEnabled: true },
         { id: 'paypal', name: 'PayPal', isEnabled: true },
