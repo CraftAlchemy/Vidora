@@ -38,6 +38,8 @@ interface AdminPanelProps {
   setTasks: React.Dispatch<React.SetStateAction<Task[]>>;
   taskSettings: TaskSettings;
   setTaskSettings: React.Dispatch<React.SetStateAction<TaskSettings>>;
+  siteName: string;
+  setSiteName: React.Dispatch<React.SetStateAction<string>>;
 }
 
 type AdminView = 'dashboard' | 'users' | 'content' | 'moderation' | 'financials' | 'gifts' | 'verification' | 'corbeil' | 'settings' | 'creatorApps' | 'ads' | 'badges' | 'tasks';
@@ -46,7 +48,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
     user, onExit, onSendSystemMessage, showSuccessToast, monetizationSettings, setMonetizationSettings,
     creatorApplications, onCreatorApplicationDecision, onLogout, coinPacks, setCoinPacks,
     dailyRewardSettings, setDailyRewardSettings, ads, setAds, adSettings, setAdSettings,
-    tasks, setTasks, taskSettings, setTaskSettings
+    tasks, setTasks, taskSettings, setTaskSettings, siteName, setSiteName
 }) => {
   const [activeView, setActiveView] = useState<AdminView>('dashboard');
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
@@ -419,6 +421,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                                 onSetAdSettings={setAdSettings}
                                 taskSettings={taskSettings}
                                 onSetTaskSettings={setTaskSettings}
+                                siteName={siteName}
+                                onSetSiteName={setSiteName}
                               />;
       default: return null;
     }

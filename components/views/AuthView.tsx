@@ -1,20 +1,20 @@
-
 import React, { useState } from 'react';
 // Fix: Correct import for Icons which is now created.
 import { GoogleIcon } from '../icons/Icons';
 
 interface AuthViewProps {
   onLoginSuccess: () => void;
+  siteName: string;
 }
 
-const AuthView: React.FC<AuthViewProps> = ({ onLoginSuccess }) => {
+const AuthView: React.FC<AuthViewProps> = ({ onLoginSuccess, siteName }) => {
   const [isLogin, setIsLogin] = useState(true);
 
   return (
     <div className="h-screen w-screen bg-zinc-900 text-white flex flex-col justify-center items-center p-6 max-w-md mx-auto">
       <div className="w-full text-center">
         <h1 className="text-4xl font-bold bg-gradient-to-r from-pink-500 to-red-500 text-transparent bg-clip-text">
-          VIDORA
+          {siteName.toUpperCase()}
         </h1>
         <p className="text-gray-400 mt-2">
           {isLogin ? 'Welcome back!' : 'Join the community.'}

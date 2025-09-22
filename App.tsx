@@ -146,7 +146,8 @@ const App: React.FC = () => {
     // Currency conversion state
     const [currencyInfo, setCurrencyInfo] = useState<CurrencyInfo>({ locale: 'en-US', currency: 'USD', rate: 1 });
 
-    // Global App Settings (managed by admin) - now with persistence
+    // Global App Settings (managed by admin)
+    const [siteName, setSiteName] = useState<string>(() => localStorage.getItem('siteName') || 'VidoRa');
     const [monetizationSettings, setMonetizationSettings] = useState<MonetizationSettings>(() => {
         try {
             const saved = localStorage.getItem('monetizationSettings');
@@ -274,6 +275,11 @@ const App: React.FC = () => {
         setIsNavVisible(true);
     }, [activeView]);
     
+    useEffect(() => {
+        localStorage.setItem('siteName', siteName);
+        document.title = `${siteName} - Social Video Platform`;
+    }, [siteName]);
+
     useEffect(() => {
         try {
             localStorage.setItem('monetizationSettings', JSON.stringify(monetizationSettings));
@@ -1071,7 +1077,7 @@ const App: React.FC = () => {
 
 
     if (!isLoggedIn || !currentUser) {
-        return <AuthView onLoginSuccess={handleLogin} />;
+        return <AuthView onLoginSuccess={handleLogin} siteName={siteName} />;
     }
 
     if (activeView === 'admin') {
@@ -1099,6 +1105,8 @@ const App: React.FC = () => {
                     setTasks={setTasks}
                     taskSettings={taskSettings}
                     setTaskSettings={setTaskSettings}
+                    siteName={siteName}
+                    setSiteName={setSiteName}
                 />
             </CurrencyContext.Provider>
         );
