@@ -186,17 +186,12 @@ const AdminSettingsView: React.FC<AdminSettingsViewProps> = ({
     siteName, onSetSiteName
  }) => {
 
-    const [localSiteName, setLocalSiteName] = useState(siteName);
     const [localMonetizationSettings, setLocalMonetizationSettings] = useState(monetizationSettings);
     const [localDailyRewardSettings, setLocalDailyRewardSettings] = useState(dailyRewardSettings);
     const [localAdSettings, setLocalAdSettings] = useState(adSettings);
     const [localTaskSettings, setLocalTaskSettings] = useState(taskSettings);
     const [newPaymentProviderName, setNewPaymentProviderName] = useState('');
-
-    const handleSaveGeneralSettings = () => {
-        onSetSiteName(localSiteName);
-        showSuccessToast('General settings saved!');
-    };
+    const [localSiteName, setLocalSiteName] = useState(siteName);
 
     const handleMonetizationChange = (field: keyof Omit<MonetizationSettings, 'paymentProviders' | 'creatorCriteria'>, value: string | number) => {
         setLocalMonetizationSettings(prev => ({ ...prev, [field]: value }));
@@ -311,18 +306,23 @@ const AdminSettingsView: React.FC<AdminSettingsViewProps> = ({
         showSuccessToast('Task System settings saved!');
     };
 
+    const handleSaveBranding = () => {
+        onSetSiteName(localSiteName);
+        showSuccessToast('Branding settings saved!');
+    };
+
 
     return (
         <div className="space-y-6">
             <h1 className="text-2xl font-bold">System Settings</h1>
             
             <SettingsCard
-                title="General Settings"
-                description="Manage the site's name and branding."
+                title="Branding"
+                description="Customize the site name and appearance."
             >
                 <div className="space-y-4">
                     <div>
-                        <label htmlFor="siteName" className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Site Name</label>
+                        <label htmlFor="siteName" className="block text-sm font-medium mb-1">Site Name</label>
                         <input
                             id="siteName"
                             type="text"
@@ -330,18 +330,21 @@ const AdminSettingsView: React.FC<AdminSettingsViewProps> = ({
                             onChange={(e) => setLocalSiteName(e.target.value)}
                             className="w-full p-2 bg-gray-200 dark:bg-zinc-700 rounded-md"
                         />
+                         <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            This name will appear in the page title and on the login screen.
+                        </p>
                     </div>
                 </div>
                  <div className="mt-6 flex justify-end">
                     <button
-                        onClick={handleSaveGeneralSettings}
+                        onClick={handleSaveBranding}
                         className="px-4 py-2 text-sm font-semibold bg-pink-600 text-white rounded-md hover:bg-pink-700 transition-colors"
                     >
-                        Save General Settings
+                        Save Branding
                     </button>
                 </div>
             </SettingsCard>
-            
+
             <SettingsCard
                 title="Interface Preferences"
                 description="Customize the look and feel of the admin panel."
