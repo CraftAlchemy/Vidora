@@ -42,7 +42,7 @@ Before you begin, make sure you have accounts for the following services:
 2.  Clone this project's code or fork it to your account.
 3.  Connect your local repository to the new GitHub repository and push the code:
     ```bash
-    git remote add origin https://github.com/Wengawitta4/ApacciCast
+    git remote add origin <YOUR_GITHUB_REPOSITORY_URL>
     git branch -M main
     git push -u origin main
     ```

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 // FIX: Added UploadSource to the import list from types.ts to support different upload methods.
 import { User, Video, LiveStream, WalletTransaction, Conversation, ChatMessage, Comment, PayoutRequest, MonetizationSettings, UploadSource, CreatorApplication, CoinPack, SavedPaymentMethod, DailyRewardSettings, Ad, AdSettings, Task, TaskSettings } from './types';
@@ -146,13 +145,9 @@ const App: React.FC = () => {
 
     // Currency conversion state
     const [currencyInfo, setCurrencyInfo] = useState<CurrencyInfo>({ locale: 'en-US', currency: 'USD', rate: 1 });
-    
-    // Site Name State
-    const [siteName, setSiteName] = useState<string>(() => {
-        return localStorage.getItem('siteName') || 'Vidora';
-    });
 
-    // Global App Settings (managed by admin) - now with persistence
+    // Global App Settings (managed by admin)
+    const [siteName, setSiteName] = useState<string>(() => localStorage.getItem('siteName') || 'VidoRa');
     const [monetizationSettings, setMonetizationSettings] = useState<MonetizationSettings>(() => {
         try {
             const saved = localStorage.getItem('monetizationSettings');
@@ -281,6 +276,11 @@ const App: React.FC = () => {
     }, [activeView]);
     
     useEffect(() => {
+        localStorage.setItem('siteName', siteName);
+        document.title = `${siteName} - Social Video Platform`;
+    }, [siteName]);
+
+    useEffect(() => {
         try {
             localStorage.setItem('monetizationSettings', JSON.stringify(monetizationSettings));
         } catch (error) {
@@ -335,15 +335,6 @@ const App: React.FC = () => {
             console.error("Could not save task settings to localStorage", error);
         }
     }, [taskSettings]);
-
-    useEffect(() => {
-        try {
-            localStorage.setItem('siteName', siteName);
-            document.title = `${siteName} - Social Video Platform`;
-        } catch (error) {
-            console.error("Could not save site name to localStorage", error);
-        }
-    }, [siteName]);
 
 
     const hasIncompleteDailyTasks = useMemo(() => {
@@ -1142,7 +1133,6 @@ const App: React.FC = () => {
                 return <LiveView 
                     setIsNavVisible={setIsNavVisible} 
                     currentUser={currentUser}
-                    // FIX: Corrected the prop to pass the `handleToggleFollow` function instead of the undefined `onToggleFollow`.
                     onToggleFollow={handleToggleFollow}
                     onShareStream={handleShareStream}
                     onViewProfile={handleViewProfile}
