@@ -1,116 +1,164 @@
-# BuzzCast - Social Video & Live-Streaming Platform
+# Production Deployment Guide for Vidora on Google Cloud Platform (GCP)
 
-This repository contains the frontend prototype for BuzzCast, a modern social video platform featuring a rich, fully-featured Admin Dashboard for comprehensive application management.
-
-## Core Features Implemented
-
-- **Modern UI/UX**: A sleek, mobile-first design for the main app and a professional, data-driven interface for the admin panel.
-- **Admin Dashboard**: A separate, secure panel for administrators.
-  - **Dashboard Overview**: Real-time analytics, revenue charts, and key metrics.
-  - **User Management**: A searchable, paginated table to view, filter, and manage all users with status indicators and quick actions.
-  - **Content Management**: A table to view, approve, or remove user-uploaded videos.
-- **Role-Based Access Control (RBAC)**: The "Admin Panel" is only accessible to users with an `admin` role.
-- **Component Placeholders**: Scalable structure with placeholder pages for Financials, Moderation, Gift Management, and Settings, making future expansion straightforward.
+This guide provides a comprehensive, step-by-step walkthrough for deploying the Vidora application from a local prototype to a scalable, secure, and production-ready state on Google Cloud Platform (GCP).
 
 ---
 
-## Tech Stack
+### **Overview: The Production Architecture on GCP**
 
-- **Frontend**: React, TypeScript, Tailwind CSS
-- **Backend (Structure)**: Node.js, Express, Prisma (though the current version uses a mock API)
-- **Database**: MongoDB (via MongoDB Atlas)
-- **Live Streaming**: LiveKit
+We will map the application's components to specific, recommended GCP services for a robust and manageable deployment:
+
+*   **Frontend (React):** Deployed on **Firebase Hosting**, which provides a global CDN, free SSL, and simple, fast deployments.
+*   **Backend (Node.js/Express):** Deployed as a container on **Cloud Run**, a fully managed, serverless platform that automatically scales with traffic (even to zero).
+*   **Database (MongoDB):** We'll use **MongoDB Atlas deployed on Google Cloud** for a fully managed, scalable database experience, keeping it within the GCP ecosystem.
+*   **File Storage:** Videos, avatars, and other user-generated content will be stored in **Google Cloud Storage**, a highly durable and cost-effective object storage solution.
+*   **Security:** We'll manage all our secrets (API keys, database URLs) securely using **Secret Manager**.
 
 ---
 
-## Deployment Guide
+### **Step 1: GCP Project & CLI Setup (The Foundation)**
 
-This guide will walk you through deploying the BuzzCast application to the cloud using free-tier services.
+First, let's set up your Google Cloud workspace.
 
-### Prerequisites
-
-Before you begin, make sure you have accounts for the following services:
-- [GitHub](https://github.com/)
-- [Vercel](https://vercel.com/) (for Frontend)
-- [Render](https://render.com/) (for Backend)
-- [MongoDB Atlas](https://www.mongodb.com/cloud/atlas) (for Database)
-- [LiveKit Cloud](https://cloud.livekit.io/) (for Live Streaming)
-
-### Step 1: Push Code to GitHub
-
-1.  **Create a new repository** on your GitHub account.
-2.  Clone this project's code or fork it to your account.
-3.  Connect your local repository to the new GitHub repository and push the code:
+1.  **Create a GCP Project:** Go to the [Google Cloud Console](https://console.cloud.google.com/) and create a new project (e.g., `vidora-production`). Note your **Project ID**.
+2.  **Enable Billing:** Ensure billing is enabled for your project. Many services have a generous free tier, but billing is required to use them.
+3.  **Install the `gcloud` CLI:** Follow the official instructions to [install the Google Cloud CLI](https://cloud.google.com/sdk/docs/install) on your local machine. This is essential for managing your resources from the command line.
+4.  **Configure the CLI:** Authenticate and set your newly created project as the default.
     ```bash
-    git remote add origin <YOUR_GITHUB_REPOSITORY_URL>
-    git branch -M main
-    git push -u origin main
+    # Log in to your Google Account
+    gcloud auth login
+
+    # Set your project ID
+    gcloud config set project [YOUR_PROJECT_ID]
     ```
 
-### Step 2: Set Up the Database on MongoDB Atlas
+### **Step 2: Production Database (MongoDB Atlas on GCP)**
 
-1.  Log in to [MongoDB Atlas](https://cloud.mongodb.com/v2/6290075841975e591783e74c#/clusters) and create a new project.
-2.  **Create a new cluster**: Choose the **M0 (Free)** shared cluster. Select a cloud provider and region.
-3.  **Configure Security**:
-    -   Under **Network Access**, click **"Add IP Address"** and select **"Allow Access from Anywhere"** (`0.0.0.0/0`). This is for simplicity; for production, you would restrict this to your backend service's IP.
-    -   Under **Database Access**, create a new database user. Remember the username and password.
-4.  **Get Connection String**:
-    -   Go to your cluster's **"Overview"** tab and click **"Connect"**.
-    -   Choose **"Drivers"** and copy the **Connection String (URI)**.
-    -   Replace `<password>` in the string with the password for the database user you just created.
-    -   Keep this URI safe; it will be your `DATABASE_URL` environment variable.
+A managed database service is strongly recommended for production to handle backups, scaling, and security automatically.
 
-### Step 3: Set Up Live Streaming with LiveKit
+1.  **Create an Atlas Cluster:** Go to [MongoDB Atlas](https://www.mongodb.com/cloud/atlas) and create a new cluster.
+2.  **Select Google Cloud:** When prompted for a cloud provider, **choose Google Cloud** and select a region close to your primary user base (e.g., `us-central1`).
+3.  **Configure Security (VPC Peering):** For production, a secure, private connection between your backend and database is crucial.
+    *   In the Atlas console, navigate to **Network Access** > **VPC Peering**.
+    *   Follow the instructions to set up a peering connection with your GCP project's default VPC network. This ensures your database is not exposed to the public internet. For simpler setups or testing, you can temporarily allow access from anywhere (`0.0.0.0/0`), but this is **not recommended for production**.
+4.  **Create a Database User:** In **Database Access**, create a user with a strong, auto-generated password.
+5.  **Get Your Connection String:** Go to your cluster's "Connect" tab, select "Drivers," and copy the connection string URI. Replace `<password>` with the password you just created. **Save this string for later.**
 
-1.  Log in to [LiveKit Cloud](https://cloud.livekit.io/) and create a new project.
-2.  Once the project is created, navigate to **Settings**.
-3.  You will find your **API Key**, **API Secret**, and **Host URL** (e.g., `wss://your-project.livekit.cloud`).
-4.  Copy these three values. You will need them for your environment variables.
+### **Step 3: Scalable File Storage (Google Cloud Storage)**
 
-### Step 4: Deploy the Backend on Render
+1.  **Enable the API:** In the GCP Console, search for and enable the "Cloud Storage API".
+2.  **Create a Bucket:**
+    *   Navigate to **Cloud Storage** in the console.
+    *   Click **"Create Bucket"**. Give it a globally unique name (e.g., `vidora-prod-media`).
+    *   Choose a region and the "Standard" storage class.
+    *   For **Access control**, choose "Fine-grained".
+3.  **Make Files Publicly Readable:** To allow users to view uploaded videos, the objects in the bucket need to be public.
+    *   After creating the bucket, go to the **"Permissions"** tab.
+    *   Click **"Grant Access"**. For "New principals", add `allUsers`. For "Role", select `Storage Object Viewer`.
 
-1.  Log in to [Render](https://dashboard.render.com/) and go to your dashboard.
-2.  Click **"New +"** and select **"Web Service"**.
-3.  Connect your GitHub repository.
-4.  Configure the service:
-    -   **Name**: `buzzcast-backend` (or your choice)
-    -   **Root Directory**: `backend`
-    -   **Build Command**: `npm install && npm run build`
-    -   **Start Command**: `npm start`
-    -   **Instance Type**: Free
-5.  **Add Environment Variables**:
-    -   `DATABASE_URL`: The connection string from MongoDB Atlas.
-    -   `JWT_SECRET`: A long, random, and secure string for signing tokens (e.g., generate one with `openssl rand -hex 32`).
-    -   `LIVEKIT_API_KEY`: Your API key from LiveKit.
-    -   `LIVEKIT_API_SECRET`: Your API secret from LiveKit.
-    -   `CORS_ORIGIN`: Leave this blank for now. We'll add it after deploying the frontend.
-6.  Click **"Create Web Service"**. Render will build and deploy your backend.
-7.  Once deployed, copy the service URL (e.g., `https://buzzcast-backend.onrender.com`).
+### **Step 4: Backend Deployment (Cloud Run)**
 
-### Step 5: Deploy the Frontend on Vercel
+We will containerize the backend and deploy it to Cloud Run for serverless scaling.
 
-1.  Log in to [Vercel](https://vercel.com/dashboard) and click **"Add New... -> Project"**.
-2.  Import your GitHub repository.
-3.  Vercel should automatically detect the project as a Vite app. The default build settings are usually correct.
-4.  **Configure Environment Variables**:
-    -   `VITE_API_BASE_URL`: The backend URL you copied from Render.
-    -   `VITE_LIVEKIT_HOST_URL`: The Host URL you copied from LiveKit.
-5.  Click **"Deploy"**.
-6.  After deployment, Vercel will provide you with a URL for your live frontend. Copy this URL.
+1.  **Create a `Dockerfile`:** In your `backend/` directory, create a file named `Dockerfile`. This tells Google Cloud how to build your application.
 
-### Step 6: Final Configuration
+    ```dockerfile
+    # Use an official Node.js runtime as a parent image
+    FROM node:18-slim
 
-1.  Go back to your backend service on **Render**.
-2.  Navigate to the **"Environment"** tab.
-3.  Add or update the `CORS_ORIGIN` environment variable with the frontend URL from Vercel (e.g., `https://your-app-name.vercel.app`).
-4.  Save the changes. This will trigger a new deployment of your backend with the updated settings.
+    # Set the working directory in the container
+    WORKDIR /usr/src/app
 
-Your application is now fully deployed!
+    # Copy package.json, package-lock.json, and prisma schema
+    COPY package*.json ./
+    COPY prisma ./prisma/
 
-### Step 7: Accessing the Admin Panel
+    # Install app dependencies
+    RUN npm install --production
 
-1.  Open your deployed Vercel frontend URL in your browser.
-2.  The application uses mocked authentication, so you can log in with any credentials.
-3.  The default user (`@react_dev`) is configured with the `admin` role.
-4.  After logging in, navigate to the **Profile** page using the bottom navigation bar.
-5.  You will see an **"Admin Panel"** button. Click it to access the full administrative dashboard.
+    # Run Prisma generate to create the client
+    RUN npx prisma generate
+
+    # Copy the rest of the built application code
+    # Assumes you have already run `npm run build` locally or in a CI/CD step
+    COPY dist ./dist/
+
+    # Your app binds to a port, expose it
+    EXPOSE 8080
+
+    # Define the command to run your app
+    CMD [ "node", "dist/server.js" ]
+    ```
+
+2.  **Store Your Secrets:** Never hard-code secrets.
+    *   In the GCP Console, go to **Secret Manager**.
+    *   Create secrets for each of your environment variables: `DATABASE_URL`, `JWT_SECRET`, etc.
+
+3.  **Build and Push the Container Image:**
+    *   Enable the **Artifact Registry API** in the GCP Console.
+    *   Create a Docker repository to store your image:
+        ```bash
+        gcloud artifacts repositories create vidora-backend --repository-format=docker --location=us-central1
+        ```
+    *   Build and push your image (replace `[PROJECT_ID]`):
+        ```bash
+        # First, build your TypeScript code to Javascript
+        npm run build --prefix backend
+
+        # Build the container image
+        docker build -t us-central1-docker.pkg.dev/[PROJECT_ID]/vidora-backend/api:latest ./backend
+
+        # Configure Docker to authenticate with Artifact Registry
+        gcloud auth configure-docker us-central1-docker.pkg.dev
+
+        # Push the image to the registry
+        docker push us-central1-docker.pkg.dev/[PROJECT_ID]/vidora-backend/api:latest
+        ```
+
+4.  **Deploy to Cloud Run:**
+    *   Deploy the service using the `gcloud` command. This powerful command links the secrets and configures the service.
+        ```bash
+        gcloud run deploy vidora-api \
+          --image=us-central1-docker.pkg.dev/[PROJECT_ID]/vidora-backend/api:latest \
+          --platform=managed \
+          --region=us-central1 \
+          --allow-unauthenticated \
+          --set-secrets="DATABASE_URL=[SECRET_NAME]:latest,JWT_SECRET=[SECRET_NAME]:latest" # Add other secrets
+        ```
+    *   After deployment, Cloud Run will give you a public URL for your API. **Copy this URL.**
+
+### **Step 5: Frontend Deployment (Firebase Hosting)**
+
+Firebase Hosting is the easiest and fastest way to deploy modern web apps.
+
+1.  **Set up Firebase:**
+    *   Go to the [Firebase Console](https://console.firebase.google.com/) and click "Add project", selecting your existing GCP project.
+    *   On your local machine, install the Firebase CLI: `npm install -g firebase-tools`.
+2.  **Initialize Firebase in Your Project:**
+    *   Run `firebase login`.
+    *   In the **root directory** of your project, run `firebase init hosting`.
+    *   Follow the prompts:
+        *   `Use an existing project` -> Select your `vidora-production` project.
+        *   `What do you want to use as your public directory?` -> Enter `dist`.
+        *   `Configure as a single-page app (rewrite all urls to /index.html)?` -> **Yes**.
+        *   `Set up automatic builds and deploys with GitHub?` -> No (for now).
+3.  **Configure API URL:** Create a file named `.env.production` in your project's root with your backend's URL:
+    ```
+    VITE_API_BASE_URL=https://your-cloud-run-api-url.a.run.app/api/v1
+    ```
+4.  **Build and Deploy:**
+    ```bash
+    # Build the production version of your React app
+    npm run build
+
+    # Deploy to Firebase Hosting
+    firebase deploy --only hosting
+    ```
+    Firebase will give you a URL for your live frontend (e.g., `vidora-production.web.app`).
+
+### **Step 6: Final Configuration**
+
+1.  **Update CORS:** Go back to your **Cloud Run** service in the GCP Console. In the "Variables & Secrets" tab, add an environment variable `CORS_ORIGIN` and set its value to your Firebase Hosting URL (`https://vidora-production.web.app`). This will redeploy your backend service with the correct cross-origin policy.
+2.  **Custom Domain:** In the Firebase Hosting console, you can easily add a custom domain. Firebase will guide you through the process of updating your DNS records.
+
+You now have a production-ready, scalable version of Vidora running entirely on Google Cloud!

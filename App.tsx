@@ -1,7 +1,8 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 // FIX: Added UploadSource to the import list from types.ts to support different upload methods.
 import { User, Video, LiveStream, WalletTransaction, Conversation, ChatMessage, Comment, PayoutRequest, MonetizationSettings, UploadSource, CreatorApplication, CoinPack, SavedPaymentMethod, DailyRewardSettings, Ad, AdSettings, Task, TaskSettings } from './types';
-import { mockUser, mockUsers, mockVideos, mockLiveStreams, mockConversations, systemUser, mockPayoutRequests, mockCreatorApplications, mockAds, mockTasks } from './services/mockApi';
+import { mockUsers, mockLiveStreams, mockConversations, systemUser, mockPayoutRequests, mockCreatorApplications, mockAds, mockTasks } from './services/mockApi';
 import { getCurrencyInfoForLocale, CurrencyInfo } from './utils/currency';
 import { CurrencyContext } from './contexts/CurrencyContext';
 
@@ -251,17 +252,39 @@ const App: React.FC = () => {
         }
     });
 
-    useEffect(() => {
-        const loggedIn = sessionStorage.getItem('isLoggedIn') === 'true';
-        if (loggedIn) {
-            setCurrentUser(mockUser);
-            setVideos(mockVideos);
-            setIsLoggedIn(true);
+    const fetchVideos = async () => {
+        try {
+            const response = await fetch(`${API_URL}/videos/feed`);
+            if (!response.ok) throw new Error('Failed to fetch videos');
+            const data = await response.json();
+            setVideos(data.videos);
+        } catch (error) {
+            console.error("Could not fetch videos:", error);
+            showSuccessToast("Error: Could not load video feed.");
+        }
+    };
 
-            const lastClaimed = localStorage.getItem('lastRewardClaim');
-            const today = new Date().toISOString().split('T')[0];
-            if (dailyRewardSettings.isEnabled && lastClaimed !== today) {
-                setTimeout(() => setIsDailyRewardOpen(true), 1000);
+    const onLoginSuccess = (user: User) => {
+        setCurrentUser(user);
+        setIsLoggedIn(true);
+        sessionStorage.setItem('currentUser', JSON.stringify(user));
+        fetchVideos();
+
+        const lastClaimed = localStorage.getItem('lastRewardClaim');
+        const today = new Date().toISOString().split('T')[0];
+        if (dailyRewardSettings.isEnabled && lastClaimed !== today) {
+            setTimeout(() => setIsDailyRewardOpen(true), 1000);
+        }
+    };
+
+    useEffect(() => {
+        const storedUser = sessionStorage.getItem('currentUser');
+        if (storedUser) {
+            try {
+                onLoginSuccess(JSON.parse(storedUser));
+            } catch (error) {
+                console.error("Failed to parse stored user", error);
+                sessionStorage.removeItem('currentUser');
             }
         }
         
@@ -362,16 +385,32 @@ const App: React.FC = () => {
         );
     }, [currentUser, tasks, taskSettings]);
 
-    const handleLogin = () => {
-        sessionStorage.setItem('isLoggedIn', 'true');
-        setCurrentUser(mockUser);
-        setVideos(mockVideos);
-        setIsLoggedIn(true);
-        setActiveView('feed');
+    const handleLogin = async (email: string, password: string): Promise<{success: boolean, message: string}> => {
+        try {
+            const response = await fetch(`${API_URL}/auth/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password }),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.msg || 'Login failed');
+            }
+
+            const { user } = await response.json();
+            onLoginSuccess(user);
+            setActiveView('feed');
+            return { success: true, message: 'Login successful!' };
+        } catch (error: any) {
+            console.error('Login error:', error);
+            return { success: false, message: error.message || 'An unexpected error occurred.' };
+        }
     };
 
+
     const handleLogout = () => {
-        sessionStorage.removeItem('isLoggedIn');
+        sessionStorage.removeItem('currentUser');
         setCurrentUser(null);
         setIsLoggedIn(false);
     };
@@ -1077,7 +1116,7 @@ const App: React.FC = () => {
 
 
     if (!isLoggedIn || !currentUser) {
-        return <AuthView onLoginSuccess={handleLogin} siteName={siteName} />;
+        return <AuthView onLogin={handleLogin} siteName={siteName} />;
     }
 
     if (activeView === 'admin') {
@@ -1150,6 +1189,7 @@ const App: React.FC = () => {
                     const conversation = conversations.find(c => c.id === selectedConversationId);
                     if (conversation) {
                         return <ChatWindowView 
+                                    currentUser={currentUser}
                                     conversation={conversation} 
                                     onBack={handleBackToInbox} 
                                     onSendMessage={(text, imageFile) => handleSendMessage(conversation.id, text, imageFile)}

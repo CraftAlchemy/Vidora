@@ -1,5 +1,7 @@
+
 import React, { useEffect, useRef, useState } from 'react';
-import { mockUsers, mockUser, mockGifts } from '../../services/mockApi';
+// FIX: Replaced hardcoded `mockUser` with the `currentUser` prop to correctly identify the broadcaster.
+import { mockUsers, mockGifts } from '../../services/mockApi';
 import { User, ChatMessage, Poll, GiftEvent } from '../../types';
 import { SendIcon, EmojiIcon, ShieldCheckIcon, PinIcon, MuteUserIcon, BanUserIcon, CloseIcon, SignalIcon, PollIcon, ChevronRightIcon, PaperclipIcon, VolumeUpIcon, VolumeOffIcon, ChevronLeftIcon } from '../icons/Icons';
 import HostToolsModal from '../HostToolsModal';
@@ -17,6 +19,7 @@ interface BroadcasterViewProps {
   onEndStream: () => void;
   onViewProfile: (user: User) => void;
   showSuccessToast: (message: string) => void;
+  currentUser: User;
 }
 
 interface ModerationActionModalProps {
@@ -65,12 +68,12 @@ const StreamHealthDisplay: React.FC<{ uptime: string; bitrate: number; fps: numb
     </div>
 );
 
-const BroadcasterView: React.FC<BroadcasterViewProps> = ({ streamTitle, sourceType, sourceData, onEndStream, onViewProfile, showSuccessToast }) => {
+const BroadcasterView: React.FC<BroadcasterViewProps> = ({ currentUser, streamTitle, sourceType, sourceData, onEndStream, onViewProfile, showSuccessToast }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [embedUrl, setEmbedUrl] = useState<string | null>(null);
-  const [viewers, setViewers] = useState(mockUsers.filter(u => u.id !== 'u1'));
+  const [viewers, setViewers] = useState(mockUsers.filter(u => u.id !== currentUser.id));
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
@@ -277,7 +280,7 @@ const BroadcasterView: React.FC<BroadcasterViewProps> = ({ streamTitle, sourceTy
 
     const message: ChatMessage = {
       id: `msg-${Date.now()}`,
-      senderId: mockUser.id,
+      senderId: currentUser.id,
       text: newMessage,
       timestamp: '',
       isRead: true,
@@ -356,7 +359,7 @@ const BroadcasterView: React.FC<BroadcasterViewProps> = ({ streamTitle, sourceTy
   };
 
   const ChatBubble: React.FC<{ message: ChatMessage; user: User }> = ({ message, user }) => {
-    const isBroadcaster = user.id === mockUser.id;
+    const isBroadcaster = user.id === currentUser.id;
     const handleUserClick = () => isBroadcaster ? onViewProfile(user) : setSelectedUserForAction(user);
 
     return (

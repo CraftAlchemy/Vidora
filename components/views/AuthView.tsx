@@ -3,12 +3,32 @@ import React, { useState } from 'react';
 import { GoogleIcon } from '../icons/Icons';
 
 interface AuthViewProps {
-  onLoginSuccess: () => void;
+  onLogin: (email: string, password: string) => Promise<{success: boolean, message: string}>;
   siteName: string;
 }
 
-const AuthView: React.FC<AuthViewProps> = ({ onLoginSuccess, siteName }) => {
+const AuthView: React.FC<AuthViewProps> = ({ onLogin, siteName }) => {
   const [isLogin, setIsLogin] = useState(true);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleSubmit = async () => {
+    setError('');
+    setIsLoading(true);
+    if (isLogin) {
+        const result = await onLogin(email, password);
+        if (!result.success) {
+            setError(result.message);
+        }
+    } else {
+        // Handle registration logic here (currently not implemented in backend)
+        setError('Registration is not yet implemented.');
+    }
+    setIsLoading(false);
+  };
 
   return (
     <div className="h-screen w-screen bg-zinc-900 text-white flex flex-col justify-center items-center p-6 max-w-md mx-auto">
@@ -25,28 +45,37 @@ const AuthView: React.FC<AuthViewProps> = ({ onLoginSuccess, siteName }) => {
         <input
           type="email"
           placeholder="Email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
           className="w-full p-3 bg-zinc-800 rounded-lg border border-zinc-700 focus:outline-none focus:ring-2 focus:ring-pink-500"
         />
         <input
           type="password"
           placeholder="Password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
           className="w-full p-3 bg-zinc-800 rounded-lg border border-zinc-700 focus:outline-none focus:ring-2 focus:ring-pink-500"
         />
         {!isLogin && (
             <input
             type="password"
             placeholder="Confirm Password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
             className="w-full p-3 bg-zinc-800 rounded-lg border border-zinc-700 focus:outline-none focus:ring-2 focus:ring-pink-500"
             />
         )}
       </div>
+      
+      {error && <p className="text-red-500 text-sm mt-4 text-center">{error}</p>}
 
       <div className="w-full mt-6 space-y-4">
         <button
-          onClick={onLoginSuccess}
-          className="w-full py-3 font-semibold rounded-lg bg-gradient-to-r from-pink-500 to-red-500 text-white shadow-lg transform hover:scale-105 transition-transform"
+          onClick={handleSubmit}
+          disabled={isLoading}
+          className="w-full py-3 font-semibold rounded-lg bg-gradient-to-r from-pink-500 to-red-500 text-white shadow-lg transform hover:scale-105 transition-transform disabled:opacity-70 disabled:cursor-not-allowed"
         >
-          {isLogin ? 'Log In' : 'Sign Up'}
+          {isLoading ? 'Processing...' : (isLogin ? 'Log In' : 'Sign Up')}
         </button>
 
         <div className="flex items-center my-4">
@@ -56,7 +85,8 @@ const AuthView: React.FC<AuthViewProps> = ({ onLoginSuccess, siteName }) => {
         </div>
 
         <button
-          onClick={onLoginSuccess}
+          onClick={() => alert('Google Sign-In not implemented.')}
+          disabled={isLoading}
           className="w-full py-3 font-semibold rounded-lg bg-white text-black flex items-center justify-center shadow-lg transform hover:scale-105 transition-transform"
         >
           <GoogleIcon />

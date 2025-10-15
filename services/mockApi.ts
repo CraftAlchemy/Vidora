@@ -128,6 +128,26 @@ export const mockUsers: User[] = [
     level: 2,
     commentPrivacySetting: 'everyone',
   },
+   {
+    id: 'u6',
+    username: 'admin_user',
+    email: 'admin@vidora.app',
+    avatarUrl: 'https://i.pravatar.cc/150?u=u6',
+    role: 'admin',
+    status: 'active',
+    isVerified: true,
+    joinDate: '2023-01-01',
+    lastLogin: '2024-07-21',
+    bio: 'System Administrator.',
+    followers: 999,
+    following: 1,
+    totalLikes: 0,
+    followingIds: ['u1'],
+    likedVideoIds: [],
+    wallet: { balance: 99999, transactions: [] },
+    level: 99,
+    commentPrivacySetting: 'everyone',
+  },
 ];
 
 export const systemUser: User = {
@@ -143,8 +163,6 @@ export const systemUser: User = {
     totalLikes: 0,
     commentPrivacySetting: 'everyone',
 };
-
-export const mockUser = mockUsers[0];
 
 export const mockVideos: Video[] = [
   {
@@ -265,7 +283,7 @@ export const mockConversations: Conversation[] = [
         user: mockUsers[1], 
         messages: [
             { id: 'm1-1', senderId: mockUsers[1].id, text: 'Hey! Love your content!', timestamp: '10:30 AM', isRead: true},
-            { id: 'm1-2', senderId: mockUser.id, text: 'Thank you so much! I appreciate it. 😊', timestamp: '10:31 AM', isRead: true},
+            { id: 'm1-2', senderId: 'u1', text: 'Thank you so much! I appreciate it. 😊', timestamp: '10:31 AM', isRead: true},
             { id: 'm1-3', senderId: mockUsers[1].id, text: 'That new animation video was insane. How long did it take you?', timestamp: '10:32 AM', isRead: false},
         ], 
         lastMessage: { text: 'That new animation video was insane. How long did it take you?', timestamp: '10:32 AM', isRead: false, senderId: mockUsers[1].id }
@@ -274,7 +292,7 @@ export const mockConversations: Conversation[] = [
         id: 'convo2', 
         user: mockUsers[2], 
         messages: [
-            { id: 'm2-1', senderId: mockUser.id, text: 'GGs yesterday!', timestamp: 'Yesterday', isRead: true },
+            { id: 'm2-1', senderId: 'u1', text: 'GGs yesterday!', timestamp: 'Yesterday', isRead: true },
             { id: 'm2-2', senderId: mockUsers[2].id, text: 'You too man! We gotta run it back soon.', timestamp: 'Yesterday', isRead: true },
         ], 
         lastMessage: { text: 'You too man! We gotta run it back soon.', timestamp: 'Yesterday', isRead: true, senderId: mockUsers[2].id }
@@ -284,11 +302,11 @@ export const mockConversations: Conversation[] = [
         user: mockUsers[3], 
         messages: [
             { id: 'm3-1', senderId: mockUsers[3].id, text: 'Found this amazing ramen spot you have to try!', timestamp: '2d ago', isRead: true},
-            { id: 'm3-2', senderId: mockUser.id, text: 'Oh really? Where at?', timestamp: '2d ago', isRead: true},
+            { id: 'm3-2', senderId: 'u1', text: 'Oh really? Where at?', timestamp: '2d ago', isRead: true},
             { id: 'm3-3', senderId: mockUsers[3].id, text: 'It\'s called "Noodle Heaven" downtown. Let\'s go this weekend!', timestamp: '2d ago', isRead: true },
-            { id: 'm3-4', senderId: mockUser.id, text: 'Sounds good, see you then!', timestamp: '2d ago', isRead: true },
+            { id: 'm3-4', senderId: 'u1', text: 'Sounds good, see you then!', timestamp: '2d ago', isRead: true },
         ], 
-        lastMessage: { text: 'Sounds good, see you then!', timestamp: '2d ago', isRead: true, senderId: mockUser.id }
+        lastMessage: { text: 'Sounds good, see you then!', timestamp: '2d ago', isRead: true, senderId: 'u1' }
     },
 ];
 

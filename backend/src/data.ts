@@ -1,6 +1,6 @@
 import { User, Video, Comment } from './types';
 
-// This data is a copy from the frontend's mockApi to simulate a backend database.
+// This data serves as an in-memory database for the backend simulation.
 
 export const mockUsers: User[] = [
   {
@@ -8,7 +8,7 @@ export const mockUsers: User[] = [
     username: 'react_dev',
     email: 'dev@example.com',
     avatarUrl: 'https://i.pravatar.cc/150?u=u1',
-    role: 'admin',
+    role: 'user',
     status: 'active',
     isVerified: true,
     joinDate: '2023-01-15',
@@ -35,6 +35,11 @@ export const mockUsers: User[] = [
       { id: 'b1', name: 'Early Bird', icon: '🐦', description: 'Joined in the first year.' },
       { id: 'b2', name: 'Top Gifter', icon: '🎁', description: 'Sent over 100 gifts.' },
     ],
+    commentPrivacySetting: 'everyone',
+    savedPaymentMethods: [
+        { id: 'pm1', type: 'Card', details: 'Visa ending in 4242', isDefault: true },
+        { id: 'pm2', type: 'PayPal', details: 'dev@example.com', isDefault: false },
+    ],
   },
   {
     id: 'u2',
@@ -52,9 +57,12 @@ export const mockUsers: User[] = [
     totalLikes: 12000,
     followingIds: [],
     likedVideoIds: ['v3', 'v6'],
+    wallet: { balance: 5000, transactions: [] },
+    creatorStats: { totalEarnings: 10250.75, receivedGiftsCount: 2100 },
     level: 30,
     xp: 180,
     streakCount: 5,
+    commentPrivacySetting: 'everyone',
   },
   {
     id: 'u3',
@@ -72,26 +80,32 @@ export const mockUsers: User[] = [
     totalLikes: 55000,
     followingIds: [],
     likedVideoIds: ['v1'],
+    wallet: { balance: 10000, transactions: [] },
+    creatorStats: { totalEarnings: 25800.00, receivedGiftsCount: 5500 },
     level: 50,
     xp: 900,
+    commentPrivacySetting: 'everyone',
   },
     {
     id: 'u4',
     username: 'foodie_queen',
     email: 'food@example.com',
     avatarUrl: 'https://i.pravatar.cc/150?u=u4',
-    role: 'user',
+    role: 'moderator',
     status: 'active',
     isVerified: true,
     joinDate: '2024-01-05',
     lastLogin: '2024-07-21',
     bio: 'Exploring the best food spots!',
-    followers: 5200,
+    followers: 950,
     following: 800,
     totalLikes: 1700,
     followingIds: ['u1', 'u2', 'u3'],
     likedVideoIds: ['v1', 'v2', 'v3', 'v5', 'v6'],
+    wallet: { balance: 200, transactions: [] },
     level: 15,
+    streakCount: 25,
+    commentPrivacySetting: 'everyone',
   },
   {
     id: 'u5',
@@ -109,7 +123,29 @@ export const mockUsers: User[] = [
     totalLikes: 20,
     followingIds: [],
     likedVideoIds: [],
+    wallet: { balance: 0, transactions: [] },
     level: 2,
+    commentPrivacySetting: 'everyone',
+  },
+  {
+    id: 'u6',
+    username: 'admin_user',
+    email: 'admin@vidora.app',
+    avatarUrl: 'https://i.pravatar.cc/150?u=u6',
+    role: 'admin',
+    status: 'active',
+    isVerified: true,
+    joinDate: '2023-01-01',
+    lastLogin: '2024-07-21',
+    bio: 'System Administrator.',
+    followers: 999,
+    following: 1,
+    totalLikes: 0,
+    followingIds: ['u1'],
+    likedVideoIds: [],
+    wallet: { balance: 99999, transactions: [] },
+    level: 99,
+    commentPrivacySetting: 'everyone',
   },
 ];
 

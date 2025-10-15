@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 // FIX: Added Ad type to support banner ads.
 import { LiveStream, User, Ad } from '../../types';
@@ -64,6 +65,7 @@ const LiveView: React.FC<LiveViewProps> = ({ setIsNavVisible, currentUser, onTog
 
   if (isBroadcasting) {
     return <BroadcasterView 
+              currentUser={currentUser}
               streamTitle={myStreamTitle} 
               sourceType={myStreamSource}
               sourceData={myStreamSourceData}
