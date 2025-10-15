@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { User, Video, LiveStream, WalletTransaction, Conversation, ChatMessage, Comment, PayoutRequest, MonetizationSettings, UploadSource, CreatorApplication, CoinPack, SavedPaymentMethod, DailyRewardSettings, Ad, AdSettings, Task, TaskSettings } from './types';
 import { mockUsers, mockLiveStreams, mockConversations, systemUser, mockPayoutRequests, mockCreatorApplications, mockAds, mockTasks } from './services/mockApi';
@@ -666,7 +665,11 @@ const App: React.FC = () => {
 
             if (!response.ok) throw new Error('Failed to post comment');
             
-            const newComment: Comment = await response.json();
+            const newComment: Comment = {
+                ...(await response.json()),
+                likes: 0,
+                replies: [],
+            };
             
             const updatedVideos = videos.map(v => {
                 if (v.id === videoId) {

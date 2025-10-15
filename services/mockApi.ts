@@ -178,8 +178,8 @@ export const mockVideos: Video[] = [
     shares: 123,
     views: 250000,
     commentsData: [
-      { id: 'c1', user: mockUsers[2], text: 'Great video!', timestamp: '2h ago' },
-      { id: 'c2', user: mockUsers[3], text: 'So cute!', timestamp: '1h ago' },
+      { id: 'c1', user: mockUsers[2], text: 'Great video!', timestamp: '2h ago', likes: 15, replies: [] },
+      { id: 'c2', user: mockUsers[3], text: 'So cute!', timestamp: '1h ago', likes: 3, replies: [] },
     ],
     thumbnailUrl: 'https://i.ytimg.com/vi/aqz-KE-bpKQ/maxresdefault.jpg',
     status: 'approved',

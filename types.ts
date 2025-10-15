@@ -41,6 +41,8 @@ export interface Comment {
   user: User;
   text: string;
   timestamp: string;
+  likes: number;
+  replies?: Comment[];
 }
 
 export interface VideoSource {
