@@ -1,11 +1,12 @@
 
 import React, { useState, useEffect } from 'react';
-// FIX: Added Ad type to support banner ads.
 import { LiveStream, User, Ad } from '../../types';
 import LiveDiscoveryView from './LiveDiscoveryView';
 import BroadcasterView from './BroadcasterView';
 import GoLiveModal from '../GoLiveModal';
-import { View } from '../../App';
+import { View, BroadcastSession } from '../../App';
+
+export type BroadcastSource = 'camera' | 'video' | 'url';
 
 interface LiveViewProps {
   setIsNavVisible: (visible: boolean) => void;
@@ -21,22 +22,23 @@ interface LiveViewProps {
   onBanStreamer: (streamerId: string) => void;
   hasIncompleteDailyTasks: boolean;
   onNavigate: (view: View) => void;
+  myBroadcastSession: BroadcastSession | null;
+  onStartStream: (title: string, source: BroadcastSource, data?: File | string) => void;
+  onEndStream: () => void;
 }
 
-export type BroadcastSource = 'camera' | 'video' | 'url';
-
-const LiveView: React.FC<LiveViewProps> = ({ setIsNavVisible, currentUser, onToggleFollow, onShareStream, onViewProfile, showSuccessToast, openGoLiveModal, onModalOpened, bannerAds, liveStreams, onBanStreamer, hasIncompleteDailyTasks, onNavigate }) => {
-  const [isBroadcasting, setIsBroadcasting] = useState(false);
-  const [myStreamTitle, setMyStreamTitle] = useState('');
-  const [myStreamSource, setMyStreamSource] = useState<BroadcastSource>('camera');
-  const [myStreamSourceData, setMyStreamSourceData] = useState<File | string | undefined>(undefined);
+const LiveView: React.FC<LiveViewProps> = ({ 
+    setIsNavVisible, currentUser, onToggleFollow, onShareStream, onViewProfile, showSuccessToast, 
+    openGoLiveModal, onModalOpened, bannerAds, liveStreams, onBanStreamer, hasIncompleteDailyTasks, onNavigate,
+    myBroadcastSession, onStartStream, onEndStream
+}) => {
   const [isGoLiveModalOpen, setIsGoLiveModalOpen] = useState(false);
 
   useEffect(() => {
     // When the user is broadcasting, hide the main navigation for a full-screen experience.
     // Show it again when they return to the discovery view.
-    setIsNavVisible(!isBroadcasting);
-  }, [isBroadcasting, setIsNavVisible]);
+    setIsNavVisible(myBroadcastSession === null);
+  }, [myBroadcastSession, setIsNavVisible]);
 
   useEffect(() => {
     if (openGoLiveModal) {
@@ -49,27 +51,13 @@ const LiveView: React.FC<LiveViewProps> = ({ setIsNavVisible, currentUser, onTog
     setIsGoLiveModalOpen(true);
   };
 
-  const handleStartStream = (title: string, source: BroadcastSource, data?: File | string) => {
-    setMyStreamTitle(title);
-    setMyStreamSource(source);
-    setMyStreamSourceData(data);
-    setIsBroadcasting(true);
-    setIsGoLiveModalOpen(false);
-  };
-
-  const handleEndStream = () => {
-    setIsBroadcasting(false);
-    setMyStreamTitle('');
-    setMyStreamSourceData(undefined);
-  };
-
-  if (isBroadcasting) {
+  if (myBroadcastSession) {
     return <BroadcasterView 
               currentUser={currentUser}
-              streamTitle={myStreamTitle} 
-              sourceType={myStreamSource}
-              sourceData={myStreamSourceData}
-              onEndStream={handleEndStream} 
+              streamTitle={myBroadcastSession.stream.title} 
+              sourceType={myBroadcastSession.source}
+              sourceData={myBroadcastSession.sourceData}
+              onEndStream={onEndStream} 
               onViewProfile={onViewProfile} 
               showSuccessToast={showSuccessToast}
             />;
@@ -93,7 +81,7 @@ const LiveView: React.FC<LiveViewProps> = ({ setIsNavVisible, currentUser, onTog
       {isGoLiveModalOpen && (
         <GoLiveModal 
           onClose={() => setIsGoLiveModalOpen(false)} 
-          onStartStream={handleStartStream} 
+          onStartStream={onStartStream} 
         />
       )}
     </>

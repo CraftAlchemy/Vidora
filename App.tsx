@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { User, Video, LiveStream, WalletTransaction, Conversation, ChatMessage, Comment, PayoutRequest, MonetizationSettings, UploadSource, CreatorApplication, CoinPack, SavedPaymentMethod, DailyRewardSettings, Ad, AdSettings, Task, TaskSettings } from './types';
 import { mockUsers, mockLiveStreams, mockConversations, systemUser, mockPayoutRequests, mockCreatorApplications, mockAds, mockTasks } from './services/mockApi';
 import { getCurrencyInfoForLocale, CurrencyInfo } from './utils/currency';
@@ -7,7 +7,7 @@ import { CurrencyContext } from './contexts/CurrencyContext';
 
 import AuthView from './components/views/AuthView';
 import FeedView from './components/views/FeedView';
-import LiveView from './components/views/LiveView';
+import LiveView, { BroadcastSource } from './components/views/LiveView';
 import ProfileView from './components/views/ProfileView';
 import WalletView from './components/views/WalletView';
 import SettingsView from './components/views/SettingsView';
@@ -42,6 +42,12 @@ import EditVideoModal from './components/EditVideoModal';
 import UploadProgressToast from './components/UploadProgressToast';
 
 export type View = 'feed' | 'live' | 'inbox' | 'profile' | 'wallet' | 'settings' | 'purchase' | 'admin' | 'creatorDashboard' | 'manageAccount' | 'changePassword' | 'helpCenter' | 'termsOfService' | 'becomeCreator' | 'paymentMethods' | 'tasks';
+
+export interface BroadcastSession {
+  stream: LiveStream;
+  source: BroadcastSource;
+  sourceData?: File | string;
+}
 
 const API_URL = 'https://vidora-3dvn.onrender.com/api/v1';
 
@@ -119,6 +125,9 @@ const App: React.FC = () => {
 
     // Chat State
     const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
+
+    // Live Stream State
+    const [myBroadcastSession, setMyBroadcastSession] = useState<BroadcastSession | null>(null);
 
     // Modal States
     const [isUploadViewOpen, setIsUploadViewOpen] = useState(false);
@@ -498,6 +507,33 @@ const App: React.FC = () => {
         setOpenGoLiveOnNavigate(true);
         handleNavigate('live');
     };
+
+    const handleStartStream = useCallback((title: string, source: BroadcastSource, data?: File | string) => {
+        if (!currentUser) return;
+
+        const newStream: LiveStream = {
+            id: `ls-${currentUser.id}-${Date.now()}`,
+            title,
+            user: currentUser,
+            thumbnailUrl: 'https://images.pexels.com/photos/1763075/pexels-photo-1763075.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2', // A generic placeholder
+            viewers: 1, // Broadcaster counts as 1
+            videoUrl: source === 'url' ? (data as string) : undefined, // Only for URL source type
+            status: 'live',
+        };
+        
+        setMyBroadcastSession({
+            stream: newStream,
+            source: source,
+            sourceData: data,
+        });
+        setLiveStreams(prev => [newStream, ...prev.filter(s => s.user.id !== currentUser.id)]);
+    }, [currentUser]);
+
+    const handleEndStream = useCallback(() => {
+        if (!myBroadcastSession) return;
+        setLiveStreams(prev => prev.filter(s => s.id !== myBroadcastSession.stream.id));
+        setMyBroadcastSession(null);
+    }, [myBroadcastSession]);
 
     const handleViewProfile = (userToView: User) => {
         if (!currentUser) return;
@@ -1295,6 +1331,9 @@ const App: React.FC = () => {
                     onBanStreamer={handleBanStreamer}
                     hasIncompleteDailyTasks={hasIncompleteDailyTasks}
                     onNavigate={handleNavigate}
+                    myBroadcastSession={myBroadcastSession}
+                    onStartStream={handleStartStream}
+                    onEndStream={handleEndStream}
                 />;
             case 'inbox': {
                 if (selectedConversationId) {

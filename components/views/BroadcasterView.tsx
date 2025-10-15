@@ -121,12 +121,15 @@ const BroadcasterView: React.FC<BroadcasterViewProps> = ({ currentUser, streamTi
         streamRef.current = stream;
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
+          videoRef.current.play().catch(playError => {
+            console.warn("Camera stream auto-play failed. User may need to interact.", playError);
+          });
         }
         setVideoUrl(null);
         setEmbedUrl(null);
       } catch (err) {
         console.error("Error accessing camera:", err);
-        alert("Could not access camera. Please check permissions and try again.");
+        alert("Could not start video source. Please ensure your camera is not in use and that you have granted permissions.");
         onEndStream();
       }
     };
@@ -470,7 +473,7 @@ const BroadcasterView: React.FC<BroadcasterViewProps> = ({ currentUser, streamTi
                   playsInline 
                   muted={sourceType === 'camera' || isSourceMuted} 
                   loop={sourceType !== 'camera'}
-                  src={videoUrl || ''}
+                  src={sourceType === 'camera' ? undefined : (videoUrl || '')}
                   className="absolute inset-0 w-full h-full object-cover" 
                 />
             )}
