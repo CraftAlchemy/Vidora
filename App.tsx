@@ -264,10 +264,13 @@ const App: React.FC = () => {
         }
     };
 
-    const onLoginSuccess = (user: User) => {
+    const onLoginSuccess = (user: User, token?: string) => {
         setCurrentUser(user);
         setIsLoggedIn(true);
         sessionStorage.setItem('currentUser', JSON.stringify(user));
+        if (token) {
+            localStorage.setItem('authToken', token);
+        }
         fetchVideos();
 
         const lastClaimed = localStorage.getItem('lastRewardClaim');
@@ -398,8 +401,8 @@ const App: React.FC = () => {
                 throw new Error(errorData.msg || 'Login failed');
             }
 
-            const { user } = await response.json();
-            onLoginSuccess(user);
+            const { user, token } = await response.json();
+            onLoginSuccess(user, token);
             setActiveView('feed');
             return { success: true, message: 'Login successful!' };
         } catch (error: any) {
@@ -408,9 +411,33 @@ const App: React.FC = () => {
         }
     };
 
+    const handleRegister = async (email: string, username: string, password: string): Promise<{success: boolean, message: string}> => {
+        try {
+            const response = await fetch(`${API_URL}/auth/register`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, username, password }),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.msg || 'Registration failed');
+            }
+
+            const { user, token } = await response.json();
+            onLoginSuccess(user, token);
+            setActiveView('feed');
+            return { success: true, message: 'Registration successful!' };
+        } catch (error: any) {
+            console.error('Registration error:', error);
+            return { success: false, message: error.message || 'An unexpected error occurred.' };
+        }
+    };
+
 
     const handleLogout = () => {
         sessionStorage.removeItem('currentUser');
+        localStorage.removeItem('authToken');
         setCurrentUser(null);
         setIsLoggedIn(false);
     };
@@ -1116,7 +1143,7 @@ const App: React.FC = () => {
 
 
     if (!isLoggedIn || !currentUser) {
-        return <AuthView onLogin={handleLogin} siteName={siteName} />;
+        return <AuthView onLogin={handleLogin} onRegister={handleRegister} siteName={siteName} />;
     }
 
     if (activeView === 'admin') {

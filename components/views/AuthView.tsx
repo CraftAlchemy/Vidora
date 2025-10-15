@@ -1,15 +1,18 @@
+
 import React, { useState } from 'react';
 // Fix: Correct import for Icons which is now created.
 import { GoogleIcon } from '../icons/Icons';
 
 interface AuthViewProps {
   onLogin: (email: string, password: string) => Promise<{success: boolean, message: string}>;
+  onRegister: (email: string, username: string, password: string) => Promise<{success: boolean, message: string}>;
   siteName: string;
 }
 
-const AuthView: React.FC<AuthViewProps> = ({ onLogin, siteName }) => {
+const AuthView: React.FC<AuthViewProps> = ({ onLogin, onRegister, siteName }) => {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
@@ -17,15 +20,30 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin, siteName }) => {
 
   const handleSubmit = async () => {
     setError('');
+    
+    if (!isLogin) {
+        if (password !== confirmPassword) {
+            setError('Passwords do not match.');
+            return;
+        }
+        if (username.trim().length < 3) {
+            setError('Username must be at least 3 characters long.');
+            return;
+        }
+    }
+    
     setIsLoading(true);
+
     if (isLogin) {
         const result = await onLogin(email, password);
         if (!result.success) {
             setError(result.message);
         }
     } else {
-        // Handle registration logic here (currently not implemented in backend)
-        setError('Registration is not yet implemented.');
+        const result = await onRegister(email, username, password);
+        if (!result.success) {
+            setError(result.message);
+        }
     }
     setIsLoading(false);
   };
@@ -49,6 +67,15 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin, siteName }) => {
           onChange={(e) => setEmail(e.target.value)}
           className="w-full p-3 bg-zinc-800 rounded-lg border border-zinc-700 focus:outline-none focus:ring-2 focus:ring-pink-500"
         />
+        {!isLogin && (
+            <input
+            type="text"
+            placeholder="Username"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            className="w-full p-3 bg-zinc-800 rounded-lg border border-zinc-700 focus:outline-none focus:ring-2 focus:ring-pink-500"
+            />
+        )}
         <input
           type="password"
           placeholder="Password"
@@ -95,7 +122,7 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin, siteName }) => {
       </div>
 
       <div className="mt-8">
-        <button onClick={() => setIsLogin(!isLogin)} className="text-gray-400 hover:text-white">
+        <button onClick={() => { setIsLogin(!isLogin); setError(''); }} className="text-gray-400 hover:text-white">
           {isLogin ? "Don't have an account? Sign Up" : 'Already have an account? Log In'}
         </button>
       </div>
