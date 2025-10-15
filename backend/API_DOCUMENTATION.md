@@ -107,3 +107,18 @@ This document provides a basic overview of the BuzzCast REST API endpoints.
   ```
 - **Response**:
   - `201 Created`: Returns the newly created comment object.
+
+### `PUT /videos/:videoId`
+- **Description**: Updates the details of a specific video (e.g., description).
+- **Access**: Private (Requires Authentication Token, user must be the video owner)
+- **Body**:
+  ```json
+  {
+    "description": "An updated description for the video."
+  }
+  ```
+- **Response**:
+  - `200 OK`: Returns the updated video object.
+  - `400 Bad Request`: If description is missing.
+  - `403 Forbidden`: If the user is not the owner of the video.
+  - `404 Not Found`: If the video does not exist.

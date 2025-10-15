@@ -1,6 +1,5 @@
 
-import React, { useState, useEffect, useMemo } from 'react';
-// FIX: Added UploadSource to the import list from types.ts to support different upload methods.
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { User, Video, LiveStream, WalletTransaction, Conversation, ChatMessage, Comment, PayoutRequest, MonetizationSettings, UploadSource, CreatorApplication, CoinPack, SavedPaymentMethod, DailyRewardSettings, Ad, AdSettings, Task, TaskSettings } from './types';
 import { mockUsers, mockLiveStreams, mockConversations, systemUser, mockPayoutRequests, mockCreatorApplications, mockAds, mockTasks } from './services/mockApi';
 import { getCurrencyInfoForLocale, CurrencyInfo } from './utils/currency';
@@ -15,7 +14,6 @@ import SettingsView from './components/views/SettingsView';
 import PurchaseCoinsView from './components/views/PurchaseCoinsView';
 import ChatInboxView from './components/views/ChatInboxView';
 import ChatWindowView from './components/views/ChatWindowView';
-// FIX: The file 'components/AdminPanel.tsx' was not a module. This is now fixed by providing a proper component implementation.
 import AdminPanel from './components/AdminPanel';
 import BottomNav from './components/BottomNav';
 import UploadView from './components/views/UploadView';
@@ -40,6 +38,8 @@ import ProfileStatsModal from './components/ProfileStatsModal';
 import LevelInfoModal from './components/LevelInfoModal';
 import TasksView from './components/views/TasksView';
 import WatchAdModal from './components/WatchAdModal';
+import EditVideoModal from './components/EditVideoModal';
+import UploadProgressToast from './components/UploadProgressToast';
 
 export type View = 'feed' | 'live' | 'inbox' | 'profile' | 'wallet' | 'settings' | 'purchase' | 'admin' | 'creatorDashboard' | 'manageAccount' | 'changePassword' | 'helpCenter' | 'termsOfService' | 'becomeCreator' | 'paymentMethods' | 'tasks';
 
@@ -132,11 +132,18 @@ const App: React.FC = () => {
     const [isAddPaymentMethodModalOpen, setIsAddPaymentMethodModalOpen] = useState(false);
     const [isLevelInfoModalOpen, setIsLevelInfoModalOpen] = useState(false);
     const [taskToWatch, setTaskToWatch] = useState<Task | null>(null);
+    const [videoToEdit, setVideoToEdit] = useState<Video | null>(null);
     const [activeVideoForComments, setActiveVideoForComments] = useState<Video | null>(null);
     const [viewedProfileUser, setViewedProfileUser] = useState<User | null>(null);
     const [openGoLiveOnNavigate, setOpenGoLiveOnNavigate] = useState(false);
     const [profileFeedState, setProfileFeedState] = useState<{ videos: Video[], startIndex: number } | null>(null);
     const [profileStatsModalState, setProfileStatsModalState] = useState<{ user: User; initialTab: 'following' | 'followers' | 'likes'; } | null>(null);
+
+    // Upload State
+    const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
+    const [uploadProgress, setUploadProgress] = useState(0);
+    const [uploadFileName, setUploadFileName] = useState('');
+    const uploadIntervalRef = useRef<number | null>(null);
 
     // Purchase flow state
     const [selectedCoinPack, setSelectedCoinPack] = useState<CoinPack | null>(null);
@@ -511,42 +518,77 @@ const App: React.FC = () => {
     const handleCloseUpload = () => {
         setIsUploadViewOpen(false);
     };
+    
+    const handleCancelUpload = () => {
+        if (uploadIntervalRef.current) {
+            clearInterval(uploadIntervalRef.current);
+            uploadIntervalRef.current = null;
+        }
+        setUploadStatus('idle');
+        showSuccessToast('Upload cancelled.');
+    };
 
-    // FIX: Updated handleUpload to accept an `UploadSource` object to support both file uploads and URL embedding from the UploadView component.
     const handleUpload = async (source: UploadSource, description: string) => {
         if (!currentUser) return;
-
+    
         handleCloseUpload();
-
+    
+        // Clear any previous interval
+        if (uploadIntervalRef.current) clearInterval(uploadIntervalRef.current);
+    
         if (source.type === 'file') {
-            showSuccessToast('Uploading your video...');
-            const formData = new FormData();
-            formData.append('video', source.data);
-            formData.append('description', description);
-
-            try {
-                const response = await fetch(`${API_URL}/videos/upload`, {
-                    method: 'POST',
-                    body: formData,
-                });
-
-                if (!response.ok) {
-                    throw new Error('Upload failed');
+            const file = source.data;
+            setUploadFileName(file.name);
+            setUploadStatus('uploading');
+            setUploadProgress(0);
+    
+            // Simulate upload progress for UX, as the mock backend doesn't support
+            // multipart/form-data, which is needed for real progress tracking.
+            const simulationDuration = 3000;
+            const updateInterval = 50;
+            const increments = simulationDuration / updateInterval;
+            let currentProgress = 0;
+    
+            uploadIntervalRef.current = window.setInterval(() => {
+                currentProgress += 100 / increments;
+                setUploadProgress(Math.min(Math.round(currentProgress), 100));
+    
+                if (currentProgress >= 100) {
+                    clearInterval(uploadIntervalRef.current!);
+                    uploadIntervalRef.current = null;
+                    
+                    // Once simulation is complete, make the actual API call with JSON
+                    (async () => {
+                        try {
+                            const response = await fetch(`${API_URL}/videos/upload`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ description }),
+                            });
+    
+                            if (!response.ok) throw new Error('Upload failed');
+    
+                            const newVideo: Video = await response.json();
+                            setVideos(prev => [newVideo, ...prev]);
+                            setUploadStatus('success');
+                            setTimeout(() => setUploadStatus('idle'), 3000);
+    
+                        } catch (error) {
+                            console.error('Error uploading video:', error);
+                            setUploadStatus('error');
+                            setTimeout(() => setUploadStatus('idle'), 5000);
+                        }
+                    })();
                 }
-
-                const newVideo: Video = await response.json();
-                setVideos(prev => [newVideo, ...prev]);
-                showSuccessToast('Video uploaded successfully!');
-            } catch (error) {
-                console.error('Error uploading video:', error);
-                showSuccessToast('Error: Could not upload video.');
-            }
-        } else { // source.type === 'url'
-            showSuccessToast('Embedding your video...');
-            // In a real app, you would send the URL to the backend to process.
-            // Here, we'll simulate it.
+            }, updateInterval);
+            
+        } else { // source.type === 'url' - similar simulation for consistency
+            setUploadFileName(source.data);
+            setUploadStatus('uploading');
+            setUploadProgress(0);
+    
             setTimeout(() => {
-// FIX: Changed `videoUrl` to `videoSources` to maintain consistency with the Video type and other components.
+                setUploadProgress(100);
                 const newVideo: Video = {
                     id: `v-url-${Date.now()}`,
                     videoSources: [{ quality: 'Auto', url: source.data as string }],
@@ -558,7 +600,8 @@ const App: React.FC = () => {
                     uploadDate: new Date().toISOString(),
                 };
                 setVideos(prev => [newVideo, ...prev]);
-                showSuccessToast('Video embedded successfully!');
+                setUploadStatus('success');
+                setTimeout(() => setUploadStatus('idle'), 3000);
             }, 1500);
         }
     };
@@ -805,9 +848,6 @@ const App: React.FC = () => {
             updatedUser.xp = (updatedUser.xp || 0) + rewardAmount;
         }
 
-        // FIX: Explicitly handle the case where a user has no prior task history.
-        // This ensures the `completedTasks` object is initialized before we try to add a new task to it,
-        // preventing an error that would stop the function before the reward is saved.
         const currentTasks = updatedUser.completedTasks || {};
         updatedUser.completedTasks = {
             ...currentTasks,
@@ -818,7 +858,6 @@ const App: React.FC = () => {
         setTaskToWatch(null);
         showSuccessToast(`+${rewardAmount} ${task.rewardType} earned!`);
         
-        // Send a confirmation message to the user's inbox
         const confirmationMessage = `You completed the task '${task.title}' and earned ${rewardAmount} ${task.rewardType}!`;
         sendSystemMessage(currentUser.id, confirmationMessage);
     };
@@ -836,7 +875,6 @@ const App: React.FC = () => {
 
         let imageUrl: string | undefined = undefined;
         if (imageFile) {
-            // Convert file to base64 data URL for mock state
             imageUrl = await new Promise((resolve) => {
                 const reader = new FileReader();
                 reader.onloadend = () => resolve(reader.result as string);
@@ -871,7 +909,6 @@ const App: React.FC = () => {
 
         setConversations(updatedConversations);
         
-        // Simulate a reply after a delay to make the chat feel more interactive
         setTimeout(() => {
             const conversation = updatedConversations.find(c => c.id === conversationId);
             if (!conversation) return;
@@ -937,7 +974,6 @@ const App: React.FC = () => {
             });
 
             if (convoExists && targetConvo) {
-                // Move the updated conversation to the top of the list
                 const otherConvos = updatedConvos.filter(c => c.id !== targetConvo!.id);
                 return [targetConvo, ...otherConvos];
             } else {
@@ -978,7 +1014,6 @@ const App: React.FC = () => {
             }
         };
         setCurrentUser(updatedUser);
-        // Also update the main users list for the admin panel
         setUsers(prev => prev.map(u => u.id === currentUser.id ? updatedUser : u));
 
         setIsRequestPayoutModalOpen(false);
@@ -986,35 +1021,26 @@ const App: React.FC = () => {
     };
     
     const handleDeleteAccount = () => {
-        // In a real app, this would be an API call.
-        // For this mock app, we'll log the user out.
         showSuccessToast("Account deleted successfully.");
         setIsDeleteAccountModalOpen(false);
-        // A short delay to let the user see the toast before being logged out.
         setTimeout(() => {
             handleLogout();
         }, 1500);
     };
 
     const handleChangePassword = (currentPassword: string, newPassword: string): boolean => {
-        // In a real app, this would be an API call.
-        // For this mock app, we'll simulate the logic.
-        if (currentPassword !== 'password123') { // Mocking the current password
+        if (currentPassword !== 'password123') {
           showSuccessToast("Error: Current password is incorrect.");
-          // In a real app, the ChangePasswordView would handle this error state.
-          // For simplicity, we just show a toast here.
-          return false; // Indicate failure
+          return false;
         }
         
-        // Here you would send the new password to the backend.
         console.log('Password successfully changed.');
         showSuccessToast('Password updated successfully!');
-        // A short delay to let the user see the toast before navigating
         setTimeout(() => {
             handleNavigate('manageAccount');
         }, 1500);
     
-        return true; // Indicate success
+        return true;
     };
     
     const handleSetCommentPrivacySetting = (setting: 'everyone' | 'following' | 'nobody') => {
@@ -1024,7 +1050,6 @@ const App: React.FC = () => {
             commentPrivacySetting: setting,
         };
         setCurrentUser(updatedUser);
-        // Also update the mock users array so other users see the new setting
         setUsers(users.map(u => u.id === currentUser.id ? updatedUser : u));
         setVideos(videos.map(v => v.user.id === currentUser.id ? { ...v, user: updatedUser } : v));
         setIsCommentPrivacyModalOpen(false);
@@ -1067,7 +1092,6 @@ const App: React.FC = () => {
             if (userToUpdate) {
                 const updatedUser = { ...userToUpdate, role: 'creator' as const };
                 setUsers(users.map(u => u.id === userToUpdate.id ? updatedUser : u));
-                // If the approved user is the current user, update their state too
                 if (currentUser && currentUser.id === userToUpdate.id) {
                     setCurrentUser(updatedUser);
                 }
@@ -1084,7 +1108,6 @@ const App: React.FC = () => {
         if (!currentUser) return;
         const newMethod = { ...method, id: `pm-${Date.now()}` };
 
-        // If setting new method as default, unset other defaults
         let updatedMethods = (currentUser.savedPaymentMethods || []).map(m =>
             newMethod.isDefault ? { ...m, isDefault: false } : m
         );
@@ -1101,8 +1124,6 @@ const App: React.FC = () => {
         if (!currentUser) return;
         const updatedMethods = (currentUser.savedPaymentMethods || []).filter(m => m.id !== methodId);
         
-        // If the removed method was the default, and there are others, make the first one the new default
-// FIX: Property 'isDefault' does not exist on type '{ id: string; }'. This is fixed by correcting the `SavedPaymentMethod` type definition in `types.ts`.
         if (updatedMethods.length > 0 && !updatedMethods.some(m => m.isDefault)) {
             updatedMethods[0].isDefault = true;
         }
@@ -1119,7 +1140,6 @@ const App: React.FC = () => {
     };
 
     const formatWithConversion = (amount: number): string => {
-        // Assume base currency is USD since symbol is '$'
         const baseCurrency = 'USD';
         
         const baseFormatted = new Intl.NumberFormat('en-US', {
@@ -1162,6 +1182,48 @@ const App: React.FC = () => {
     
     const handleCloseLevelInfoModal = () => {
         setIsLevelInfoModalOpen(false);
+    };
+    
+    const handleOpenEditVideo = (video: Video) => {
+        handleCloseProfileVideoFeed(); 
+        setTimeout(() => {
+            setVideoToEdit(video);
+        }, 150);
+    };
+
+    const handleSaveVideoDescription = async (videoId: string, newDescription: string) => {
+        try {
+            const response = await fetch(`${API_URL}/videos/${videoId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ description: newDescription }),
+            });
+            if (!response.ok) throw new Error('Failed to update video');
+            
+            const updatedVideoFromServer: Video = await response.json();
+    
+            const updateVideo = (video: Video) => video.id === videoId ? updatedVideoFromServer : video;
+    
+            setVideos(prevVideos => prevVideos.map(updateVideo));
+            
+            if (profileFeedState) {
+                setProfileFeedState(prevState => {
+                    if (!prevState) return null;
+                    return {
+                        ...prevState,
+                        videos: prevState.videos.map(updateVideo)
+                    };
+                });
+            }
+    
+            setVideoToEdit(null);
+            showSuccessToast('Video description updated!');
+    
+        } catch (error) {
+            console.error('Error updating video description:', error);
+            showSuccessToast('Could not update description.');
+            setVideoToEdit(null);
+        }
     };
 
 
@@ -1357,6 +1419,15 @@ const App: React.FC = () => {
                         isVisible={isNavVisible}
                     />
                 )}
+                
+                {uploadStatus !== 'idle' && (
+                    <UploadProgressToast
+                        status={uploadStatus}
+                        progress={uploadProgress}
+                        fileName={uploadFileName}
+                        onCancel={handleCancelUpload}
+                    />
+                )}
 
                 {isUploadViewOpen && <UploadView onUpload={handleUpload} onClose={handleCloseUpload} />}
                 {isEditProfileOpen && <EditProfileModal user={currentUser} onSave={handleSaveProfile} onClose={() => setIsEditProfileOpen(false)} />}
@@ -1420,10 +1491,10 @@ const App: React.FC = () => {
                         onToggleFollow={handleToggleFollow}
                         onShareVideo={handleShareVideo}
                         onViewProfile={(userToView) => {
-                            // When viewing a profile from the modal, close the modal first.
                             handleCloseProfileVideoFeed();
                             handleViewProfile(userToView);
                         }}
+                        onEditVideo={handleOpenEditVideo}
                     />
                 )}
                 {profileStatsModalState && (
@@ -1457,6 +1528,13 @@ const App: React.FC = () => {
                         ad={adForTask}
                         onClose={() => setTaskToWatch(null)}
                         onComplete={handleCompleteTask}
+                    />
+                )}
+                {videoToEdit && (
+                    <EditVideoModal
+                        video={videoToEdit}
+                        onClose={() => setVideoToEdit(null)}
+                        onSave={handleSaveVideoDescription}
                     />
                 )}
             </div>

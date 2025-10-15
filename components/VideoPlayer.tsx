@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Video, User, Ad } from '../types';
-import { HeartIcon, CommentIcon, ShareIcon, MusicIcon, PlayIcon, PauseIcon, FullScreenIcon, VolumeUpIcon, VolumeOffIcon, SettingsIcon } from './icons/Icons';
+import { HeartIcon, CommentIcon, ShareIcon, MusicIcon, PlayIcon, PauseIcon, FullScreenIcon, VolumeUpIcon, VolumeOffIcon, SettingsIcon, PencilIcon } from './icons/Icons';
 import { getYouTubeEmbedUrl } from '../utils/videoUtils';
 import AdBannerOverlay from './AdBannerOverlay';
 
@@ -13,6 +13,7 @@ interface VideoPlayerProps {
   onShareVideo: (videoId: string) => void;
   onViewProfile: (user: User) => void;
   bannerAd?: Ad;
+  onEditVideo?: (video: Video) => void;
 }
 
 const formatNumber = (num: number): string => {
@@ -25,7 +26,7 @@ const formatNumber = (num: number): string => {
     return num.toString();
 };
 
-const VideoPlayer: React.FC<VideoPlayerProps> = ({ video, isActive, onOpenComments, currentUser, onToggleFollow, onShareVideo, onViewProfile, bannerAd }) => {
+const VideoPlayer: React.FC<VideoPlayerProps> = ({ video, isActive, onOpenComments, currentUser, onToggleFollow, onShareVideo, onViewProfile, bannerAd, onEditVideo }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const qualityMenuRef = useRef<HTMLDivElement>(null);
@@ -439,6 +440,12 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ video, isActive, onOpenCommen
 
 
         <div className="flex flex-col items-center space-y-5">
+            {isOwnProfile && onEditVideo && (
+                <button onClick={(e) => { e.stopPropagation(); onEditVideo(video); }} className="flex flex-col items-center">
+                    <PencilIcon className="w-8 h-8"/>
+                    <span className="text-xs font-semibold mt-1">Edit</span>
+                </button>
+            )}
             <button onClick={(e) => { e.stopPropagation(); handleLike(); }} className="flex flex-col items-center">
             <HeartIcon isFilled={isLiked} />
             <span className="text-xs font-semibold mt-1">{video.likes + (isLiked ? 1 : 0)}</span>

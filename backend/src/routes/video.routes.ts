@@ -1,6 +1,6 @@
 
 import { Router } from 'express';
-import { getFeed, uploadVideo, addComment } from '../controllers/video.controller';
+import { getFeed, uploadVideo, addComment, updateVideo } from '../controllers/video.controller';
 // import { authMiddleware } from '../middleware/auth';
 // import { upload } from '../middleware/upload'; // Middleware for handling file uploads
 
@@ -20,6 +20,11 @@ router.post('/upload', /* authMiddleware, upload.single('video'), */ uploadVideo
 // @desc    Add a comment to a video
 // @access  Private
 router.post('/:videoId/comments', /* authMiddleware, */ addComment);
+
+// @route   PUT api/v1/videos/:videoId
+// @desc    Update a video's details
+// @access  Private
+router.put('/:videoId', /* authMiddleware, */ updateVideo);
 
 
 export default router;

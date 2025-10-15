@@ -86,3 +86,31 @@ export const addComment = async (req: Request, res: Response) => {
 
     res.status(201).json(newComment);
 };
+
+// Functional mock: Update a video
+export const updateVideo = async (req: Request, res: Response) => {
+    const { videoId } = req.params;
+    const { description } = req.body;
+    // const userId = req.user.id; // From auth middleware
+
+    if (description === undefined) {
+        return res.status(400).json({ msg: 'Description is required' });
+    }
+
+    const videoIndex = mockVideos.findIndex(v => v.id === videoId);
+    if (videoIndex === -1) {
+        return res.status(404).json({ msg: 'Video not found' });
+    }
+
+    // In a real app, you'd check if the userId matches video.user.id
+    // if (mockVideos[videoIndex].user.id !== userId) {
+    //     return res.status(403).json({ msg: 'User not authorized to edit this video' });
+    // }
+
+    mockVideos[videoIndex].description = description;
+    const updatedVideo = mockVideos[videoIndex];
+
+    console.log(`Video ${videoId} description updated.`);
+
+    res.status(200).json(updatedVideo);
+};

@@ -13,6 +13,7 @@ interface ProfileVideoFeedModalProps {
   onToggleFollow: (userId: string) => void;
   onShareVideo: (videoId: string) => void;
   onViewProfile: (user: User) => void;
+  onEditVideo: (video: Video) => void;
 }
 
 const ProfileVideoFeedModal: React.FC<ProfileVideoFeedModalProps> = ({
@@ -24,6 +25,7 @@ const ProfileVideoFeedModal: React.FC<ProfileVideoFeedModalProps> = ({
   onToggleFollow,
   onShareVideo,
   onViewProfile,
+  onEditVideo,
 }) => {
   const [activeVideoId, setActiveVideoId] = useState<string | null>(videos[startIndex]?.id || null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -88,6 +90,7 @@ const ProfileVideoFeedModal: React.FC<ProfileVideoFeedModalProps> = ({
             onToggleFollow={onToggleFollow}
             onShareVideo={onShareVideo}
             onViewProfile={onViewProfile}
+            onEditVideo={onEditVideo}
           />
         ))}
       </div>
