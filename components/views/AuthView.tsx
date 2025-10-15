@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 // Fix: Correct import for Icons which is now created.
 import { GoogleIcon } from '../icons/Icons';
 
@@ -7,9 +7,14 @@ interface AuthViewProps {
   onLogin: (email: string, password: string) => Promise<{success: boolean, message: string}>;
   onRegister: (email: string, username: string, password: string) => Promise<{success: boolean, message: string}>;
   siteName: string;
+  onGoogleLogin: (credential: string) => Promise<{success: boolean, message: string}>;
 }
 
-const AuthView: React.FC<AuthViewProps> = ({ onLogin, onRegister, siteName }) => {
+declare global {
+    interface Window { google: any; }
+}
+
+const AuthView: React.FC<AuthViewProps> = ({ onLogin, onRegister, siteName, onGoogleLogin }) => {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
@@ -17,6 +22,31 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin, onRegister, siteName }) =>
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+
+  const handleGoogleCallback = async (response: any) => {
+    setIsLoading(true);
+    const result = await onGoogleLogin(response.credential);
+    if (!result.success) {
+        setError(result.message);
+    }
+    // No need to set isLoading to false, as the parent component will unmount this view on success.
+    if(!result.success) setIsLoading(false);
+  };
+
+  useEffect(() => {
+    if (window.google) {
+        window.google.accounts.id.initialize({
+            // IMPORTANT: Replace with your actual Google Client ID from the Google Cloud Console
+            client_id: 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com', 
+            callback: handleGoogleCallback,
+        });
+
+        window.google.accounts.id.renderButton(
+            document.getElementById('googleSignInButton'),
+            { theme: 'outline', size: 'large', type: 'standard', text: 'signin_with', shape: 'rectangular', width: 300 }
+        );
+    }
+  }, []);
 
   const handleSubmit = async () => {
     setError('');
@@ -111,14 +141,11 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin, onRegister, siteName }) =>
           <hr className="flex-grow border-zinc-700" />
         </div>
 
-        <button
-          onClick={() => alert('Google Sign-In not implemented.')}
-          disabled={isLoading}
-          className="w-full py-3 font-semibold rounded-lg bg-white text-black flex items-center justify-center shadow-lg transform hover:scale-105 transition-transform"
+        <div
+          className="w-full py-2 font-semibold rounded-lg bg-white text-black flex items-center justify-center shadow-lg transform hover:scale-105 transition-transform"
         >
-          <GoogleIcon />
-          Sign in with Google
-        </button>
+          <div id="googleSignInButton"></div>
+        </div>
       </div>
 
       <div className="mt-8">

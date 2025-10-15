@@ -1,4 +1,3 @@
-
 # BuzzCast API Documentation
 
 This document provides a basic overview of the BuzzCast REST API endpoints.
@@ -38,6 +37,20 @@ This document provides a basic overview of the BuzzCast REST API endpoints.
   - `200 OK`: Returns a JWT token and a user object.
   - `400 Bad Request`: If fields are missing.
   - `401 Unauthorized`: If credentials are invalid.
+
+### `POST /auth/google-login`
+- **Description**: Authenticates a user via a Google Sign-In ID token.
+- **Access**: Public
+- **Body**:
+  ```json
+  {
+    "credential": "GOOGLE_ID_TOKEN_JWT"
+  }
+  ```
+- **Response**:
+  - `200 OK`: If an existing user is found or a new user is created, returns a JWT token and a user object.
+  - `400 Bad Request`: If credential is missing or invalid.
+  - `500 Server Error`: If server is misconfigured (e.g., missing client ID).
 
 ---
 

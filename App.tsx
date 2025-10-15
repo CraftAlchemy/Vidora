@@ -434,6 +434,29 @@ const App: React.FC = () => {
         }
     };
 
+    const handleGoogleLogin = async (credential: string): Promise<{success: boolean, message: string}> => {
+        try {
+            const response = await fetch(`${API_URL}/auth/google-login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ credential }),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.msg || 'Google Sign-In failed');
+            }
+
+            const { user, token } = await response.json();
+            onLoginSuccess(user, token);
+            setActiveView('feed');
+            return { success: true, message: 'Login successful!' };
+        } catch (error: any) {
+            console.error('Google Sign-In error:', error);
+            return { success: false, message: error.message || 'An unexpected error occurred.' };
+        }
+      };
+
 
     const handleLogout = () => {
         sessionStorage.removeItem('currentUser');
@@ -1143,7 +1166,7 @@ const App: React.FC = () => {
 
 
     if (!isLoggedIn || !currentUser) {
-        return <AuthView onLogin={handleLogin} onRegister={handleRegister} siteName={siteName} />;
+        return <AuthView onLogin={handleLogin} onRegister={handleRegister} onGoogleLogin={handleGoogleLogin} siteName={siteName} />;
     }
 
     if (activeView === 'admin') {
