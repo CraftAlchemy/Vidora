@@ -1,5 +1,3 @@
-
-
 import React, { useRef, useEffect, useCallback, useState, useMemo } from 'react';
 import { Video, User, Ad, AdSettings } from '../../types';
 import VideoPlayer from '../VideoPlayer';

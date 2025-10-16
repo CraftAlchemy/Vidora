@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { LiveStream, ChatMessage, User, Gift, Ad } from '../../types';
 import { CloseIcon, HeartIcon, SendIcon, EmojiIcon, GiftIcon, ShareIcon, CoinIcon, ChevronLeftIcon, PinIcon, PaperclipIcon, VolumeUpIcon, VolumeOffIcon, ShieldCheckIcon, BanUserIcon, TasksIcon, ChevronRightIcon } from '../icons/Icons';
@@ -446,7 +445,7 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, current
                             </button>
                         </div>
                     )}
-                    {showEmojiPicker && <EmojiPicker className="absolute bottom-full mb-2 left-0" onSelectEmoji={(emoji) => setNewMessage(m => m + emoji)} />}
+                    {showEmojiPicker && <EmojiPicker className="absolute bottom-full mb-2 right-0" onSelectEmoji={(emoji) => setNewMessage(m => m + emoji)} />}
                     <div className="relative flex items-end bg-black/40 rounded-full min-h-[44px]">
                         <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
                         <button onClick={() => fileInputRef.current?.click()} className="p-2.5 text-gray-300 hover:text-white shrink-0" aria-label="Attach image">
@@ -461,7 +460,7 @@ const ViewerLiveView: React.FC<ViewerLiveViewProps> = ({ stream, onBack, current
                             onKeyPress={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(); } }}
                             className="flex-1 w-full bg-transparent text-sm focus:outline-none placeholder-gray-400 resize-none py-2 max-h-24 overflow-y-auto scrollbar-hide"
                         />
-                        <button onClick={() => setShowEmojiPicker(s => !s)} className="p-2.5 text-gray-300 hover:text-white shrink-0">
+                        <button onClick={() => setShowEmojiPicker(s => !s)} className="absolute right-2.5 bottom-2 p-1 text-gray-400 hover:text-white">
                             <EmojiIcon className="w-5 h-5"/>
                         </button>
                     </div>

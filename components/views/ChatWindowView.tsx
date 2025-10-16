@@ -173,7 +173,7 @@ const ChatWindowView: React.FC<ChatWindowViewProps> = ({ currentUser, conversati
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
                   onKeyPress={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(); } }}
-                  className="w-full bg-zinc-800 rounded-2xl pl-4 pr-10 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-pink-500 placeholder-gray-500 resize-none max-h-32 overflow-y-auto scrollbar-hide"
+                  className="w-full bg-zinc-800 rounded-full pl-4 pr-10 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-pink-500 placeholder-gray-500 resize-none max-h-32 overflow-y-auto scrollbar-hide"
                 />
                  <button onClick={() => setShowEmojiPicker(s => !s)} className="absolute right-2.5 bottom-2 p-1 text-gray-400 hover:text-white">
                     <EmojiIcon className="w-5 h-5"/>

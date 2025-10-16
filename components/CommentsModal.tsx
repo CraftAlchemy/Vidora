@@ -37,7 +37,7 @@ const Comment: React.FC<CommentProps> = ({ comment, currentUser, onViewProfile, 
                 <img src={comment.user.avatarUrl} alt={comment.user.username} className="w-9 h-9 rounded-full" />
             </button>
             <div className="flex-1">
-                <p className="text-xs text-gray-400">@{comment.user.username}</p>
+                <button onClick={() => onViewProfile(comment.user)} className="text-xs text-gray-400 hover:underline">@{comment.user.username}</button>
                 <p className="text-sm break-words">{comment.text}</p>
                 <div className="flex items-center gap-4 text-xs text-gray-500 mt-1">
                     <span>{comment.timestamp}</span>

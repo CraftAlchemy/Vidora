@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { LiveStream, User, Ad } from '../../types';
 import LiveDiscoveryView from './LiveDiscoveryView';

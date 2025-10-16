@@ -18,7 +18,7 @@ interface LiveDiscoveryViewProps {
   onNavigate: (view: View) => void;
 }
 
-const LiveCard: React.FC<{ stream: LiveStream; onClick: () => void }> = ({ stream, onClick }) => {
+const LiveCard: React.FC<{ stream: LiveStream; onClick: () => void; onViewProfile: (user: User) => void; }> = ({ stream, onClick, onViewProfile }) => {
   const [isHovered, setIsHovered] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -75,7 +75,9 @@ const LiveCard: React.FC<{ stream: LiveStream; onClick: () => void }> = ({ strea
       <div className="absolute bottom-0 left-0 p-3 text-white z-10">
         <p className="font-bold">{stream.title}</p>
         <div className="flex items-center mt-1">
-          <img src={stream.user.avatarUrl} alt={stream.user.username} className="w-6 h-6 rounded-full border-2 border-white" />
+          <button onClick={(e) => { e.stopPropagation(); onViewProfile(stream.user); }}>
+            <img src={stream.user.avatarUrl} alt={stream.user.username} className="w-6 h-6 rounded-full border-2 border-white" />
+          </button>
           <p className="text-sm ml-2">@{stream.user.username}</p>
         </div>
       </div>
@@ -167,7 +169,7 @@ const LiveDiscoveryView: React.FC<LiveDiscoveryViewProps> = ({ liveStreams, onGo
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
           {filteredAndActiveStreams.length > 0 ? (
             filteredAndActiveStreams.map(stream => (
-              <LiveCard key={stream.id} stream={stream} onClick={() => setSelectedStreamId(stream.id)} />
+              <LiveCard key={stream.id} stream={stream} onClick={() => setSelectedStreamId(stream.id)} onViewProfile={onViewProfile} />
             ))
           ) : (
             <div className="col-span-2 sm:col-span-3 md:col-span-4 text-center text-gray-400 py-10">

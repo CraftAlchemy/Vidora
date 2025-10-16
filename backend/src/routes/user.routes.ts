@@ -1,4 +1,3 @@
-
 import { Router } from 'express';
 import { updateUser, getUserProfile, toggleFollow } from '../controllers/user.controller';
 // import { authMiddleware } from '../middleware/auth'; // A placeholder for auth middleware
