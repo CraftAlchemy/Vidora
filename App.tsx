@@ -122,6 +122,11 @@ const App: React.FC = () => {
     const [previousView, setPreviousView] = useState<View>('feed');
     const [isNavVisible, setIsNavVisible] = useState(true);
 
+    // Video Feed Pagination State
+    const [videoPage, setVideoPage] = useState(1);
+    const [hasMoreVideos, setHasMoreVideos] = useState(true);
+    const [isFetchingVideos, setIsFetchingVideos] = useState(false);
+
     // Chat State
     const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
 
@@ -272,15 +277,28 @@ const App: React.FC = () => {
         setTimeout(() => setSuccessMessage(''), 3000);
     };
 
-    const fetchVideos = async () => {
+    const fetchVideos = async (page: number) => {
+        if (isFetchingVideos) return;
+        setIsFetchingVideos(true);
         try {
-            const response = await fetch(`${API_URL}/videos/feed`);
+            const response = await fetch(`${API_URL}/videos/feed?page=${page}&limit=5`);
             if (!response.ok) throw new Error('Failed to fetch videos');
             const data = await response.json();
-            setVideos(data.videos);
+            
+            setVideos(prev => page === 1 ? data.videos : [...prev, ...data.videos]);
+            setVideoPage(data.currentPage + 1);
+            setHasMoreVideos(data.currentPage < data.totalPages);
         } catch (error) {
             console.error("Could not fetch videos:", error);
             showSuccessToast("Error: Could not load video feed.");
+        } finally {
+            setIsFetchingVideos(false);
+        }
+    };
+
+    const handleLoadMoreVideos = () => {
+        if (!isFetchingVideos && hasMoreVideos) {
+            fetchVideos(videoPage);
         }
     };
 
@@ -313,7 +331,9 @@ const App: React.FC = () => {
 
     useEffect(() => {
         if (isLoggedIn) {
-            fetchVideos();
+            setVideoPage(1);
+            setHasMoreVideos(true);
+            fetchVideos(1);
         }
     }, [isLoggedIn]);
 
@@ -1290,6 +1310,9 @@ const App: React.FC = () => {
                             adSettings={adSettings}
                             interstitialAds={activeAds.filter(ad => ad.placement === 'feed_interstitial')}
                             bannerAds={activeAds.filter(ad => ad.placement === 'feed_video_overlay')}
+                            onLoadMore={handleLoadMoreVideos}
+                            hasMore={hasMoreVideos}
+                            isLoading={isFetchingVideos}
                         />;
             case 'live':
                 return <LiveView 
@@ -1410,7 +1433,7 @@ const App: React.FC = () => {
                             onStartTask={handleStartTask}
                         />
             default:
-                return <FeedView videos={videos} currentUser={currentUser} onOpenComments={handleOpenComments} setIsNavVisible={setIsNavVisible} onToggleFollow={handleToggleFollow} onShareVideo={handleShareVideo} onViewProfile={handleViewProfile} adSettings={adSettings} interstitialAds={[]} bannerAds={[]} />;
+                return <FeedView videos={videos} currentUser={currentUser} onOpenComments={handleOpenComments} setIsNavVisible={setIsNavVisible} onToggleFollow={handleToggleFollow} onShareVideo={handleShareVideo} onViewProfile={handleViewProfile} adSettings={adSettings} interstitialAds={[]} bannerAds={[]} onLoadMore={()=>{}} hasMore={false} isLoading={false} />;
         }
     };
 

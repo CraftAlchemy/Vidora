@@ -14,6 +14,9 @@ interface FeedViewProps {
   adSettings: AdSettings;
   interstitialAds: Ad[];
   bannerAds: Ad[];
+  onLoadMore: () => void;
+  hasMore: boolean;
+  isLoading: boolean;
 }
 
 const FeedView: React.FC<FeedViewProps> = ({
@@ -26,7 +29,10 @@ const FeedView: React.FC<FeedViewProps> = ({
   onViewProfile,
   adSettings,
   interstitialAds,
-  bannerAds
+  bannerAds,
+  onLoadMore,
+  hasMore,
+  isLoading
 }) => {
   
   const feedItems = useMemo(() => {
@@ -49,6 +55,7 @@ const FeedView: React.FC<FeedViewProps> = ({
   const [fullScreenVideoId, setFullScreenVideoId] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const lastScrollY = useRef(0);
+  const loaderRef = useRef(null);
 
   const handleSkipAd = useCallback(() => {
     if (!containerRef.current || !activeItemId) return;
@@ -118,6 +125,28 @@ const FeedView: React.FC<FeedViewProps> = ({
       scrollContainer?.removeEventListener('scroll', handleScroll);
     };
   }, [feedItems, observerCallback, handleScroll]);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+        entries => {
+            if (entries[0].isIntersecting && hasMore && !isLoading) {
+                onLoadMore();
+            }
+        },
+        { root: containerRef.current, threshold: 1.0 }
+    );
+
+    const currentLoader = loaderRef.current;
+    if (currentLoader) {
+        observer.observe(currentLoader);
+    }
+
+    return () => {
+        if (currentLoader) {
+            observer.unobserve(currentLoader);
+        }
+    };
+  }, [hasMore, isLoading, onLoadMore]);
   
   const getBannerAdForVideo = (video: Video) => {
       if (!adSettings.isEnabled || bannerAds.length === 0) return undefined;
@@ -158,7 +187,14 @@ const FeedView: React.FC<FeedViewProps> = ({
                    />;
           }
         })}
+        {/* Loader element at the end */}
+        {hasMore && <div ref={loaderRef} className="h-1 w-full" />}
       </div>
+       {isLoading && (
+            <div className="absolute bottom-20 left-1/2 -translate-x-1/2 p-2 bg-black/50 rounded-full z-10">
+                <div className="w-6 h-6 border-4 border-t-pink-500 border-zinc-700 rounded-full animate-spin"></div>
+            </div>
+        )}
     </div>
   );
 };

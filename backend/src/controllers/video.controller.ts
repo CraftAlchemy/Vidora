@@ -1,32 +1,45 @@
-
 import { Request, Response } from 'express';
 import prisma from '../lib/prisma';
 
 // GET /api/v1/videos/feed
 export const getFeed = async (req: Request, res: Response) => {
     try {
-        const videos = await prisma.video.findMany({
-            where: { status: 'approved' },
-            include: { 
-                user: true, 
-                commentsData: {
-                    include: {
-                        user: true,
-                        replies: {
-                            include: {
-                                user: true
+        const page = parseInt(req.query.page as string) || 1;
+        const limit = parseInt(req.query.limit as string) || 5;
+        const skip = (page - 1) * limit;
+
+        const [videos, totalVideos] = await prisma.$transaction([
+            prisma.video.findMany({
+                where: { status: 'approved' },
+                skip,
+                take: limit,
+                include: { 
+                    user: true, 
+                    commentsData: {
+                        include: {
+                            user: true,
+                            replies: {
+                                include: {
+                                    user: true
+                                }
                             }
+                        },
+                        orderBy: {
+                            timestamp: 'desc'
                         }
                     },
-                    orderBy: {
-                        timestamp: 'desc'
-                    }
+                    videoSources: true
                 },
-                videoSources: true
-            },
-            orderBy: { uploadDate: 'desc' },
+                orderBy: { uploadDate: 'desc' },
+            }),
+            prisma.video.count({ where: { status: 'approved' } })
+        ]);
+        
+        res.status(200).json({
+            videos,
+            currentPage: page,
+            totalPages: Math.ceil(totalVideos / limit),
         });
-        res.status(200).json({ videos });
     } catch (error) {
         console.error('Error fetching feed:', error);
         res.status(500).json({ msg: 'Server error while fetching feed.' });
