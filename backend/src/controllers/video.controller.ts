@@ -1,116 +1,140 @@
 
 import { Request, Response } from 'express';
-import { mockVideos, mockUsers } from '../data';
-import { Video, Comment } from '../types';
+import prisma from '../lib/prisma';
 
-// Placeholder: Get video feed
-// FIX: Use Request and Response types directly from express to resolve type conflicts.
+// GET /api/v1/videos/feed
 export const getFeed = async (req: Request, res: Response) => {
-    console.log('Fetching video feed');
-    // We return the current state of our in-memory data store
-    res.status(200).json({ videos: mockVideos });
+    try {
+        const videos = await prisma.video.findMany({
+            where: { status: 'approved' },
+            include: { 
+                user: true, 
+                commentsData: {
+                    include: {
+                        user: true,
+                        replies: {
+                            include: {
+                                user: true
+                            }
+                        }
+                    },
+                    orderBy: {
+                        timestamp: 'desc'
+                    }
+                },
+                videoSources: true
+            },
+            orderBy: { uploadDate: 'desc' },
+        });
+        res.status(200).json({ videos });
+    } catch (error) {
+        console.error('Error fetching feed:', error);
+        res.status(500).json({ msg: 'Server error while fetching feed.' });
+    }
 };
 
-// Functional mock: Upload a video
-// FIX: Use Request and Response types directly from express to resolve type conflicts.
+// POST /api/v1/videos/upload
 export const uploadVideo = async (req: Request, res: Response) => {
-    const { description } = req.body;
-    // const videoFile = req.file; // In a real app, from multer middleware
-    // const userId = req.user.id; // From auth middleware
-    const userId = 'u1'; // Mock user for demonstration
+    const { description, userId } = req.body;
 
-    if (!description) {
-        return res.status(400).json({ msg: 'Description is required' });
+    if (!description || !userId) {
+        return res.status(400).json({ msg: 'Description and userId are required' });
     }
 
-    const currentUser = mockUsers.find(u => u.id === userId);
-    if (!currentUser) {
-        return res.status(404).json({ msg: 'User not found' });
+    try {
+        const currentUser = await prisma.user.findUnique({ where: { id: userId } });
+        if (!currentUser) {
+            return res.status(404).json({ msg: 'User not found' });
+        }
+
+        const newVideo = await prisma.video.create({
+            data: {
+                description,
+                userId,
+                videoSources: { create: [{ quality: 'Auto', url: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4' }] },
+                thumbnailUrl: 'https://i.ytimg.com/vi/otNh9bTjX1k/maxresdefault.jpg', // Placeholder
+                status: 'approved',
+            },
+            include: { user: true, commentsData: true, videoSources: true }
+        });
+        
+        res.status(201).json(newVideo);
+    } catch (error) {
+        console.error('Error uploading video:', error);
+        res.status(500).json({ msg: 'Server error during video upload.' });
     }
-
-    const newVideo: Video = {
-        id: `v${Date.now()}`,
-        // In a real app, this URL would come from a cloud storage service
-        videoSources: [{ quality: 'Auto', url: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4' }],
-        thumbnailUrl: 'https://i.ytimg.com/vi/otNh9bTjX1k/maxresdefault.jpg',
-        description,
-        user: currentUser,
-        likes: 0,
-        comments: 0,
-        shares: 0,
-        views: 0,
-        commentsData: [],
-        status: 'approved',
-        uploadDate: new Date().toISOString(),
-    };
-
-    mockVideos.unshift(newVideo); // Add to the start of the array to simulate a feed
-
-    console.log('Video uploaded, new video count:', mockVideos.length);
-    
-    res.status(201).json(newVideo);
 };
 
-// Functional mock: Add a comment to a video
-// FIX: Use Request and Response types directly from express to resolve type conflicts.
+// POST /api/v1/videos/:videoId/comments
 export const addComment = async (req: Request, res: Response) => {
     const { videoId } = req.params;
-    const { text, userId } = req.body; // Use userId from request body
+    const { text, userId } = req.body;
 
-    // Validate that both text and userId were provided
     if (!text || !userId) {
         return res.status(400).json({ msg: 'Comment text and userId are required' });
     }
 
-    const video = mockVideos.find(v => v.id === videoId);
-    if (!video) {
-        return res.status(404).json({ msg: 'Video not found' });
+    try {
+        const [video, user] = await Promise.all([
+            prisma.video.findUnique({ where: { id: videoId } }),
+            prisma.user.findUnique({ where: { id: userId } })
+        ]);
+
+        if (!video) return res.status(404).json({ msg: 'Video not found' });
+        if (!user) return res.status(404).json({ msg: 'User not found' });
+
+        const [newComment, _] = await prisma.$transaction([
+            prisma.comment.create({
+                data: {
+                    text,
+                    userId,
+                    videoId,
+                },
+                include: { user: true }
+            }),
+            prisma.video.update({
+                where: { id: videoId },
+                data: { comments: { increment: 1 } },
+            })
+        ]);
+
+        res.status(201).json(newComment);
+    } catch (error) {
+        console.error(`Error adding comment to video ${videoId}:`, error);
+        res.status(500).json({ msg: 'Server error during adding comment.' });
     }
-
-    const user = mockUsers.find(u => u.id === userId);
-    if (!user) {
-        return res.status(404).json({ msg: 'User not found' });
-    }
-
-    const newComment: Comment = {
-        id: `c${Date.now()}`,
-        user: user,
-        text,
-        timestamp: new Date().toISOString(),
-    };
-
-    video.commentsData.unshift(newComment);
-    video.comments += 1;
-
-    console.log(`Comment added to video ${videoId}. Total comments: ${video.comments}`);
-
-    res.status(201).json(newComment);
 };
 
-// Functional mock: Update a video
+// PUT /api/v1/videos/:videoId
 export const updateVideo = async (req: Request, res: Response) => {
     const { videoId } = req.params;
-    const { description } = req.body;
-    // const userId = req.user.id; // From auth middleware
+    const { description, userId } = req.body; // Assuming userId is passed for auth check
 
     if (description === undefined) {
         return res.status(400).json({ msg: 'Description is required' });
     }
 
-    const videoIndex = mockVideos.findIndex(v => v.id === videoId);
-    if (videoIndex === -1) {
-        return res.status(404).json({ msg: 'Video not found' });
+    try {
+        const video = await prisma.video.findUnique({ where: { id: videoId } });
+        if (!video) {
+            return res.status(404).json({ msg: 'Video not found' });
+        }
+        
+        // This is not secure, but without auth middleware it's a placeholder
+        // In a real app, userId would come from a decoded JWT.
+        if (userId && video.userId !== userId) {
+            return res.status(403).json({ msg: 'User not authorized to edit this video' });
+        }
+
+        const updatedVideo = await prisma.video.update({
+            where: { id: videoId },
+            data: { description },
+            include: { user: true, commentsData: true, videoSources: true }
+        });
+
+        res.status(200).json(updatedVideo);
+    } catch (error) {
+        console.error(`Error updating video ${videoId}:`, error);
+        res.status(500).json({ msg: 'Server error during video update.' });
     }
-
-    // In a real app, you'd check if the userId matches video.user.id
-    // if (mockVideos[videoIndex].user.id !== userId) {
-    //     return res.status(403).json({ msg: 'User not authorized to edit this video' });
-    // }
-
-    mockVideos[videoIndex].description = description;
-    const updatedVideo = mockVideos[videoIndex];
-
-    console.log(`Video ${videoId} description updated.`);
-
-    res.status(200).json(updatedVideo);
 };

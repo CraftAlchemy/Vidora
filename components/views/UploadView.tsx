@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { CloseIcon } from '../icons/Icons';
 import { UploadSource } from '../../types';
+import RecordView from './RecordView';
 
 interface UploadViewProps {
   onUpload: (source: UploadSource, description: string) => void;
@@ -8,6 +9,7 @@ interface UploadViewProps {
 }
 
 const UploadView: React.FC<UploadViewProps> = ({ onUpload, onClose }) => {
+  const [activeTab, setActiveTab] = useState<'upload' | 'record'>('upload');
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [description, setDescription] = useState('');
@@ -62,6 +64,11 @@ const UploadView: React.FC<UploadViewProps> = ({ onUpload, onClose }) => {
         setPreviewUrl(null);
     }
   };
+  
+  const handleRecordingComplete = (recordedFile: File) => {
+      handleFileSelect(recordedFile);
+      setActiveTab('upload');
+  };
 
   const handlePost = () => {
     // Prioritize file upload if both happen to be filled
@@ -102,72 +109,88 @@ const UploadView: React.FC<UploadViewProps> = ({ onUpload, onClose }) => {
             <CloseIcon />
           </button>
         </header>
-
-        <main className="flex-1 flex flex-col items-center justify-center p-4 overflow-y-auto">
-            <div className="w-full max-w-[270px]">
-                {previewUrl ? (
-                    <div className="w-full aspect-[9/16] rounded-lg overflow-hidden bg-black mb-4">
-                    <video src={previewUrl} controls className="w-full h-full object-cover" />
-                    </div>
-                ) : (
-                    <div
-                    className={`w-full aspect-[9/16] border-2 border-dashed rounded-lg flex flex-col items-center justify-center text-center p-4 cursor-pointer transition-colors ${isDragging ? 'border-pink-500 bg-zinc-800' : 'border-zinc-600 hover:border-pink-500'}`}
-                    onClick={() => fileInputRef.current?.click()}
-                    onDragOver={handleDragOver}
-                    onDragLeave={handleDragLeave}
-                    onDrop={handleDrop}
-                    >
-                    <svg className="w-12 h-12 text-zinc-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeWidth={1} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
-                    <p className="font-semibold">Drag & Drop or Tap</p>
-                    <p className="text-xs text-gray-400 mt-1">to upload a video file</p>
-                    </div>
-                )}
-                 <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="video/*"
-                    className="hidden"
-                    onChange={handleFileChange}
-                />
-            </div>
-
-            <div className="flex items-center my-4 w-full max-w-[270px]">
-                <hr className="flex-grow border-zinc-700" />
-                <span className="mx-4 text-gray-400 text-sm font-semibold">OR</span>
-                <hr className="flex-grow border-zinc-700" />
-            </div>
-
-             <div className="w-full max-w-[270px]">
-                <label htmlFor="video-url" className="block text-sm font-medium text-gray-400 mb-2 text-center">
-                    Embed from URL
-                </label>
-                <input
-                    id="video-url"
-                    type="url"
-                    placeholder="e.g., https://youtube.com/watch?v=..."
-                    value={videoUrl}
-                    onChange={handleUrlChange}
-                    className="w-full p-2 bg-zinc-800 rounded-md border border-zinc-700 focus:outline-none focus:ring-2 focus:ring-pink-500"
-                />
-            </div>
-        </main>
-
-        <footer className="p-4 border-t border-zinc-800 space-y-4 flex-shrink-0">
-            <textarea
-              placeholder="Add a description..."
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={3}
-              className="w-full p-2 bg-zinc-800 rounded-md border border-zinc-700 focus:outline-none focus:ring-2 focus:ring-pink-500"
-            />
-            <button
-              onClick={handlePost}
-              disabled={isPostDisabled}
-              className="w-full py-3 font-semibold rounded-lg bg-gradient-to-r from-pink-500 to-red-500 text-white shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 transition-transform"
-            >
-              Post
+        
+        <nav className="flex-shrink-0 flex p-1 bg-zinc-800 m-4 rounded-lg">
+            <button onClick={() => setActiveTab('upload')} className={`flex-1 py-2 text-sm font-semibold rounded-md transition-colors ${activeTab === 'upload' ? 'bg-pink-600' : 'text-gray-300'}`}>
+                Upload
             </button>
-        </footer>
+            <button onClick={() => setActiveTab('record')} className={`flex-1 py-2 text-sm font-semibold rounded-md transition-colors ${activeTab === 'record' ? 'bg-pink-600' : 'text-gray-300'}`}>
+                Record
+            </button>
+        </nav>
+
+        {activeTab === 'upload' && (
+            <>
+                <main className="flex-1 flex flex-col items-center justify-center p-4 pt-0 overflow-y-auto">
+                    <div className="w-full max-w-[270px]">
+                        {previewUrl ? (
+                            <div className="w-full aspect-[9/16] rounded-lg overflow-hidden bg-black mb-4">
+                            <video src={previewUrl} controls className="w-full h-full object-cover" />
+                            </div>
+                        ) : (
+                            <div
+                            className={`w-full aspect-[9/16] border-2 border-dashed rounded-lg flex flex-col items-center justify-center text-center p-4 cursor-pointer transition-colors ${isDragging ? 'border-pink-500 bg-zinc-800' : 'border-zinc-600 hover:border-pink-500'}`}
+                            onClick={() => fileInputRef.current?.click()}
+                            onDragOver={handleDragOver}
+                            onDragLeave={handleDragLeave}
+                            onDrop={handleDrop}
+                            >
+                            <svg className="w-12 h-12 text-zinc-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeWidth={1} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+                            <p className="font-semibold">Drag & Drop or Tap</p>
+                            <p className="text-xs text-gray-400 mt-1">to upload a video file</p>
+                            </div>
+                        )}
+                        <input
+                            ref={fileInputRef}
+                            type="file"
+                            accept="video/*"
+                            className="hidden"
+                            onChange={handleFileChange}
+                        />
+                    </div>
+
+                    <div className="flex items-center my-4 w-full max-w-[270px]">
+                        <hr className="flex-grow border-zinc-700" />
+                        <span className="mx-4 text-gray-400 text-sm font-semibold">OR</span>
+                        <hr className="flex-grow border-zinc-700" />
+                    </div>
+
+                    <div className="w-full max-w-[270px]">
+                        <label htmlFor="video-url" className="block text-sm font-medium text-gray-400 mb-2 text-center">
+                            Embed from URL
+                        </label>
+                        <input
+                            id="video-url"
+                            type="url"
+                            placeholder="e.g., https://youtube.com/watch?v=..."
+                            value={videoUrl}
+                            onChange={handleUrlChange}
+                            className="w-full p-2 bg-zinc-800 rounded-md border border-zinc-700 focus:outline-none focus:ring-2 focus:ring-pink-500"
+                        />
+                    </div>
+                </main>
+                <footer className="p-4 border-t border-zinc-800 space-y-4 flex-shrink-0">
+                    <textarea
+                    placeholder="Add a description..."
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    rows={3}
+                    className="w-full p-2 bg-zinc-800 rounded-md border border-zinc-700 focus:outline-none focus:ring-2 focus:ring-pink-500"
+                    />
+                    <button
+                    onClick={handlePost}
+                    disabled={isPostDisabled}
+                    className="w-full py-3 font-semibold rounded-lg bg-gradient-to-r from-pink-500 to-red-500 text-white shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 transition-transform"
+                    >
+                    Post
+                    </button>
+                </footer>
+            </>
+        )}
+        {activeTab === 'record' && (
+            <RecordView onRecordingComplete={handleRecordingComplete} />
+        )}
+
       </div>
     </div>
   );

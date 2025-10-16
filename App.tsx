@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { User, Video, LiveStream, WalletTransaction, Conversation, ChatMessage, Comment, PayoutRequest, MonetizationSettings, UploadSource, CreatorApplication, CoinPack, SavedPaymentMethod, DailyRewardSettings, Ad, AdSettings, Task, TaskSettings } from './types';
-import { mockUsers, mockLiveStreams, mockConversations, systemUser, mockPayoutRequests, mockCreatorApplications, mockAds, mockTasks } from './services/mockApi';
+import { mockConversations, systemUser, mockPayoutRequests, mockCreatorApplications, mockAds, mockTasks } from './services/mockApi';
 import { getCurrencyInfoForLocale, CurrencyInfo } from './utils/currency';
 import { CurrencyContext } from './contexts/CurrencyContext';
 
@@ -111,9 +111,9 @@ const defaultTaskSettings: TaskSettings = {
 const App: React.FC = () => {
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [currentUser, setCurrentUser] = useState<User | null>(null);
-    const [users, setUsers] = useState<User[]>(mockUsers);
+    const [users, setUsers] = useState<User[]>([]);
     const [videos, setVideos] = useState<Video[]>([]);
-    const [liveStreams, setLiveStreams] = useState<LiveStream[]>(mockLiveStreams);
+    const [liveStreams, setLiveStreams] = useState<LiveStream[]>([]);
     const [conversations, setConversations] = useState<Conversation[]>(mockConversations);
     const [payoutRequests, setPayoutRequests] = useState<PayoutRequest[]>(mockPayoutRequests);
     const [creatorApplications, setCreatorApplications] = useState<CreatorApplication[]>(mockCreatorApplications);
@@ -267,6 +267,11 @@ const App: React.FC = () => {
         }
     });
 
+    const showSuccessToast = (message: string) => {
+        setSuccessMessage(message);
+        setTimeout(() => setSuccessMessage(''), 3000);
+    };
+
     const fetchVideos = async () => {
         try {
             const response = await fetch(`${API_URL}/videos/feed`);
@@ -279,6 +284,18 @@ const App: React.FC = () => {
         }
     };
 
+    const fetchLiveStreams = async () => {
+        try {
+            const response = await fetch(`${API_URL}/livestreams`);
+            if (!response.ok) throw new Error('Failed to fetch live streams');
+            const data = await response.json();
+            setLiveStreams(data.streams);
+        } catch (error) {
+            console.error("Could not fetch live streams:", error);
+        }
+    };
+
+
     const onLoginSuccess = (user: User, token?: string) => {
         setCurrentUser(user);
         setIsLoggedIn(true);
@@ -286,7 +303,6 @@ const App: React.FC = () => {
         if (token) {
             localStorage.setItem('authToken', token);
         }
-        fetchVideos();
 
         const lastClaimed = localStorage.getItem('lastRewardClaim');
         const today = new Date().toISOString().split('T')[0];
@@ -296,15 +312,27 @@ const App: React.FC = () => {
     };
 
     useEffect(() => {
-        const storedUser = sessionStorage.getItem('currentUser');
-        if (storedUser) {
-            try {
-                onLoginSuccess(JSON.parse(storedUser));
-            } catch (error) {
-                console.error("Failed to parse stored user", error);
-                sessionStorage.removeItem('currentUser');
-            }
+        if (isLoggedIn) {
+            fetchVideos();
         }
+    }, [isLoggedIn]);
+
+    useEffect(() => {
+        const checkUserAndFetchData = async () => {
+            const storedUser = sessionStorage.getItem('currentUser');
+            if (storedUser) {
+                try {
+                    const user = JSON.parse(storedUser);
+                    onLoginSuccess(user, localStorage.getItem('authToken') || undefined);
+                } catch (error) {
+                    console.error("Failed to parse stored user", error);
+                    sessionStorage.removeItem('currentUser');
+                }
+            }
+        };
+
+        checkUserAndFetchData();
+        fetchLiveStreams();
         
         // Detect user locale and set currency info
         const info = getCurrencyInfoForLocale(navigator.language);
@@ -478,6 +506,8 @@ const App: React.FC = () => {
         localStorage.removeItem('authToken');
         setCurrentUser(null);
         setIsLoggedIn(false);
+        setVideos([]);
+        setLiveStreams([]);
     };
 
     const handleNavigate = (view: View) => {
@@ -507,29 +537,33 @@ const App: React.FC = () => {
         handleNavigate('live');
     };
 
-    const handleStartStream = useCallback((title: string, source: BroadcastSource, data?: File | string) => {
+    const handleStartStream = useCallback(async (title: string, source: BroadcastSource, data?: File | string) => {
         if (!currentUser) return;
 
-        const newStream: LiveStream = {
-            id: `ls-${currentUser.id}-${Date.now()}`,
-            title,
-            user: currentUser,
-            thumbnailUrl: 'https://images.pexels.com/photos/1763075/pexels-photo-1763075.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2', // A generic placeholder
-            viewers: 1, // Broadcaster counts as 1
-            videoUrl: source === 'url' ? (data as string) : undefined, // Only for URL source type
-            status: 'live',
-        };
-        
-        setMyBroadcastSession({
-            stream: newStream,
-            source: source,
-            sourceData: data,
-        });
-        setLiveStreams(prev => [newStream, ...prev.filter(s => s.user.id !== currentUser.id)]);
+        try {
+            const response = await fetch(`${API_URL}/livestreams/start`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ title, userId: currentUser.id })
+            });
+            if (!response.ok) throw new Error('Failed to start stream');
+            const { stream: newStream } = await response.json();
+            
+            setMyBroadcastSession({
+                stream: newStream,
+                source: source,
+                sourceData: data,
+            });
+            setLiveStreams(prev => [newStream, ...prev.filter(s => s.user.id !== currentUser.id)]);
+        } catch (error) {
+            console.error('Error starting stream:', error);
+            showSuccessToast('Could not start stream.');
+        }
     }, [currentUser]);
 
     const handleEndStream = useCallback(() => {
         if (!myBroadcastSession) return;
+        // Here you would also call a backend endpoint to update the stream status
         setLiveStreams(prev => prev.filter(s => s.id !== myBroadcastSession.stream.id));
         setMyBroadcastSession(null);
     }, [myBroadcastSession]);
@@ -577,8 +611,6 @@ const App: React.FC = () => {
             setUploadStatus('uploading');
             setUploadProgress(0);
     
-            // Simulate upload progress for UX, as the mock backend doesn't support
-            // multipart/form-data, which is needed for real progress tracking.
             const simulationDuration = 3000;
             const updateInterval = 50;
             const increments = simulationDuration / updateInterval;
@@ -592,13 +624,12 @@ const App: React.FC = () => {
                     clearInterval(uploadIntervalRef.current!);
                     uploadIntervalRef.current = null;
                     
-                    // Once simulation is complete, make the actual API call with JSON
                     (async () => {
                         try {
                             const response = await fetch(`${API_URL}/videos/upload`, {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ description }),
+                                body: JSON.stringify({ description, userId: currentUser.id }),
                             });
     
                             if (!response.ok) throw new Error('Upload failed');
@@ -617,7 +648,7 @@ const App: React.FC = () => {
                 }
             }, updateInterval);
             
-        } else { // source.type === 'url' - similar simulation for consistency
+        } else { // 'url' source not handled by backend, keeping mock behavior for now
             setUploadFileName(source.data);
             setUploadStatus('uploading');
             setUploadProgress(0);
@@ -693,56 +724,45 @@ const App: React.FC = () => {
         }
     };
 
-    const handleToggleFollow = (userIdToToggle: string) => {
+    const handleToggleFollow = async (userIdToToggle: string) => {
         if (!currentUser) return;
-
-        const isCurrentlyFollowing = currentUser.followingIds?.includes(userIdToToggle);
-
-        // Update the main source of truth: the users array
-        const updatedUsers = users.map(u => {
-            // Update the user being followed/unfollowed
-            if (u.id === userIdToToggle) {
-                const currentFollowers = u.followers || 0;
-                return { ...u, followers: isCurrentlyFollowing ? currentFollowers - 1 : currentFollowers + 1 };
+    
+        try {
+            const response = await fetch(`${API_URL}/users/${userIdToToggle}/toggle-follow`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ currentUserId: currentUser.id }),
+            });
+    
+            if (!response.ok) {
+                throw new Error('Follow/unfollow failed');
             }
-            // Update the current user who is doing the following/unfollowing
-            if (u.id === currentUser.id) {
-                const updatedFollowingIds = isCurrentlyFollowing
-                    ? u.followingIds?.filter(id => id !== userIdToToggle) || []
-                    : [...(u.followingIds || []), userIdToToggle];
-                return { ...u, followingIds: updatedFollowingIds, following: updatedFollowingIds.length };
-            }
-            return u;
-        });
-        setUsers(updatedUsers);
-
-        // Sync other state slices from the updated users array
-        const updatedCurrentUser = updatedUsers.find(u => u.id === currentUser.id);
-        if (updatedCurrentUser) {
+    
+            const { isFollowing } = await response.json();
+    
+            // Optimistic update on frontend
+            const updatedCurrentUser = {
+                ...currentUser,
+                followingIds: isFollowing
+                    ? [...(currentUser.followingIds || []), userIdToToggle]
+                    : (currentUser.followingIds || []).filter(id => id !== userIdToToggle),
+            };
+            updatedCurrentUser.following = updatedCurrentUser.followingIds?.length;
             setCurrentUser(updatedCurrentUser);
-        }
-        
-        if (viewedProfileUser) {
-            const updatedViewedUser = updatedUsers.find(u => u.id === viewedProfileUser.id);
-            if (updatedViewedUser) {
-                setViewedProfileUser(updatedViewedUser);
+    
+            if (viewedProfileUser && viewedProfileUser.id === userIdToToggle) {
+                setViewedProfileUser({
+                    ...viewedProfileUser,
+                    followers: (viewedProfileUser.followers || 0) + (isFollowing ? 1 : -1)
+                });
             }
+            
+            showSuccessToast(isFollowing ? 'Followed!' : 'Unfollowed!');
+    
+        } catch (error) {
+            console.error('Error toggling follow:', error);
+            showSuccessToast('Could not complete action.');
         }
-        
-        if (profileStatsModalState) {
-            const updatedModalUser = updatedUsers.find(u => u.id === profileStatsModalState.user.id);
-            if (updatedModalUser) {
-                setProfileStatsModalState(prev => prev ? {...prev, user: updatedModalUser} : null);
-            }
-        }
-
-        // Update videos array which has its own user objects
-        setVideos(prevVideos => prevVideos.map(video => {
-            const updatedVideoUser = updatedUsers.find(u => u.id === video.user.id);
-            return updatedVideoUser ? { ...video, user: updatedVideoUser } : video;
-        }));
-        
-        showSuccessToast(isCurrentlyFollowing ? `Unfollowed!` : `Followed!`);
     };
 
     const handleShareVideo = (videoId: string) => {
@@ -771,11 +791,10 @@ const App: React.FC = () => {
     };
 
     const handleBanStreamer = (streamerId: string) => {
+        // This is an admin action and would typically involve a secure backend call
         const userToBan = users.find(u => u.id === streamerId);
         if (!userToBan) return;
 
-        setUsers(prev => prev.map(u => u.id === streamerId ? { ...u, status: 'banned' } : u));
-        
         setLiveStreams(prev => prev.map(s => s.user.id === streamerId ? { ...s, status: 'ended_by_moderator' } : s));
         
         sendSystemMessage(streamerId, "Your live stream has been terminated and your account has been banned for violating community guidelines.");
@@ -787,10 +806,30 @@ const App: React.FC = () => {
         setIsEditProfileOpen(true);
     };
 
-    const handleSaveProfile = (updatedUser: User) => {
-        setCurrentUser(updatedUser);
-        setIsEditProfileOpen(false);
-        showSuccessToast('Profile updated!');
+    const handleSaveProfile = async (updatedUser: User) => {
+        if (!currentUser) return;
+        try {
+            const response = await fetch(`${API_URL}/users/${currentUser.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    username: updatedUser.username,
+                    bio: updatedUser.bio,
+                    avatarUrl: updatedUser.avatarUrl,
+                 }),
+            });
+    
+            if (!response.ok) throw new Error('Profile update failed');
+    
+            const savedUser = await response.json();
+            setCurrentUser(savedUser);
+            sessionStorage.setItem('currentUser', JSON.stringify(savedUser));
+            setIsEditProfileOpen(false);
+            showSuccessToast('Profile updated!');
+        } catch (error) {
+            console.error('Error saving profile:', error);
+            showSuccessToast('Could not update profile.');
+        }
     };
     
     const handleClaimReward = () => {
@@ -979,57 +1018,8 @@ const App: React.FC = () => {
     };
 
     const sendSystemMessage = (targetUserId: string, text: string) => {
-        const targetUser = users.find(u => u.id === targetUserId);
-        if (!targetUser) return;
-
-        const newMessage: ChatMessage = {
-            id: `msg-system-${Date.now()}`,
-            senderId: systemUser.id,
-            text,
-            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            isRead: false,
-        };
-        
-        setConversations(prev => {
-            let convoExists = false;
-            let targetConvo: Conversation | undefined;
-
-            const updatedConvos = prev.map(c => {
-                if (c.user.id === targetUserId) {
-                    convoExists = true;
-                    targetConvo = {
-                        ...c,
-                        messages: [...c.messages, newMessage],
-                        lastMessage: {
-                            text: newMessage.text,
-                            timestamp: newMessage.timestamp,
-                            isRead: false,
-                            senderId: newMessage.senderId,
-                        }
-                    };
-                    return targetConvo;
-                }
-                return c;
-            });
-
-            if (convoExists && targetConvo) {
-                const otherConvos = updatedConvos.filter(c => c.id !== targetConvo!.id);
-                return [targetConvo, ...otherConvos];
-            } else {
-                const newConvo: Conversation = {
-                    id: `convo-system-${targetUserId}`,
-                    user: targetUser,
-                    messages: [newMessage],
-                    lastMessage: {
-                        text: newMessage.text,
-                        timestamp: newMessage.timestamp,
-                        isRead: false,
-                        senderId: newMessage.senderId,
-                    }
-                };
-                return [newConvo, ...prev];
-            }
-        });
+        // This would be a backend operation (e.g., via WebSockets or push notifications)
+        console.log(`Sending system message to ${targetUserId}: "${text}"`);
     };
 
     const handleRequestPayout = (amount: number, method: string, payoutInfo: string) => {
@@ -1053,7 +1043,6 @@ const App: React.FC = () => {
             }
         };
         setCurrentUser(updatedUser);
-        setUsers(prev => prev.map(u => u.id === currentUser.id ? updatedUser : u));
 
         setIsRequestPayoutModalOpen(false);
         showSuccessToast('Payout request submitted!');
@@ -1089,8 +1078,6 @@ const App: React.FC = () => {
             commentPrivacySetting: setting,
         };
         setCurrentUser(updatedUser);
-        setUsers(users.map(u => u.id === currentUser.id ? updatedUser : u));
-        setVideos(videos.map(v => v.user.id === currentUser.id ? { ...v, user: updatedUser } : v));
         setIsCommentPrivacyModalOpen(false);
         showSuccessToast('Comment privacy updated!');
     };
@@ -1127,16 +1114,8 @@ const App: React.FC = () => {
         ));
 
         if (status === 'approved') {
-            const userToUpdate = users.find(u => u.id === application.user.id);
-            if (userToUpdate) {
-                const updatedUser = { ...userToUpdate, role: 'creator' as const };
-                setUsers(users.map(u => u.id === userToUpdate.id ? updatedUser : u));
-                if (currentUser && currentUser.id === userToUpdate.id) {
-                    setCurrentUser(updatedUser);
-                }
-                sendSystemMessage(userToUpdate.id, "Congratulations! Your application to become a creator has been approved. The Creator Dashboard is now available on your profile.");
-                showSuccessToast(`Application for @${userToUpdate.username} approved.`);
-            }
+            sendSystemMessage(application.user.id, "Congratulations! Your application to become a creator has been approved. The Creator Dashboard is now available on your profile.");
+            showSuccessToast(`Application for @${application.user.username} approved.`);
         } else {
              sendSystemMessage(application.user.id, "We have reviewed your creator application. Unfortunately, you do not meet the criteria at this time. Please continue to grow your channel and apply again later.");
              showSuccessToast(`Application for @${application.user.username} rejected.`);
@@ -1154,7 +1133,6 @@ const App: React.FC = () => {
 
         const updatedUser = { ...currentUser, savedPaymentMethods: updatedMethods };
         setCurrentUser(updatedUser);
-        setUsers(users.map(u => u.id === currentUser.id ? updatedUser : u));
         setIsAddPaymentMethodModalOpen(false);
         showSuccessToast('Payment method added!');
     };
@@ -1169,13 +1147,7 @@ const App: React.FC = () => {
 
         const updatedUser = { ...currentUser, savedPaymentMethods: updatedMethods };
         setCurrentUser(updatedUser);
-        setUsers(users.map(u => u.id === currentUser.id ? updatedUser : u));
         showSuccessToast('Payment method removed.');
-    };
-
-    const showSuccessToast = (message: string) => {
-        setSuccessMessage(message);
-        setTimeout(() => setSuccessMessage(''), 3000);
     };
 
     const formatWithConversion = (amount: number): string => {
@@ -1235,7 +1207,7 @@ const App: React.FC = () => {
             const response = await fetch(`${API_URL}/videos/${videoId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ description: newDescription }),
+                body: JSON.stringify({ description: newDescription, userId: currentUser?.id }),
             });
             if (!response.ok) throw new Error('Failed to update video');
             
@@ -1472,8 +1444,8 @@ const App: React.FC = () => {
                 )}
 
                 {isUploadViewOpen && <UploadView onUpload={handleUpload} onClose={handleCloseUpload} />}
-                {isEditProfileOpen && <EditProfileModal user={currentUser} onSave={handleSaveProfile} onClose={() => setIsEditProfileOpen(false)} />}
-                {isDailyRewardOpen && <DailyRewardModal 
+                {isEditProfileOpen && currentUser && <EditProfileModal user={currentUser} onSave={handleSaveProfile} onClose={() => setIsEditProfileOpen(false)} />}
+                {isDailyRewardOpen && currentUser && <DailyRewardModal 
                     streakCount={currentUser.streakCount || 0} 
                     onClaim={handleClaimReward} 
                     onClose={() => setIsDailyRewardOpen(false)} 
