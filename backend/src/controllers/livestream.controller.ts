@@ -42,7 +42,7 @@ export const startLiveStream = async (req: Request, res: Response) => {
                 thumbnailUrl: 'https://images.pexels.com/photos/1763075/pexels-photo-1763075.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2', // Placeholder
                 viewers: 1, // Broadcaster
                 status: 'live',
-                videoUrl: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4' // Placeholder
+                videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4' // Placeholder
             },
             include: { user: true }
         });

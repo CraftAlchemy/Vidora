@@ -152,7 +152,7 @@ export const mockUsers: User[] = [
 export const mockVideos: Video[] = [
   {
     id: 'v1',
-    videoSources: [{ quality: 'Auto', url: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4' }],
+    videoSources: [{ quality: 'Auto', url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4' }],
     description: 'This is a fun video of a bunny!',
     user: mockUsers[1],
     likes: 12000,
@@ -169,7 +169,7 @@ export const mockVideos: Video[] = [
   },
   {
     id: 'v2',
-    videoSources: [{ quality: 'Auto', url: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4' }],
+    videoSources: [{ quality: 'Auto', url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4' }],
     description: 'Check out this cool animation. #animation',
     user: mockUsers[2],
     likes: 55000,
@@ -183,7 +183,7 @@ export const mockVideos: Video[] = [
   },
   {
     id: 'v3',
-    videoSources: [{ quality: 'Auto', url: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4' }],
+    videoSources: [{ quality: 'Auto', url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4' }],
     description: 'Coding my new project!',
     user: mockUsers[0],
     likes: 8900,
@@ -197,7 +197,7 @@ export const mockVideos: Video[] = [
   },
   {
     id: 'v4',
-    videoSources: [{ quality: 'Auto', url: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4' }],
+    videoSources: [{ quality: 'Auto', url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4' }],
     description: 'Travel vlog from Bali!',
     user: mockUsers[4],
     likes: 20,

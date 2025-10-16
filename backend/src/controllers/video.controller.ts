@@ -51,7 +51,7 @@ export const uploadVideo = async (req: Request, res: Response) => {
             data: {
                 description,
                 userId,
-                videoSources: { create: [{ quality: 'Auto', url: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4' }] },
+                videoSources: { create: [{ quality: 'Auto', url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4' }] },
                 thumbnailUrl: 'https://i.ytimg.com/vi/otNh9bTjX1k/maxresdefault.jpg', // Placeholder
                 status: 'approved',
             },

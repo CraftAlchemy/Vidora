@@ -149,7 +149,7 @@ export const mockAds: Ad[] = [
         type: 'video',
         placement: 'feed_interstitial',
         content: {
-            videoUrl: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4',
+            videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4',
             linkUrl: 'https://example.com/gaming',
         },
         ctaText: 'Get V-Bucks',
